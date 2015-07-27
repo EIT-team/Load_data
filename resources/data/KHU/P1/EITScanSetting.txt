@@ -1,0 +1,5 @@
+Frequency	Null
+Amplitude	Null
+Gain	1000
+Average	64
+Current level	0
