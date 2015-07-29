@@ -1,0 +1,7 @@
+2015-01-24: Release of TSA 4.2.9
+
+- support for MacOSX added                
+  (tested on Homebrew Octave)
+
+2015-01-18
+	maintenance release: fixes minor bugs and configuration issues
