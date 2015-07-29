@@ -1,4 +1,4 @@
-function [ Out  ] = ScouseTom_TrigProcess( Trigger,HDR )
+function [ TT  ] = ScouseTom_TrigProcess( Trigger,HDR )
 %ScouseTom_TrigProcess Process trigger channels - Code to reject
 %artefactual triggers and remove incomplete injections
 %   Inputs:
@@ -8,6 +8,8 @@ function [ Out  ] = ScouseTom_TrigProcess( Trigger,HDR )
 
 % This is separate from TrigReadChn as I will use the output of this but I
 % can be bothered to argue with Kirill about how he does the EPs
+
+% to do - clean fucked up injections switches 
 
 
 %% find only correct type of events in injection trigger channel
@@ -28,9 +30,17 @@ Freq_chn=find(strcmp(Trigger.Type, 'Freq'));
 Stim_chn=find(strcmp(Trigger.Type, 'Stim'));
 Switch_chn=find(strcmp(Trigger.Type, 'Switch'));
 
-%get starts and stops
-InjectionStarts=Trigger.RisingEdges{Start_chn};
-InjectionStops=Trigger.RisingEdges{Stop_chn};
+if ~isempty(Start_chn)
+    InjectionStarts=Trigger.RisingEdges{Start_chn};
+else
+    InjectionStarts=[];
+end
+
+if ~isempty(Stop_chn)
+    InjectionStops=Trigger.RisingEdges{Stop_chn};
+else
+    InjectionStops=[];
+end
 
 if ~isempty(Switch_chn)
     Switches=Trigger.RisingEdges{Switch_chn};
@@ -49,9 +59,6 @@ if ~isempty(Freq_chn)
 else
     Freqs=[];
 end
-
-
-
 %% check that all channels were read
 
 
@@ -81,25 +88,24 @@ for iInj=1:NumInj
     end
     
     %find the indicators which belong to this injection
-    InjectionSwitches{iInj}= Switches (Switches > curStart & Switches < curEnd);
-    FreqChanges{iInj}= Freqs (Freqs > curStart & Freqs < curEnd);
-    Stimulations{iInj}= Stims (Stims > curStart & Stims < curEnd);
+    InjectionSwitches{iInj}= Switches (Switches >= curStart & Switches < curEnd);
+    FreqChanges{iInj}= Freqs (Freqs >= curStart & Freqs < curEnd);
+    Stimulations{iInj}= Stims (Stims >= curStart & Stims < curEnd);
     
-    %Clean the injections somehow
+    %Clean the injections somehow....
     
     
 end
 
 %% output dat shit
-
-
 disp('Injection channels read just fine');
 
-Out.InjectionSwitches =InjectionSwitches;
-Out.FreqChanges=FreqChanges;
-Out.Stimulations=Stimulations;
-Out.InjectionStops=InjectionStops;
-Out.InjectionStarts=InjectionStarts;
+TT.InjectionSwitches =InjectionSwitches;
+TT.FreqChanges=FreqChanges;
+TT.Stimulations=Stimulations;
+TT.InjectionStops=InjectionStops;
+TT.InjectionStarts=InjectionStarts;
+TT.Trigger=Trigger; % store the trigger variable too
 
 
 end

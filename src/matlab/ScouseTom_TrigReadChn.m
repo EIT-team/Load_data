@@ -3,6 +3,8 @@ function [ Trigger ] = ScouseTom_TrigReadChn( HDR )
 %which is which according to the ID codes at the start of the file
 %   Detailed explanation goes here
 
+% Todo - check HDR is ok - can run on broken files at the moment
+
 %% Define Variables
 
 % Other useful info from HDR
@@ -40,6 +42,12 @@ ID_Codes.Num(5)=5;
 
 %there may be others here - system has 3 spare channles EX_1 2 and 3 on
 %arduino. and Kirills physchotool box stuff will also go here
+
+
+
+%% CHECK HDR IS OK here
+
+
 
 
 %% Get trigger channel input according to which file type it is
