@@ -132,7 +132,6 @@ if lastPrt==0
     lastPrt=N_prt;
 end
 
-disp('Data segmented ok');
-disp(['Last protocol line was ', num2str(lastPrt), ' of ', num2str(N_prt)]);
+fprintf('Data segmented ok - last protocol line was %d of %d\n',lastPrt, N_prt);
 end
 
