@@ -2,6 +2,11 @@ function [] = ScouseTom_TrigView( HDR,Trigger )
 %SCOUSETOM_TRIGVIEW Plot trigs in dataset 
 %   Detailed explanation goes here
 
+
+% TO DO:
+% needs to not plot repeated values to make it faster
+% only plot relevant data
+
 %% get labels from trigger struct if given
 
 trignum=8;
@@ -10,10 +15,10 @@ if exist('Trigger') %if trigger file was given, take the labels and the channels
 
     GoodChn=cellfun(@(x) ~isempty(x),Trigger.RisingEdges);
     TrigDisp=find(GoodChn);
-    ChnLabel=fliplr(  Trigger.Type(TrigDisp));
+    ChnLabel=(  Trigger.Type(TrigDisp));
     
 else %create generic labels if the trigger file is not given
-    ChnLabel=fliplr({'Chn1','Chn2','Chn3','Chn4','Chn5','Chn6','Chn7','Chn8'});
+    ChnLabel=({'Chn1','Chn2','Chn3','Chn4','Chn5','Chn6','Chn7','Chn8'});
     TrigDisp=1:trignum;
 end
 
@@ -28,12 +33,43 @@ switch HDR.TYPE
     case 'EEG'
 end
 
+Fs=HDR.SampleRate;
+
+%% Process data
+
+t=((0:length(IndicatorPinData)-1)/Fs)';
+
+
+[ii, jj]=find(diff(IndicatorPinData));
+
+tchange=sort([ii;ii+1;ii-1;length(t)]);
+
+
+
+
 %% plot that!
 
 figure;
-strips(IndicatorPinData(:,TrigDisp));
+
+sep=0.5;
+hold on
+for ichn=(1:length(TrigDisp))
+
+plot(t(tchange),(1.5*(ichn-1)+sep)+IndicatorPinData(tchange,TrigDisp(ichn)));
+
+
+end
+hold off
+ylim([0 1.5*length(TrigDisp)+sep]);
 title(['Triggers in dataset: ' fname]);
-set(gca,'YTickLabel',ChnLabel);
+
+
+
+set(gca,'YTickLabel',ChnLabel,'YTick',1.5*((1:length(TrigDisp))-1)+sep*2,'ygrid','on');
+xlabel('Time (s)')
+ylabel('Channel');
+
+
 
 end
 
