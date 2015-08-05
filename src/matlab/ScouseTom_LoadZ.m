@@ -85,7 +85,7 @@ for iZ = 1:Z_checks_num
     
     %demodulate each segment in turn using hilber transfrom
     fprintf('Demodulating...');
-    Vsegdemod=demod_seg2(Vseg,Fs,N_prt,N_elec,1,B,A);
+    Vsegdemod=ScouseTom_data_DemodSeg(Vseg,Fs,N_prt,N_elec,1,B,A);
     fprintf('Done!\n');
     
     %get boundary voltages - average each segment - ignoring the messed up

@@ -1,4 +1,4 @@
-function [ output_args ] = ScouseTom_ProcessBV( HDR,TT,ExpSetup )
+function [ BV ] = ScouseTom_ProcessBV( HDR,TT,ExpSetup )
 %SCOUSETOM_ Summary of this function goes here
 %   Detailed explanation goes here
 
@@ -6,7 +6,7 @@ function [ output_args ] = ScouseTom_ProcessBV( HDR,TT,ExpSetup )
 
 %% Do error checking of inputs HERE
 
-%is there any data, do TT and ExpSetup match? 
+%is there any data, do TT and ExpSetup match?
 
 
 
@@ -38,7 +38,10 @@ eegfname=HDR.FILE.Name;
 eegfpath=HDR.FILE.Path;
 
 
-%% calculate the keep and rem idx 
+BW=50; %bandwidth of bandpass filter in demod
+
+
+%% calculate the keep and rem idx
 % need this beore loading data to know which channels to estimate contact
 % impedance on
 
@@ -70,7 +73,7 @@ keep_idx=setdiff(1:length(prt_full),rem_idx);
 %% get injection channels for use in contact impedance calculations
 
 %loop through protocol - find which lines in the BV the injection
-%electrodes belong to then add then to an array for each electrode. 
+%electrodes belong to then add then to an array for each electrode.
 
 %I cant remember why I do this separately to the stuff about injections
 %above...
@@ -109,7 +112,7 @@ bigmat=matfile(fullfile(eegfpath,[eegfname '-BV.mat']),'Writable',true);
 bigmat.TT=TT;
 %save the system settings
 bigmat.ExpSetup=ExpSetup;
-%save info and the protocol indexes 
+%save info and the protocol indexes
 bigmat.info=info;
 bigmat.keep_idx=keep_idx;
 bigmat.rem_idx=rem_idx;
@@ -161,34 +164,33 @@ disp('----------------------');
 iteration=0;
 
 
+curInjSwitch=TT.InjectionSwitches{1};
+
+
 while finished == 0
     
+    %% sort out which switches are in this chunk
+    
     iteration=iteration+1;
-    
-    if iteration ==16
-        %         disp('this should pause now');
-    end
-    
     
     %convert window into samples to samples
     datawindow=(datawindow_s*Fs)+Data_start_sample;
     
-    
     if first ==1
         %for first run find the start position
-        idx_f=find(SWW.InjectionSwitches > datawindow(1),1);
+        idx_f=find(curInjSwitch > datawindow(1),1);
         %             first =0;
     else
         idx_f=next_sw;
     end
     
     % find last COMPLETE switch in recording
-    idx_l=find(SWW.InjectionSwitches > datawindow(2),1)-2;
+    idx_l=find(curInjSwitch > datawindow(2),1)-2;
     
     if isempty(idx_l) ==1;
         %if no more switches in file then this is the last iteration
         finished=1;
-        idx_l=length(SWW.InjectionSwitches);
+        idx_l=length(curInjSwitch);
         
     end
     
@@ -203,29 +205,33 @@ while finished == 0
     end
     
     
+    %% load data in memory
+    
+    
     disp(['Loading data between ', num2str(datawindow_s(1)), 's and ', num2str(datawindow_s(2)), 's']);
     
     V=sread(HDR,datawindow_s(2)-datawindow_s(1),datawindow_s(1)+Data_start);
-    V(:,N_elec+1:end)=[]; %remove extra channels in case reference was loaded too
+    %     V(:,N_elec+1:end)=[]; %remove extra channels in case reference was loaded too
     
-    disp('----------------------');
+    %%  Check Injection starts with expected injection
     
     %for first time only - find the injecting electrodes - query if it isnt the
     %first line in the protocol. This is to allow for files where the biosemi
     %stopped recording and we carried on.
     
     if first ==1
+        
         %take either the first injection or the first second
         
-        tmp=SWW.InjectionSwitches(idx_f+1)-SWW.InjectionSwitches(idx_f);
+        tmp=curInjSwitch(idx_f+1)-curInjSwitch(idx_f);
         if tmp > Fs
             tmp=Fs;
         end
         
-        tmpidx=SWW.InjectionSwitches(idx_f)-datawindow(1):SWW.InjectionSwitches(idx_f)-datawindow(1)+tmp;
+        tmpidx=curInjSwitch-datawindow(1):curInjSwitch-datawindow(1)+tmp;
         
         %estimate the injection pairs from the two largest RMS values
-        [InjPairs, estimatebadness]=ScouseTom_EstimateInjPair(V(tmpidx,:));
+        [InjPairs, estimatebadness]=ScouseTom_data_EstInjPair(V(tmpidx,:));
         
         %get the injection pair from the protocol
         ProtPairs=Prot(1,:)';
@@ -236,9 +242,10 @@ while finished == 0
             
             %if the injection channels match then crack on
             if all(sort(InjPairs)==sort(ProtPairs)) ==1
-                disp('Data starts with first protocol line');
+                %disp('Data starts with first protocol line');
                 lastprt=0; %this is already set above but being didactic
             else
+                disp('----------------------');
                 disp('Data DOES NOT start with first protocol line');
                 
                 %find matching protocl line
@@ -250,79 +257,43 @@ while finished == 0
             end
             
         else
-            %THIS IS TO FIX MY BUG IN SWITCHESSERIALV3 WHERE THE SWITCHES
-            %WERE NOT SET UNTIL THE SECOND ITERATION
-            %estimate is ambiguous so try the next injection
+            disp('----------------------');
+            %if it is still ambiguous - ask the user what to do
+            msgbox('Starting injection pair is ambiguous! Please check the graph and enter manually','Uh Oh!');
             
-            disp('Result was ambiguous for first switch, trying the second one');
+            %plot the voltages for this swithc
+            figure;
+            plot(V(tmpidx,:));
+            title('starting injection data - ambiguous injection');
             
+            %ask them to input which protocol line this
+            start_poss=input('Please enter the protocol line or leave empty to use best guess:');
             
-            % redo the whole thing but with the next injection
-            tmp=SWW.InjectionSwitches(idx_f+2)-SWW.InjectionSwitches(idx_f+1);
-            if tmp > Fs
-                tmp=Fs;
+            %is its empty just use best guess
+            if isempty(start_poss)
+                disp('FINE! I will just use the possibly wrong guess then shall I?');
+                start_poss=find(all([InjPairs(1)==Prot(:,1) InjPairs(2)==Prot(:,2)],2));
+                
+                disp(['Starting injection pair was found to be : ', num2str(start_poss)'])
+                disp('Data processing carrying on now...');
             end
-            
-            tmpidx=SWW.InjectionSwitches(idx_f+1)-datawindow(1):SWW.InjectionSwitches(idx_f+1)-datawindow(1)+tmp;
-            
-            %estimate the injection pairs from the two largest RMS values
-            [InjPairs, estimatebadness]=ScouseTom_EstimateInjPair(V(tmpidx,:));
-            
-            if estimatebadness == 0
-                
-                %if the injection channels match then crack on
-                if all(sort(InjPairs)==sort(ProtPairs)) ==1
-                    disp('Data starts with first protocol line');
-                    lastprt=0; %this is already set above but being didactic
-                else
-                    disp('Data DOES NOT start with first protocol line');
-                    
-                    %find matching protocl line
-                    start_poss=find(all([InjPairs(1)==Prot(:,1) InjPairs(2)==Prot(:,2)],2));
-                    disp(['Starting injection pair was found to be : ', num2str(start_poss)])
-                    disp('Data processing carrying on now...');
-                    
-                    lastprt=start_poss-1;
-                end
-                
-            else
-                
-                %if it is still ambiguous - ask the user what to do
-                msgbox('Starting injection pair is ambiguous! Please check the graph and enter manually','Uh Oh!');
-                
-                %plot the voltages for this swithc
-                figure;
-                plot(V(tmpidx,:));
-                title('starting injection data - ambiguous injection');
-                
-                %ask them to input which protocol line this
-                start_poss=input('Please enter the protocol line or leave empty to use best guess:');
-                
-                %is its empty just use best guess
-                if isempty(start_poss)
-                    disp('FINE! I will just use the possibly wrong guess then shall I?');
-                    start_poss=find(all([InjPairs(1)==Prot(:,1) InjPairs(2)==Prot(:,2)],2));
-                    
-                    disp(['Starting injection pair was found to be : ', num2str(start_poss)'])
-                    disp('Data processing carrying on now...');
-                end
-                lastprt=start_poss-1;
-            end
-            
+            lastprt=start_poss-1;
+            disp('----------------------');
         end
+        
         
     end
     
+    %% Segment data into each injection
     
-    disp('----------------------');
-    disp('Segmenting data');
+%     disp('Segmenting data');
     
     %next protocol line to use is one on from last one
     nextprt=lastprt+1;
     
     %segment this data between the complete protocol lines starting
     %from correct protocol line
-    [Vseg, lastprt]=segment_ind(V,SWW.InjectionSwitches(idx_f:idx_l)-datawindow(1),0.0001,N_prt,N_elec,Fs,nextprt);
+    [Vseg, lastprt]=ScouseTom_data_Seg(V,curInjSwitch(idx_f:idx_l)-datawindow(1),0.0001,N_prt,N_elec,Fs,nextprt);
     
     % for the first time only - determine carrier frequency, filter coeffs,
     % samples to trim in demodulation
@@ -330,7 +301,7 @@ while finished == 0
     if first ==1
         disp('----------------------');
         %using first injection, find the best filter coefficients
-        [trim_demod,B,A,Fc]=ScouseTom_GetFilterTrim( Vseg(nextprt,:,Prot(nextprt,1),1),Fs,0 );
+        [trim_demod,B,A,Fc]=ScouseTom_data_GetFilterTrim( Vseg(nextprt,:,Prot(nextprt,1),1),Fs,BW,0 );
         disp('----------------------');
         info.B=B;
         info.A=A;
@@ -339,9 +310,6 @@ while finished == 0
         %save to .mat file
         bigmat.info=info;
     end
-    
-    
-    %     clear V
     
     %   If there are any left overs then stick them at the beginning
     
@@ -361,7 +329,8 @@ while finished == 0
     end
     
     
-    %take the incomplete repeat and trim matrix
+    %take the incomplete repeat and trim matrix - only do this is there was
+    %more than 1 repeat so Vseg is 4D
     if lastprt ~= N_prt && ndims(Vseg) == 4
         Vsegleftover=Vseg(1:lastprt,:,:,end);
         Vseg(:,:,:,end)=[];
@@ -373,30 +342,36 @@ while finished == 0
     
     disp(['Number of complete repeats in chunk : ', num2str(N_rep)]);
     
+    %% Demodulate and calculate BV from average in each segment
+    
+    
     %demodulate data
     disp('Demodulating data');
-    Vseg_demod=demod_seg2(Vseg,Fs,N_prt,N_elec,N_rep,B,A);
+    Vseg_demod=ScouseTom_data_DemodSeg(Vseg,Fs,N_prt,N_elec,N_rep,B,A);
     
     disp('Getting Boundary Voltages');
     
     %get boundary voltages by taking mean
-    [BV, STD]=seg2BV(Vseg_demod,trim_demod);
+    [BV, STD]=ScouseTom_data_Seg2BV(Vseg_demod,trim_demod);
     %     clear V_seg_demod
     
+    %% Calculate Impedance on each injection electrode
+    
     Z=nan(N_elec,N_rep);
-    Zstd=nan(size(Z));
+    Zstd=Z;
     %get contact impedance values from BV
     for iElec=1:N_elec
         
         if all(isnan(Elec_inj(iElec,:)))
             Z(iElec,:)=nan;
-            Zst(iElec,:)=nan;
+            Zstd(iElec,:)=nan;
         else
-            
             Z(iElec,:)=ZSF*nanmean(BV(Elec_inj(iElec,~isnan(Elec_inj(iElec,:))),:),1);
             Zstd(iElec,:)=ZSF*nanstd(BV(Elec_inj(iElec,~isnan(Elec_inj(iElec,:))),:),1);
         end
     end
+    
+    %% save Data
     
     %save them
     bigmat.BV(1:size(BV,1),start_rep:start_rep+N_rep-1)=BV;
@@ -404,35 +379,7 @@ while finished == 0
     bigmat.Z(1:size(Z,1),start_rep:start_rep+N_rep-1)=Z;
     bigmat.Zstd(1:size(Zstd,1),start_rep:start_rep+N_rep-1)=Zstd;
     
-    
-    %get noise for kdawgs correction - from up to the the middle samples 1000 after trim demod of the
-    %second repeat (not using first as we get those spikes sometimes which
-    %fuck things up)
-    if first ==1
-        
-        samp_est=(N_sample-trim_demod)-trim_demod;
-        if samp_est > 1000
-            samp_est = 1000;
-        end
-        
-        est_f=fix((N_sample/2) - (samp_est/2));
-        
-        %which repeat to use for noiseest? if there is more than 1 repeat
-        %then use the second
-        
-        if N_rep >1
-            noiserep=2;
-        else
-            noiserep=1;
-        end
-        
-        
-        noiseest=getnoise_k(squeeze(Vseg_demod(:,est_f:est_f+samp_est-1,:,noiserep)));
-        bigmat.noiseest=noiseest;
-    end
-    
-    %     clear BV STD
-    
+    %% Output Progress
     disp(['Finished processing data between ', num2str(datawindow_s(1)), 's and ', num2str(datawindow_s(2)), 's']);
     
     %calculate the percentage complete
@@ -454,14 +401,14 @@ while finished == 0
     disp(percentind);
     fprintf('%.1f %% complete\r',percent_complete);
     
-    
+    %% Calculate variables for next step
     
     %calculate new datablock
     
     if finished ==0
         
         %data window starts in second which includes next switch
-        datawindow_s(1)=floor(SWW.InjectionSwitches(next_sw)/Fs)-Data_start;
+        datawindow_s(1)=floor(curInjSwitch(next_sw)/Fs)-Data_start;
         %data window ends at next chunk
         datawindow_s(2)=datawindow_s(2)+chunk_time;
         
@@ -479,7 +426,7 @@ while finished == 0
     
 end
 
-
+%% All processing done!
 
 disp('All processing finished! At f--ing last!');
 teatime=toc(tstart);
