@@ -6,7 +6,7 @@ function [ BV ] = ScouseTom_ProcessBV( HDR,TT,ExpSetup )
 
 %% Do error checking of inputs HERE
 
-%is there any data, do TT and ExpSetup match?
+%is there any data, do TT and ExpSetup match? 
 
 
 
@@ -96,7 +96,7 @@ Elec_inj(:,all(isnan(Elec_inj),1))=[];
 %scale factor - impedance conversion
 ZSF=1/((1e6)*ExpSetup.Amp);
 
-%% create matfile object for saving data THIS IS WHERE I STOPPED
+%% create matfile object for saving data
 
 %matfile object can handle big files, and stops everything being stored in
 %memory
@@ -390,16 +390,15 @@ while finished == 0
     end
     
     %display it visually
-    winlength=40;
+    winlength=30;
     decdone=floor(percent_complete/(100/winlength));
     percentind=repmat('.',1,winlength);
     percentind(1:decdone-1)=repmat('-',1,decdone-1);
     if decdone >0
         percentind(decdone)='>';
     end
-    
-    disp(percentind);
-    fprintf('%.1f %% complete\r',percent_complete);
+   
+    fprintf('%s %.1f %% complete\r',percentind,percent_complete);
     
     %% Calculate variables for next step
     
