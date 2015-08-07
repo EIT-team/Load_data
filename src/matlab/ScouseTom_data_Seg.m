@@ -46,7 +46,7 @@ Bad_switches=find(Sw_in < fix(0.9*Sw_True) == 1)+1; %are any switches less than 
 
 if ~isempty(Bad_switches) % if there are bad switches
     
-    disp('Small switches found in the sequence, deleting');
+    warning('Small switches found in the sequence, deleting YOU MIGHT NOT WANT THIS');
     
     %precaution to stop it running forever
     maxit=length(Bad_switches);
@@ -124,7 +124,7 @@ else
 end
 
 %report what the last protocol line was. it is incremented in the loop
-%above so take one off it
+%above so take one off it - KLUDGE
 lastPrt=iPrt-1;
 
 %if it is equal to zero that "wrap" it round to the last value

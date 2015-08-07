@@ -1,4 +1,4 @@
-function [ BV ] = ScouseTom_ProcessBV( HDR,TT,ExpSetup )
+function [ BV ] = ScouseTom_ProcessBV( HDR,TT,ExpSetup,varargin )
 %SCOUSETOM_ Summary of this function goes here
 %   Detailed explanation goes here
 
@@ -6,8 +6,15 @@ function [ BV ] = ScouseTom_ProcessBV( HDR,TT,ExpSetup )
 
 %% Do error checking of inputs HERE
 
-%is there any data, do TT and ExpSetup match? 
+%is there any data, do TT and ExpSetup match? Is the freq order ok?
+%Expsetup and freq order should match
 
+%allow for passing filter info into function
+
+
+%% Defaults
+BW=50; %bandwidth of bandpass filter in demod
+progressbarlength=30; % number of - used in progressbar
 
 
 %% See what type of system we are using
@@ -31,14 +38,34 @@ end
 Prot=ExpSetup.Protocol;
 N_prt=size(Prot,1);
 N_elec=ExpSetup.Elec_num;
+N_freq=ExpSetup.Info.FreqNum;
 
 Fs=HDR.SampleRate;
-
 eegfname=HDR.FILE.Name;
 eegfpath=HDR.FILE.Path;
 
+%% Single or Multifrequency Mode
 
-BW=50; %bandwidth of bandpass filter in demod
+if N_freq == 1
+    SingleFreqMode =1;
+else
+    SingleFreqMode=0;
+end
+
+
+
+%if in multifrequency mode then we need the freq order found in varargin
+
+if ~SingleFreqMode
+    FreqOrder=varargin{1};
+end
+
+
+
+
+
+
+
 
 
 %% calculate the keep and rem idx
@@ -118,7 +145,16 @@ bigmat.keep_idx=keep_idx;
 bigmat.rem_idx=rem_idx;
 bigmat.prt_full=prt_full;
 
+%store frewq order if it exists
+if ~SingleFreqMode
+    bigmat.FreqOrder=FreqOrder;
+end
+
+
 %% Calculate Data Length
+
+%here we are cheating and are only taking first injection (thus covering
+%99.99% of use cases!
 
 %sread needs integer seconds
 Data_start=floor(TT.InjectionStarts(1)/Fs);
@@ -158,17 +194,19 @@ next_sw=0;
 %find the first line of the protocol - MAKE THIS CHECK RATHER THAN DO IT
 lastprt=0;
 
-disp('----------------------');
+% disp('----------------------');
 
 %it
 iteration=0;
 
 
 curInjSwitch=TT.InjectionSwitches{1};
+if ~SingleFreqMode
+    curFreqSwitch=TT.FreqChanges{1};
+end
 
 
 while finished == 0
-    
     %% sort out which switches are in this chunk
     
     iteration=iteration+1;
@@ -184,7 +222,7 @@ while finished == 0
         idx_f=next_sw;
     end
     
-    % find last COMPLETE switch in recording
+    % find last COMPLETE switch in recording - complete needs two switches
     idx_l=find(curInjSwitch > datawindow(2),1)-2;
     
     if isempty(idx_l) ==1;
@@ -207,7 +245,6 @@ while finished == 0
     
     %% load data in memory
     
-    
     disp(['Loading data between ', num2str(datawindow_s(1)), 's and ', num2str(datawindow_s(2)), 's']);
     
     V=sread(HDR,datawindow_s(2)-datawindow_s(1),datawindow_s(1)+Data_start);
@@ -221,14 +258,33 @@ while finished == 0
     
     if first ==1
         
-        %take either the first injection or the first second
         
-        tmp=curInjSwitch(idx_f+1)-curInjSwitch(idx_f);
-        if tmp > Fs
-            tmp=Fs;
+        if SingleFreqMode
+            
+            %take either the first injection or the first second
+            
+            tmp=curInjSwitch(idx_f+1)-curInjSwitch(idx_f);
+            if tmp > Fs
+                tmp=Fs;
+            end
+            
+            tmpidx=curInjSwitch(idx_f)-datawindow(1):curInjSwitch(idx_f)-datawindow(1)+tmp;
+            
+            
+        else
+            
+            %take either the first injection or the first second
+            
+            tmp=curFreqSwitch(3)-curFreqSwitch(2);
+            if tmp > Fs
+                tmp=Fs;
+            end
+            
+            tmpidx=curFreqSwitch(2)-datawindow(1):curFreqSwitch-datawindow(1)+tmp;
+            
         end
         
-        tmpidx=curInjSwitch-datawindow(1):curInjSwitch-datawindow(1)+tmp;
+        
         
         %estimate the injection pairs from the two largest RMS values
         [InjPairs, estimatebadness]=ScouseTom_data_EstInjPair(V(tmpidx,:));
@@ -286,7 +342,7 @@ while finished == 0
     
     %% Segment data into each injection
     
-%     disp('Segmenting data');
+    %     disp('Segmenting data');
     
     %next protocol line to use is one on from last one
     nextprt=lastprt+1;
@@ -299,10 +355,34 @@ while finished == 0
     % samples to trim in demodulation
     
     if first ==1
-        disp('----------------------');
+        disp('--------Finding Filter Settings---------');
+        
+        if SingleFreqMode
+        
         %using first injection, find the best filter coefficients
-        [trim_demod,B,A,Fc]=ScouseTom_data_GetFilterTrim( Vseg(nextprt,:,Prot(nextprt,1),1),Fs,BW,0 );
-        disp('----------------------');
+        [trim_demod,B,A,Fc]=ScouseTom_data_GetFilterTrim(Vseg(nextprt,:,Prot(nextprt,1),1),Fs,BW,0 );
+        
+        else
+            %for multifreq do each one at a time
+            for iFreq=1:N_freq
+                
+                f_idx_start=iFreq*2;
+                f_idx_stop=f_idx_start+1;
+                
+                
+                %take only the samples within the current frequency
+                %injection
+                fwind=(curFreqSwitch(f_idx_start):curFreqSwitch(f_idx_stop))-curInjSwitch(nextprt);
+                
+                
+                [trim_demod{iFreq},B{iFreq},A{iFreq},Fc{iFreq}]...
+                    =ScouseTom_data_GetFilterTrim( Vseg(nextprt,fwind,Prot(nextprt,1),1),Fs,BW,0 );
+            end
+            
+            
+        end
+        
+        disp('---------Filter Settings Found-------------');
         info.B=B;
         info.A=A;
         info.trim_demod=trim_demod;
@@ -344,15 +424,28 @@ while finished == 0
     
     %% Demodulate and calculate BV from average in each segment
     
-    
     %demodulate data
     disp('Demodulating data');
-    Vseg_demod=ScouseTom_data_DemodSeg(Vseg,Fs,N_prt,N_elec,N_rep,B,A);
     
-    disp('Getting Boundary Voltages');
+    
+    if SingleFreqMode
+    
+    Vseg_demod=ScouseTom_data_DemodSeg(Vseg,Fs,N_prt,N_elec,N_rep,B,A);
+        disp('Getting Boundary Voltages');
     
     %get boundary voltages by taking mean
     [BV, STD]=ScouseTom_data_Seg2BV(Vseg_demod,trim_demod);
+    else
+
+        
+        
+        
+        
+    end
+        
+
+    
+
     %     clear V_seg_demod
     
     %% Calculate Impedance on each injection electrode
@@ -390,14 +483,14 @@ while finished == 0
     end
     
     %display it visually
-    winlength=30;
-    decdone=floor(percent_complete/(100/winlength));
-    percentind=repmat('.',1,winlength);
+    
+    decdone=floor(percent_complete/(100/progressbarlength));
+    percentind=repmat('.',1,progressbarlength);
     percentind(1:decdone-1)=repmat('-',1,decdone-1);
     if decdone >0
         percentind(decdone)='>';
     end
-   
+    
     fprintf('%s %.1f %% complete\r',percentind,percent_complete);
     
     %% Calculate variables for next step
