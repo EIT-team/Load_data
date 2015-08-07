@@ -194,7 +194,7 @@ next_sw=0;
 %find the first line of the protocol - MAKE THIS CHECK RATHER THAN DO IT
 lastprt=0;
 
-disp('----------------------');
+% disp('----------------------');
 
 %it
 iteration=0;
@@ -382,7 +382,7 @@ while finished == 0
             
         end
         
-        disp('----------------------');
+        disp('---------Filter Settings Found-------------');
         info.B=B;
         info.A=A;
         info.trim_demod=trim_demod;
@@ -431,15 +431,21 @@ while finished == 0
     if SingleFreqMode
     
     Vseg_demod=ScouseTom_data_DemodSeg(Vseg,Fs,N_prt,N_elec,N_rep,B,A);
-    
-    else
-        
-        ebd
-    
-    disp('Getting Boundary Voltages');
+        disp('Getting Boundary Voltages');
     
     %get boundary voltages by taking mean
     [BV, STD]=ScouseTom_data_Seg2BV(Vseg_demod,trim_demod);
+    else
+
+        
+        
+        
+        
+    end
+        
+
+    
+
     %     clear V_seg_demod
     
     %% Calculate Impedance on each injection electrode
