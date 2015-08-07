@@ -43,8 +43,6 @@ ID_Codes.Num(5)=5;
 %there may be others here - system has 3 spare channles EX_1 2 and 3 on
 %arduino. and Kirills physchotool box stuff will also go here
 
-
-
 %% CHECK HDR IS OK here
 
 
@@ -53,9 +51,10 @@ ID_Codes.Num(5)=5;
 %% Get trigger channel input according to which file type it is
 switch HDR.TYPE
     case 'BDF' % biosemi file
-        IndicatorPinData=dec2bin(HDR.BDF.ANNONS)-'0';
+        IndicatorPinData=dec2bin(HDR.BDF.Trigger.TYP)-'0';
         IndicatorPinData=IndicatorPinData(:,end-(trignum-1):end); % take only last 8 bits
         IndicatorPinData=fliplr(IndicatorPinData); %sort into LSB
+        TrigPos=HDR.BDF.Trigger.POS;
     case 'EEG'
 end
 
@@ -73,9 +72,16 @@ AboveThres=[ AboveThres(1,:); AboveThres; AboveThres(end,:);]; % pad array (for 
 
 ThresEdges= diff(AboveThres); %take diff of this data. this is now nearly all 0 except for 1 for rsing edge and -1 for falling
 
-[RisingEdges,RisingEdgesChn] = find(ThresEdges ==1); % get rising edges
+[RisingEdgesPosIdx,RisingEdgesChn] = find(ThresEdges ==1); % get rising edges
 
-[FallingEdges,FallingEdgesChn] = find(ThresEdges ==-1); %get falling edges
+[FallingEdgesPosIdx,FallingEdgesChn] = find(ThresEdges ==-1); %get falling edges
+
+RisingEdges=TrigPos(RisingEdgesPosIdx);
+FallingEdges=TrigPos(FallingEdgesPosIdx);
+
+
+
+%% read triggers in each channel and reject orphaned ones or too short ones
 
 %find any orphaned falling edges at start of file which can happen if the
 %biosemi cries a little bit or if the recording was started *before*
@@ -83,7 +89,7 @@ ThresEdges= diff(AboveThres); %take diff of this data. this is now nearly all 0 
 %rising too, which can occur if the file stops early
 
 
-%% read triggers in each channel and reject orphaned ones or too short ones
+
 
 for iChn=1:trignum
     %take only rising and falling belonging to this channel

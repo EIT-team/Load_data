@@ -5,7 +5,6 @@ function [] = ScouseTom_TrigView( HDR,Trigger )
 
 % TO DO:
 % needs to not plot repeated values to make it faster
-% only plot relevant data
 
 %% get labels from trigger struct if given
 
@@ -26,10 +25,11 @@ end
 %% Get trigger channel input according to which file type it is
 switch HDR.TYPE
     case 'BDF' % biosemi file
-        IndicatorPinData=dec2bin(HDR.BDF.ANNONS)-'0';
+        IndicatorPinData=dec2bin(HDR.BDF.Trigger.TYP)-'0';
         IndicatorPinData=IndicatorPinData(:,end-(trignum-1):end); % take only last 8 bits
         IndicatorPinData=fliplr(IndicatorPinData); %sort into LSB
         fname=HDR.FILE.Name;
+        TrigPos=HDR.BDF.Trigger.POS;
     case 'EEG'
 end
 
@@ -37,12 +37,7 @@ Fs=HDR.SampleRate;
 
 %% Process data
 
-t=((0:length(IndicatorPinData)-1)/Fs)';
-
-
-[ii, jj]=find(diff(IndicatorPinData));
-
-tchange=sort([ii;ii+1;ii-1;length(t)]);
+t=TrigPos/Fs;
 
 
 
@@ -55,7 +50,7 @@ sep=0.5;
 hold on
 for ichn=(1:length(TrigDisp))
 
-plot(t(tchange),(1.5*(ichn-1)+sep)+IndicatorPinData(tchange,TrigDisp(ichn)));
+stairs(t,(1.5*(ichn-1)+sep)+IndicatorPinData(:,TrigDisp(ichn)));
 
 
 end
