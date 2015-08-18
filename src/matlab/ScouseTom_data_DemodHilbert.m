@@ -3,12 +3,9 @@ function [ data_demod ] = ScouseTom_data_DemodHilbert( data,B,A)
 %method. Slight modification of G-Dragons code get_BV2
 %   Inputs:
 %   Data- signal to be demodulated
-%   Fs - sampling rate of data
-% Fc - carrier frequency
-% optional
-% BW - bandwidth of filter
-% Nord - order of filter
+% B A - Filter coefficients
 
+% ADD PHASE ESTIMATE INTO THIS BIT!!
 
 if any(isnan(data))
     data_demod = nan;

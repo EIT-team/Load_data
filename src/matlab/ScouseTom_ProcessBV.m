@@ -234,12 +234,12 @@ while finished == 0
                 
                 
                 [trim_demod{iFreq},B{iFreq},A{iFreq},Fc{iFreq}]...
-                    =ScouseTom_data_GetFilterTrim( Vseg(nextprt,fwind,Prot(nextprt,1),1),Fs,BW,0 );
+                    =ScouseTom_data_GetFilterTrim( Vseg_demod(nextprt,fwind,Prot(nextprt,1),1),Fs,BW,0 );
             end
-                       
+            
         end
         
-        disp('---------Filter Settings Found-------------');
+        disp('--------Filter Settings Found------------');
         info.B=B;
         info.A=A;
         info.trim_demod=trim_demod;
@@ -257,72 +257,74 @@ while finished == 0
     
     
     
-    %% Demodulate and calculate BV from average in each segment
+    %% Demodulate Data - each channel at a time
     
     %demodulate data
     disp('Demodulating data');
     
+    %put in matrix Sample x Channel x Frequency
+    Vdemod=nan(size(V,1),size(V,2),N_freq);
     
-    if SingleFreqMode
-        
-        Vseg_demod=ScouseTom_data_DemodSeg(Vseg,Fs,N_prt,N_elec,N_rep,B,A);
-        disp('Getting Boundary Voltages');
-        
-        %get boundary voltages by taking mean
-        [BV, STD]=ScouseTom_data_Seg2BV(Vseg_demod,trim_demod);
-    else
-        
-        
-        
-        
+    %demodulate each freq in turn
+    for iFreq=1:N_freq
+        %demodulate entire channel at once
+        for iElec=1:N_elec
+            Vdemod(:,iElec,iFreq)=ScouseTom_data_DemodHilbert(V(:,iElec),B(iFreq,:),A(iFreq,:));
+        end
         
     end
     
     
     
-    %% Segment data into each injection
+    %% Segment data into chunks
+    
+    %multi freq will have to do this for each freq and put in cell array as
+    %arrays are all different length
     
     
     
-    %segment this data between the complete protocol lines starting
-    %from correct protocol line
-    [Vseg, lastprt]=ScouseTom_data_Seg(V,curInjSwitch(idx_f:idx_l)-datawindow(1),0.0001,N_prt,N_elec,Fs,nextprt);
-    
-    % for the first time only - determine carrier frequency, filter coeffs,
-    % samples to trim in demodulation
-    
-    
+    %segment this data between the complete protocol lines
+    [Vseg_demod, lastprt]=ScouseTom_data_Seg(Vdemod,curInjSwitch(idx_f:idx_l)-datawindow(1),0.0001,N_prt,N_elec,Fs,nextprt);
     
     %   If there are any left overs then stick them at the beginning
-    
-    
     if exist('Vsegleftover','var') ==1
         
-        if size(Vseg,2) == size(Vsegleftover,2)
-            Vseg(1:size(Vsegleftover,1),:,:,1)=Vsegleftover;
-        else if size(Vseg,2) > size(Vsegleftover,2)
-                Vseg(1:size(Vsegleftover,1),1:size(Vsegleftover,2),:,1)=Vsegleftover;
+        if size(Vseg_demod,2) == size(Vsegleftover,2)
+            Vseg_demod(1:size(Vsegleftover,1),:,:,1)=Vsegleftover;
+        else if size(Vseg_demod,2) > size(Vsegleftover,2)
+                Vseg_demod(1:size(Vsegleftover,1),1:size(Vsegleftover,2),:,1)=Vsegleftover;
             else
-                Vseg(1:size(Vsegleftover,1),:,:,1)=Vsegleftover(:,1:size(Vseg,2),:);
+                Vseg_demod(1:size(Vsegleftover,1),:,:,1)=Vsegleftover(:,1:size(Vseg_demod,2),:);
             end
         end
         
         clear Vsegleftover
     end
     
-    
     %take the incomplete repeat and trim matrix - only do this is there was
     %more than 1 repeat so Vseg is 4D
-    if lastprt ~= N_prt && ndims(Vseg) == 4
-        Vsegleftover=Vseg(1:lastprt,:,:,end);
-        Vseg(:,:,:,end)=[];
+    if lastprt ~= N_prt && ndims(Vseg_demod) == 4
+        Vsegleftover=Vseg_demod(1:lastprt,:,:,end);
+        Vseg_demod(:,:,:,end)=[];
     end
     
     %number of
-    N_rep=size(Vseg,4);
-    N_sample=size(Vseg,2);
+    N_rep=size(Vseg_demod,4);
+    N_sample=size(Vseg_demod,2);
     
     disp(['Number of complete repeats in chunk : ', num2str(N_rep)]);
+    
+    
+    %% Calculate the standing BV for each channel
+    disp('Getting Boundary Voltages');
+    %get boundary voltages by taking mean
+    [BV, STD]=ScouseTom_data_Seg2BV(Vseg_demod,trim_demod);
+    
+    
+    %% Calculate dZ and other Stimulation things
+    
+    %kirills code goes here
+    
     
     
     %% Calculate Impedance on each injection electrode
