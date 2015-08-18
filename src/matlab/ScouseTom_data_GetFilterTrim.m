@@ -4,7 +4,7 @@ function [ trim_demod, B,A,Fc ] = ScouseTom_data_GetFilterTrim( Vseg,Fs,BW,plotf
 % from the dexterous exploratory hands of jimmy
 
 %get carrier frequency
-Fc=get_carrier(Vseg,Fs);
+Fc=ScouseTom_data_GetCarrier(Vseg,Fs);
 
 %give explicitly
 % Fc=10;

@@ -52,73 +52,17 @@ else
     SingleFreqMode=0;
 end
 
-
-
 %if in multifrequency mode then we need the freq order found in varargin
 
 if ~SingleFreqMode
     FreqOrder=varargin{1};
 end
 
-
-
-
-
-
-
-
-
 %% calculate the keep and rem idx
 % need this beore loading data to know which channels to estimate contact
 % impedance on
 
-injs=ExpSetup.Protocol; %injection pairs
-chn=N_elec; %number of channels
-vp=(1:chn)';% positive voltage channel 1  to Number of electrodes
-vm=ones(size(vp))*(chn+1); %always against a ground electrode
-
-%make the entire protocol each line is INJ+ INJ- MEAS+ MEAS-
-prt_mat=[];
-for iii=1:size(injs,1)
-    temp=[repmat(injs(iii,:),chn,1) vp vm];
-    prt_mat=[prt_mat ; temp];
-end
-
-%find remove index, any protocol lines including the injetion channels are
-%"bad"
-prt_full=prt_mat;
-prt=prt_full;
-rem_idx=[];
-for iPrt = 1:size(prt,1)
-    if any(ismember(prt_full(iPrt,1:2),prt(iPrt,3:4))) ==1
-        rem_idx=[rem_idx,iPrt];
-    end
-end
-%keep index is anything that we *dont* remove
-keep_idx=setdiff(1:length(prt_full),rem_idx);
-
-%% get injection channels for use in contact impedance calculations
-
-%loop through protocol - find which lines in the BV the injection
-%electrodes belong to then add then to an array for each electrode.
-
-%I cant remember why I do this separately to the stuff about injections
-%above...
-
-%Electrode Injections
-Elec_inj=nan(N_elec,N_prt);
-
-for iPrt = 1:N_prt
-    Prt_cur=Prot(iPrt,:);
-    start_idx=((iPrt-1)*N_elec);
-    BV_chn=start_idx+Prt_cur;
-    Elec_inj(Prt_cur,iPrt)=BV_chn;
-end
-
-Elec_inj=sort(Elec_inj,2);
-
-%clear up matrix
-Elec_inj(:,all(isnan(Elec_inj),1))=[];
+[prt_full,keep_idx,rem_idx,Elec_inj]=ScouseTom_data_findprt(ExpSetup.Protocol,N_elec);
 
 %scale factor - impedance conversion
 ZSF=1/((1e6)*ExpSetup.Amp);
@@ -203,6 +147,8 @@ iteration=0;
 curInjSwitch=TT.InjectionSwitches{1};
 if ~SingleFreqMode
     curFreqSwitch=TT.FreqChanges{1};
+else
+    curFreqSwitch=[];
 end
 
 
@@ -221,7 +167,6 @@ while finished == 0
     else
         idx_f=next_sw;
     end
-    
     % find last COMPLETE switch in recording - complete needs two switches
     idx_l=find(curInjSwitch > datawindow(2),1)-2;
     
@@ -229,9 +174,7 @@ while finished == 0
         %if no more switches in file then this is the last iteration
         finished=1;
         idx_l=length(curInjSwitch);
-        
     end
-    
     %store this variable for next loop
     next_sw=idx_l+1;
     
@@ -257,111 +200,26 @@ while finished == 0
     %stopped recording and we carried on.
     
     if first ==1
-        
-        
-        if SingleFreqMode
-            
-            %take either the first injection or the first second
-            
-            tmp=curInjSwitch(idx_f+1)-curInjSwitch(idx_f);
-            if tmp > Fs
-                tmp=Fs;
-            end
-            
-            tmpidx=curInjSwitch(idx_f)-datawindow(1):curInjSwitch(idx_f)-datawindow(1)+tmp;
-            
-            
-        else
-            
-            %take either the first injection or the first second
-            
-            tmp=curFreqSwitch(3)-curFreqSwitch(2);
-            if tmp > Fs
-                tmp=Fs;
-            end
-            
-            tmpidx=curFreqSwitch(2)-datawindow(1):curFreqSwitch-datawindow(1)+tmp;
-            
-        end
-        
-        
-        
-        %estimate the injection pairs from the two largest RMS values
-        [InjPairs, estimatebadness]=ScouseTom_data_EstInjPair(V(tmpidx,:));
-        
-        %get the injection pair from the protocol
-        ProtPairs=Prot(1,:)';
-        
-        %if the estimation is OK then calculate automatically
-        
-        if estimatebadness == 0
-            
-            %if the injection channels match then crack on
-            if all(sort(InjPairs)==sort(ProtPairs)) ==1
-                %disp('Data starts with first protocol line');
-                lastprt=0; %this is already set above but being didactic
-            else
-                disp('----------------------');
-                disp('Data DOES NOT start with first protocol line');
-                
-                %find matching protocl line
-                start_poss=find(all([InjPairs(1)==Prot(:,1) InjPairs(2)==Prot(:,2)],2));
-                disp(['Starting injection pair was found to be : ', num2str(start_poss)])
-                disp('Data processing carrying on now...');
-                
-                lastprt=start_poss-1;
-            end
-            
-        else
-            disp('----------------------');
-            %if it is still ambiguous - ask the user what to do
-            msgbox('Starting injection pair is ambiguous! Please check the graph and enter manually','Uh Oh!');
-            
-            %plot the voltages for this swithc
-            figure;
-            plot(V(tmpidx,:));
-            title('starting injection data - ambiguous injection');
-            
-            %ask them to input which protocol line this
-            start_poss=input('Please enter the protocol line or leave empty to use best guess:');
-            
-            %is its empty just use best guess
-            if isempty(start_poss)
-                disp('FINE! I will just use the possibly wrong guess then shall I?');
-                start_poss=find(all([InjPairs(1)==Prot(:,1) InjPairs(2)==Prot(:,2)],2));
-                
-                disp(['Starting injection pair was found to be : ', num2str(start_poss)'])
-                disp('Data processing carrying on now...');
-            end
-            lastprt=start_poss-1;
-            disp('----------------------');
-        end
-        
-        
+        [ lastprt ] = ScouseTom_data_checkfirstinj( V(1:Fs*2,:),Fs,Prot,curInjSwitch,curFreqSwitch,idx_f,datawindow,SingleFreqMode );
     end
-    
-    %% Segment data into each injection
-    
-    %     disp('Segmenting data');
     
     %next protocol line to use is one on from last one
     nextprt=lastprt+1;
     
-    %segment this data between the complete protocol lines starting
-    %from correct protocol line
-    [Vseg, lastprt]=ScouseTom_data_Seg(V,curInjSwitch(idx_f:idx_l)-datawindow(1),0.0001,N_prt,N_elec,Fs,nextprt);
-    
-    % for the first time only - determine carrier frequency, filter coeffs,
-    % samples to trim in demodulation
+    %% Find Filter Settings for each frequency
     
     if first ==1
         disp('--------Finding Filter Settings---------');
         
         if SingleFreqMode
-        
-        %using first injection, find the best filter coefficients
-        [trim_demod,B,A,Fc]=ScouseTom_data_GetFilterTrim(Vseg(nextprt,:,Prot(nextprt,1),1),Fs,BW,0 );
-        
+            %using first injection
+            tmp=curInjSwitch(idx_f+1)-curInjSwitch(idx_f);
+            fwind=curInjSwitch(idx_f)-datawindow(1):curInjSwitch(idx_f)-datawindow(1)+tmp;
+            
+            %find carrier frequency and get filter coefficients as well as
+            %the amount of data to remove each segment
+            
+            [trim_demod,B,A,Fc]=ScouseTom_data_GetFilterTrim(V(fwind,Prot(nextprt,1)),Fs,BW,0 );
         else
             %for multifreq do each one at a time
             for iFreq=1:N_freq
@@ -378,8 +236,7 @@ while finished == 0
                 [trim_demod{iFreq},B{iFreq},A{iFreq},Fc{iFreq}]...
                     =ScouseTom_data_GetFilterTrim( Vseg(nextprt,fwind,Prot(nextprt,1),1),Fs,BW,0 );
             end
-            
-            
+                       
         end
         
         disp('---------Filter Settings Found-------------');
@@ -390,6 +247,51 @@ while finished == 0
         %save to .mat file
         bigmat.info=info;
     end
+    
+    %% Check Carrier frequecy is correct
+    
+    %do this here
+    
+    
+    
+    
+    
+    
+    %% Demodulate and calculate BV from average in each segment
+    
+    %demodulate data
+    disp('Demodulating data');
+    
+    
+    if SingleFreqMode
+        
+        Vseg_demod=ScouseTom_data_DemodSeg(Vseg,Fs,N_prt,N_elec,N_rep,B,A);
+        disp('Getting Boundary Voltages');
+        
+        %get boundary voltages by taking mean
+        [BV, STD]=ScouseTom_data_Seg2BV(Vseg_demod,trim_demod);
+    else
+        
+        
+        
+        
+        
+    end
+    
+    
+    
+    %% Segment data into each injection
+    
+    
+    
+    %segment this data between the complete protocol lines starting
+    %from correct protocol line
+    [Vseg, lastprt]=ScouseTom_data_Seg(V,curInjSwitch(idx_f:idx_l)-datawindow(1),0.0001,N_prt,N_elec,Fs,nextprt);
+    
+    % for the first time only - determine carrier frequency, filter coeffs,
+    % samples to trim in demodulation
+    
+    
     
     %   If there are any left overs then stick them at the beginning
     
@@ -422,31 +324,6 @@ while finished == 0
     
     disp(['Number of complete repeats in chunk : ', num2str(N_rep)]);
     
-    %% Demodulate and calculate BV from average in each segment
-    
-    %demodulate data
-    disp('Demodulating data');
-    
-    
-    if SingleFreqMode
-    
-    Vseg_demod=ScouseTom_data_DemodSeg(Vseg,Fs,N_prt,N_elec,N_rep,B,A);
-        disp('Getting Boundary Voltages');
-    
-    %get boundary voltages by taking mean
-    [BV, STD]=ScouseTom_data_Seg2BV(Vseg_demod,trim_demod);
-    else
-
-        
-        
-        
-        
-    end
-        
-
-    
-
-    %     clear V_seg_demod
     
     %% Calculate Impedance on each injection electrode
     
