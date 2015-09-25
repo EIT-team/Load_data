@@ -1,15 +1,13 @@
 function [ Zall ] = ScouseTom_LoadZ( HDR,TT,ExpSetup,PlotFlag )
 %SCOUSETOM_LOADZ Calculates the contact impedance from a two electrode "contact check"
-%   Detailed explanation goes here
+%   This is from the contact check command for the scousetom - the
+%   amplitude and freq are FIXED at the moment
 
 %% check inputs are ok here
 
-if exist('PlotFlag','var') ==0 
+if exist('PlotFlag','var') ==0
     PlotFlag =1;
 end
-
-
-
 
 %% See what type of system we are using
 
@@ -21,14 +19,16 @@ switch HDR.TYPE
     case 'BDF' % biosemi file
         
         MaxV=0.5e6; %500mV range on BioSemi
+        Fs=HDR.SampleRate;
+        fname=HDR.FILE.Name;
         
         
-    case 'EEG'
+    case 'EEG' %actichamp
+    otherwise
+        error('Bad HDR');
 end
 
 %% Get variables
-
-Fs=HDR.SampleRate;
 
 N_elec=ExpSetup.Elec_num; %number of electrodes
 N_prt=N_elec; %this is the same as N_elec as the protocol lines is equal to number of electrodes for contact checks
@@ -39,19 +39,27 @@ N_prt=N_elec; %this is the same as N_elec as the protocol lines is equal to numb
 Amp=141; % 141 uA
 Frq=1000;
 
-
-
-%% Defaults
+%% Defaults for filtering and contact impedance values
 
 %bandwidth of filter
 BW=50;
+
+
+
 RecZ=1000; %recommended contact impedance
 
 
 %% run each impedance check separately
 
 % run each
-Z_checks_num=length(TT.InjectionStarts);
+Z_checks_num=length(TT.Contact.InjectionStarts);
+
+if ~length(Z_checks_num)
+    warning('No Contact Checks Found');
+    return
+end
+
+
 
 for iZ = 1:Z_checks_num
     
@@ -59,8 +67,8 @@ for iZ = 1:Z_checks_num
     %% read portion of interest
     
     %sread needs integer seconds
-    Data_start=floor(TT.InjectionStarts(iZ)/Fs);
-    Data_end=ceil(TT.InjectionStops(iZ)/Fs);
+    Data_start=floor(TT.Contact.InjectionStarts(iZ)/Fs);
+    Data_end=ceil(TT.Contact.InjectionStops(iZ)/Fs);
     Data_length=fix(Data_end-Data_start);
     
     %convert to number of samples
@@ -68,7 +76,7 @@ for iZ = 1:Z_checks_num
     Data_end_s=Data_end*Fs;
     
     %load the data
-    disp(['Reading relevant data for contact check :', num2str(iZ)]);
+    disp(['Reading relevant data for contact check: ', num2str(iZ)]);
     
     %sread MUST take INTEGER seconds as inputs, hence rounding data to
     %nearest second as above
@@ -76,7 +84,7 @@ for iZ = 1:Z_checks_num
     
     % data is now in big long streams - segment into separate lines of the
     % protocol - output is matrix of voltages size PRT x Sample x CHN x Repeat
-    Vseg=ScouseTom_data_Seg(V(:,1:N_elec),TT.InjectionSwitches{iZ}-Data_start_s,0.0001,N_prt,N_elec,Fs);
+    Vseg=ScouseTom_data_Seg(V(:,1:N_elec),TT.Contact.InjectionSwitches{iZ}-Data_start_s,0.0001,N_prt,N_elec,Fs);
     
     %determine the Carrier Frequency, Filter coeffs, and amount of signal
     %to trim from the electrode on the *second* injection
@@ -134,50 +142,52 @@ for iZ = 1:Z_checks_num
     %% plot results
     
     if PlotFlag
-    
-    
-
-       
-    figure
-    
-    title([datestr(datestart), ': Contact Z @ ', num2str(Fc), ' Hz, and ', num2str(Amp), ' A'])
-    hold all
-    
-    
-    bad_idx = find(Zave > MaxZ);
-    ok_idx=find(Zave > RecZ & Zave < MaxZ);
-    good_idx =find(Zave < RecZ);
-    
-   badchn=nan(size(Zave));
-   goodchn=badchn;
-   okchn=badchn;
-   
-   okchn(ok_idx)=Zave(ok_idx);
-   goodchn(good_idx)=Zave(good_idx);
-   badchn(bad_idx)=Zave(bad_idx);
-   
-    
-   
-    
-    bar(goodchn,'Facecolor',[0 0.5 0]);
-    bar(okchn,'Facecolor','y');
-    bar(badchn,'Facecolor',[1 0 0]);
-    
-   
-    line([0 N_elec+1],[MaxZ MaxZ],'color','r','linewidth',5)
-    line([0 N_elec+1],[RecZ RecZ],'color','y','linewidth',5)
-    text(1,RecZ,'FUZZY LOGIC OK','BackgroundColor',[1 1 1],'color',[0 0 0])
-    text(1,MaxZ,'MAX Z','color','r','BackgroundColor',[1 1 1])
-    hold off
-    set(gca,'Xtick',[1:N_elec])
-    xlim([0,N_elec+1])
-    
-    xlabel('Electrode');
-    ylabel('~Impedance Ohm');
-    
-    
+        
+        figure
+        
+%         title([datestr(datestart), ': Contact Z @ ', num2str(Fc), ' Hz, and ', num2str(Amp), ' A'])
+        
+        title(sprintf('Z Check %d, in %s @ %s\n%d Hz and %d A',iZ,fname,datestr(datestart),Fc,Amp),'interpreter','none');
+        
+        
+        hold all
+        
+        %Classify each impedance as good bad or ok
+        bad_idx = find(Zave > MaxZ);
+        ok_idx=find(Zave > RecZ & Zave < MaxZ);
+        good_idx =find(Zave < RecZ);
+        
+        badchn=nan(size(Zave));
+        goodchn=badchn;
+        okchn=badchn;
+        
+        okchn(ok_idx)=Zave(ok_idx);
+        goodchn(good_idx)=Zave(good_idx);
+        badchn(bad_idx)=Zave(bad_idx);
+        
+        %plot each set 
+        bar(goodchn,'Facecolor',[0 0.5 0]);
+        bar(okchn,'Facecolor','y');
+        bar(badchn,'Facecolor',[1 0 0]);
+        
+        %make indication lines for recomended and max impedances
+        line([0 N_elec+1],[MaxZ MaxZ],'color','r','linewidth',5)
+        line([0 N_elec+1],[RecZ RecZ],'color','y','linewidth',5)
+        text(1,RecZ,'FUZZY LOGIC OK','BackgroundColor',[1 1 1],'color',[0 0 0])
+        text(1,MaxZ,'MAX Z','color','r','BackgroundColor',[1 1 1])
+        hold off
+        set(gca,'Xtick',[1:N_elec])
+        xlim([0,N_elec+1])
+        
+        xlabel('Electrode');
+        ylabel('~Impedance Ohm');
+        
+        
     end
     
+    %% Add to Structure
+    
+    %strucutre for a single z check
     Zout.Zi=Z;
     Zout.Z=Zave;
     Zout.dZ=dZ;
@@ -190,34 +200,32 @@ for iZ = 1:Z_checks_num
     Zout.TimeNum=datestart;
     Zout.TimeVec=datevec(datestart);
     
+    %structure holding all
     Zall(iZ)=Zout;
-    
-    
-    
     
     
     
 end
 %% save data
-    %find if the Zcheck directory exists by going up one directory and seeing
-    %if Zcheck exists.
-    
+%find if the Zcheck directory exists by going up one directory and seeing
+%if Zcheck exists.
+
 Zcheckpathstr=HDR.FILE.Path;
 bdfname=HDR.FILE.Name;
 
-        if Z_checks_num > 1
-            
-            Zfilename=[bdfname, '-Zcheck' num2str(iZ) '.mat'];
-        else
-            Zfilename=[bdfname, '-Zcheck.mat'];
+if Z_checks_num > 1
+    
+    Zfilename=[bdfname, '-Zcheck' num2str(Z_checks_num) '.mat'];
+else
+    Zfilename=[bdfname, '-Zcheck.mat'];
+    
+end
 
-        end
-    
-    
-    %save
-    save(fullfile(Zcheckpathstr,Zfilename),'Zall');
-    disp('----------------------');
-    
+
+%save
+save(fullfile(Zcheckpathstr,Zfilename),'Zall');
+disp('----------------------');
+
 
 
 end
