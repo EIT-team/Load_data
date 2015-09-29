@@ -1,4 +1,4 @@
-function [ BV ] = ScouseTom_ProcessBV( HDR,TT,ExpSetup,varargin )
+function [ BV,PhaseAngle ] = ScouseTom_ProcessBV( HDR,TT,ExpSetup,varargin )
 %SCOUSETOM_ Summary of this function goes here
 %   Detailed explanation goes here
 
@@ -262,14 +262,15 @@ while finished == 0
     %demodulate data
     disp('Demodulating data');
     
-    %put in matrix Sample x Channel x Frequency
+    %put Voltages in matrix Sample x Channel x Frequency
     Vdemod=nan(size(V,1),size(V,2),N_freq);
+    Pdemod=Vdemod; % this is matrix for Phase info
     
     %demodulate each freq in turn
     for iFreq=1:N_freq
         %demodulate entire channel at once
         for iElec=1:N_elec
-            Vdemod(:,iElec,iFreq)=ScouseTom_data_DemodHilbert(V(:,iElec),B(iFreq,:),A(iFreq,:));
+            [Vdemod(:,iElec,iFreq),Pdemod(:,iElec,iFreq)] =ScouseTom_data_DemodHilbert(V(:,iElec),B(iFreq,:),A(iFreq,:));
         end
         
     end
@@ -284,21 +285,25 @@ while finished == 0
     
     
     %segment this data between the complete protocol lines
-    [Vseg_demod, lastprt]=ScouseTom_data_Seg(Vdemod,curInjSwitch(idx_f:idx_l)-datawindow(1),0.0001,N_prt,N_elec,Fs,nextprt);
+    [Vseg_demod,Pseg_demod, lastprt]=ScouseTom_data_Seg(Vdemod,Pdemod,curInjSwitch(idx_f:idx_l)-datawindow(1),0.0001,N_prt,N_elec,Fs,nextprt);
     
     %   If there are any left overs then stick them at the beginning
     if exist('Vsegleftover','var') ==1
         
         if size(Vseg_demod,2) == size(Vsegleftover,2)
             Vseg_demod(1:size(Vsegleftover,1),:,:,1)=Vsegleftover;
-        else if size(Vseg_demod,2) > size(Vsegleftover,2)
+            Pseg_demod(1:size(Psegleftover,1),:,:,1)=Psegleftover;
+        else if size(Vseg_demod,2) > size(Vsegleftover,2) %i cant remember why this is necessary - sometimes the chunks are different by a sample maybe?
                 Vseg_demod(1:size(Vsegleftover,1),1:size(Vsegleftover,2),:,1)=Vsegleftover;
+                Pseg_demod(1:size(Psegleftover,1),1:size(Psegleftover,2),:,1)=Psegleftover;
             else
                 Vseg_demod(1:size(Vsegleftover,1),:,:,1)=Vsegleftover(:,1:size(Vseg_demod,2),:);
+                Pseg_demod(1:size(Psegleftover,1),:,:,1)=Psegleftover(:,1:size(Pseg_demod,2),:);
             end
         end
         
         clear Vsegleftover
+        clear Psegleftover
     end
     
     %take the incomplete repeat and trim matrix - only do this is there was
@@ -306,6 +311,8 @@ while finished == 0
     if lastprt ~= N_prt && ndims(Vseg_demod) == 4
         Vsegleftover=Vseg_demod(1:lastprt,:,:,end);
         Vseg_demod(:,:,:,end)=[];
+        Psegleftover=Pseg_demod(1:lastprt,:,:,end);
+        Pseg_demod(:,:,:,end)=[];
     end
     
     %number of
@@ -319,6 +326,8 @@ while finished == 0
     disp('Getting Boundary Voltages');
     %get boundary voltages by taking mean
     [BV, STD]=ScouseTom_data_Seg2BV(Vseg_demod,trim_demod);
+    %get phase angle by comparing to Injection channels
+    [PhaseAngle,PhaseAngleSTD]=ScouseTom_data_PhaseEst(Pseg_demod,trim_demod,Prot);
     
     
     %% Calculate dZ and other Stimulation things
@@ -350,9 +359,14 @@ while finished == 0
     bigmat.STD(1:size(STD,1),start_rep:start_rep+N_rep-1)=STD;
     bigmat.Z(1:size(Z,1),start_rep:start_rep+N_rep-1)=Z;
     bigmat.Zstd(1:size(Zstd,1),start_rep:start_rep+N_rep-1)=Zstd;
+    bigmat.PhaseAngle(1:size(PhaseAngle,1),start_rep:start_rep+N_rep-1)=PhaseAngle;
+    bigmat.PhaseAngleSTD(1:size(PhaseAngle,1),start_rep:start_rep+N_rep-1)=PhaseAngleSTD;
     
     %% Output Progress
-    disp(['Finished processing data between ', num2str(datawindow_s(1)), 's and ', num2str(datawindow_s(2)), 's']);
+    
+     timedone=toc(tstart);
+    
+    disp([num2str(timedone,'%.0f') 's:Finished processing between ', num2str(datawindow_s(1)), 's and ', num2str(datawindow_s(2)), 's']);
     
     %calculate the percentage complete
     percent_complete=100*(datawindow_s(2)/Data_max);
