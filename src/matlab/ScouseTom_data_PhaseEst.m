@@ -30,7 +30,7 @@ for iPrt=1:N_prt
       
       %the phase angle is estimated as the mean of the data, within the
       %section of interest
-    PhaseAngleTmp(iPrt,:,iRep)=nanmean(curPA(trim_demod:end-trim_demod,:),1);
+    PhaseAngleTmp(iPrt,:,iRep)=(nanmean(curPA(trim_demod:end-trim_demod,:),1));
     %also store the standard dev, as an indication of the quality of the
     %estimate
     PhaseAngleSTDTmp(iPrt,:,iRep)=nanstd(curPA(trim_demod:end-trim_demod,:),1);
@@ -40,14 +40,19 @@ end
 %%
 if (isempty(varargin) == 1 && N_prt > 1)%if no extra input then go ahead and reshape into the nromal format of Prot x Rep
     
+    %put each protcol line one after each other
     for iPrt =1:N_prt
-        
         idx=((iPrt-1)*N_elec) +1;
         PhaseAngle(idx:idx+N_elec-1,:)=squeeze(PhaseAngleTmp(iPrt,:,:));
         PhaseAngleSTD(idx:idx+N_elec-1,:)=squeeze(PhaseAngleSTDTmp(iPrt,:,:));
     end
     
-else
+    %unwrap results now its in the correct format
+    PhaseAngle=unwrap(PhaseAngle,[],2);
+    
+    
+    
+else %i dont know why you would need this
     PhaseAngle=PhaseAngleTmp;
     PhaseAngleSTD=PhaseAngleSTDTmp;
 end
