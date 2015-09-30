@@ -94,7 +94,7 @@ ContactStarts=InjectionStarts(S>0); %the contact start time is when the first pu
 %injection start vector
 
 ContactStartsIdx=find(S > 0); % first pulse of contact ID
-rem_idx=ContactStartsIdx+1; %its the SECOND pulse we want to remove pulse
+rem_idx=ContactStartsIdx+1; %its the SECOND pulse we want to remove
 InjectionStarts(rem_idx)=[]; %get rid of them!
 
 %these IDXs are then used after the injections have been segmented
@@ -117,6 +117,7 @@ fprintf('%d Injection starts and %d Contact starts found\n',NumInj,NumContact);
 InjectionSwitches=cell(1,TotInj);
 FreqChanges=InjectionSwitches;
 Stimulations=InjectionSwitches;
+ProtocolCompleteFlags=InjectionSwitches;
 
 for iInj=1:TotInj
     curStart=InjectionStarts(iInj); %current start
@@ -133,7 +134,11 @@ for iInj=1:TotInj
     FreqChanges{iInj}= Freqs (Freqs >= curStart & Freqs < curEnd);
     Stimulations{iInj}= Stims (Stims >= curStart & Stims < curEnd);
     
+    %% Process stuff
+    %find the protocol complete flags
+    [InjectionSwitches{iInj},ProtocolCompleteFlags{iInj}]=findcompleteflags(InjectionSwitches{iInj},maxIDperiod);
     
+    %%
     
     
     
@@ -174,6 +179,30 @@ TT.InjectionStops=InjectionStops;
 TT.InjectionStarts=InjectionStarts;
 TT.Trigger=Trigger; % store the trigger variable too
 TT.Contact=Contact;
+TT.ProtocolCompleteFlags=ProtocolCompleteFlags;
+
+
+end
+
+
+function [InjSwitchOut,ProtCompFlag]=findcompleteflags(InjSwitchIn,maxIDperiod)
+
+InjSwitchOut=InjSwitchIn;
+
+
+BelowThres = (diff(InjSwitchIn) < maxIDperiod);
+%use bwlabel to find connections in array
+[S, NN]=bwlabel(BelowThres);
+
+
+%remove the start pulses which refer to the contact checks from the normal
+%injection start vector
+%%
+ProtCompFlag=find(S > 0); % first pulse of contact ID
+rem_idx=ProtCompFlag+1; %its the SECOND pulse we want to remove
+InjSwitchOut(rem_idx)=[]; %get rid of them!
+
+
 
 
 end
