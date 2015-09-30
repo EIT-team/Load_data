@@ -110,7 +110,7 @@ TotInj=length(InjectionStarts);
 fprintf('%d Injection starts and %d Contact starts found\n',NumInj,NumContact);
 
 
-%% Process Each Injections
+%% Process Each Injection
 
 %for now treat each injection the same
 
@@ -132,6 +132,16 @@ for iInj=1:TotInj
     InjectionSwitches{iInj}= Switches (Switches >= curStart & Switches < curEnd);
     FreqChanges{iInj}= Freqs (Freqs >= curStart & Freqs < curEnd);
     Stimulations{iInj}= Stims (Stims >= curStart & Stims < curEnd);
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     
     %Clean the injections somehow....
     

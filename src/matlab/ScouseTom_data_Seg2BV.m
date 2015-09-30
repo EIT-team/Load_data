@@ -15,7 +15,7 @@ N_rep=size(Vdemod,4);
 BV=nan(N_prt*N_elec,N_rep);
 STD=nan(size(BV));
 
-
+%% reshape
 if (isempty(varargin) == 1 && N_prt > 1)%if no extra input then go ahead and reshape into
     
     for iPrt =1:N_prt
