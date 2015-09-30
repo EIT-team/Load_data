@@ -65,7 +65,7 @@ end
 [prt_full,keep_idx,rem_idx,Elec_inj]=ScouseTom_data_findprt(ExpSetup.Protocol,N_elec);
 
 %scale factor - impedance conversion
-ZSF=1/((1e6)*ExpSetup.Amp);
+ZSF=1/(ExpSetup.Amp); %keep this in uA as voltages are in uV
 
 %% create matfile object for saving data
 
