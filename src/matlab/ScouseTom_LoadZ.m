@@ -34,6 +34,8 @@ N_elec=ExpSetup.Elec_num; %number of electrodes
 N_prt=N_elec; %this is the same as N_elec as the protocol lines is equal to number of electrodes for contact checks
 
 
+Contact_Protocol=[1:N_elec; circshift(1:N_elec,-1,2)]';
+Contact_Protocol=Contact_Protocol(~(any(ismember(Contact_Protocol,ExpSetup.Bad_Elec),2)),:);
 
 %% Amplitude and freq is FIXED AT THE MOMENT
 Amp=141; % 141 uA
@@ -82,23 +84,35 @@ for iZ = 1:Z_checks_num
     %nearest second as above
     V=sread(HDR,Data_length,Data_start);
     
-    % data is now in big long streams - segment into separate lines of the
-    % protocol - output is matrix of voltages size PRT x Sample x CHN x Repeat
-    Vseg=ScouseTom_data_Seg(V(:,1:N_elec),TT.Contact.InjectionSwitches{iZ}-Data_start_s,0.0001,N_prt,N_elec,Fs);
+    % take relevant switches
+    curInjSwitch=TT.Contact.InjectionSwitches{iZ};
     
+    %use the second injection as the estimate for the filtering - in case
+    %something was wrong with first (warming up or delay starting etc.)
+    swidx=2;
+    
+    tmp=curInjSwitch(swidx+1)-curInjSwitch(swidx);
+    fwind=curInjSwitch(swidx)-Data_start_s:curInjSwitch(swidx)-Data_start_s+tmp;
+
     %determine the Carrier Frequency, Filter coeffs, and amount of signal
     %to trim from the electrode on the *second* injection
-    [trim_demod,B,A,Fc]=ScouseTom_data_GetFilterTrim( Vseg(2,:,2),Fs,BW,0 );
+    [trim_demod,B,A,Fc]=ScouseTom_data_GetFilterTrim( V(fwind,Contact_Protocol(swidx,1)),Fs,BW,0 );
     
     
     %demodulate each segment in turn using hilber transfrom
     fprintf('Demodulating...');
-    Vsegdemod=ScouseTom_data_DemodSeg(Vseg,Fs,N_prt,N_elec,1,B,A);
+    for iElec=1:N_elec
+        [Vdemod(:,iElec),Pdemod(:,iElec)] =ScouseTom_data_DemodHilbert(V(:,iElec),B,A);
+    end
     fprintf('Done!\n');
+    
+    % data is now in big long streams - segment into separate lines of the
+    % protocol - output is matrix of voltages size PRT x Sample x CHN x Repeat
+    [Vseg, Pseg]=ScouseTom_data_Seg(Vdemod,Pdemod,curInjSwitch-Data_start_s,0.0001,N_prt,N_elec,Fs);
     
     %get boundary voltages - average each segment - ignoring the messed up
     %edges
-    BV=ScouseTom_data_Seg2BV(Vsegdemod,trim_demod,'please dont reshape thank youu please');
+    BV=ScouseTom_data_Seg2BV(Vseg,trim_demod,'please dont reshape thank youu please');
     
     %only interested in the injection voltages
     
@@ -145,7 +159,7 @@ for iZ = 1:Z_checks_num
         
         figure
         
-%         title([datestr(datestart), ': Contact Z @ ', num2str(Fc), ' Hz, and ', num2str(Amp), ' A'])
+        %         title([datestr(datestart), ': Contact Z @ ', num2str(Fc), ' Hz, and ', num2str(Amp), ' A'])
         
         title(sprintf('Z Check %d, in %s @ %s\n%d Hz and %d A',iZ,fname,datestr(datestart),Fc,Amp),'interpreter','none');
         
@@ -165,7 +179,7 @@ for iZ = 1:Z_checks_num
         goodchn(good_idx)=Zave(good_idx);
         badchn(bad_idx)=Zave(bad_idx);
         
-        %plot each set 
+        %plot each set
         bar(goodchn,'Facecolor',[0 0.5 0]);
         bar(okchn,'Facecolor','y');
         bar(badchn,'Facecolor',[1 0 0]);
