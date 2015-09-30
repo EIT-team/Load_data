@@ -118,6 +118,7 @@ InjectionSwitches=cell(1,TotInj);
 FreqChanges=InjectionSwitches;
 Stimulations=InjectionSwitches;
 ProtocolCompleteFlags=InjectionSwitches;
+FreqOrder=InjectionSwitches;
 
 for iInj=1:TotInj
     curStart=InjectionStarts(iInj); %current start
@@ -137,8 +138,11 @@ for iInj=1:TotInj
     %% Process stuff
     %find the protocol complete flags
     [InjectionSwitches{iInj},ProtocolCompleteFlags{iInj}]=findcompleteflags(InjectionSwitches{iInj},maxIDperiod);
+    %find the frequency order from freq pulses
+    [FreqChanges{iInj},FreqOrder{iInj}]=findfreqorder(FreqChanges{iInj},maxIDperiod);
     
-    %%
+    
+    %% Clean them?
     
     
     
@@ -180,6 +184,7 @@ TT.InjectionStarts=InjectionStarts;
 TT.Trigger=Trigger; % store the trigger variable too
 TT.Contact=Contact;
 TT.ProtocolCompleteFlags=ProtocolCompleteFlags;
+TT.FreqOrder=FreqOrder;
 
 
 end
@@ -188,21 +193,33 @@ end
 function [InjSwitchOut,ProtCompFlag]=findcompleteflags(InjSwitchIn,maxIDperiod)
 
 InjSwitchOut=InjSwitchIn;
-
-
 BelowThres = (diff(InjSwitchIn) < maxIDperiod);
 %use bwlabel to find connections in array
 [S, NN]=bwlabel(BelowThres);
 
-
-%remove the start pulses which refer to the contact checks from the normal
-%injection start vector
 %%
 ProtCompFlag=find(S > 0); % first pulse of contact ID
 rem_idx=ProtCompFlag+1; %its the SECOND pulse we want to remove
 InjSwitchOut(rem_idx)=[]; %get rid of them!
 
+end
 
+
+function [FreqChangesOut,FreqOrder]=findfreqorder(FreqChangesIn,maxIDperiod);
+FreqChangesOut=FreqChangesIn;
+BelowThres = (diff(FreqChangesIn) < maxIDperiod);
+%use bwlabel to find connections in array
+[S, NN]=bwlabel(BelowThres);
+
+%% get freq order
+
+%freq order is equal to the number of pulses in each set
+FreqOrder=histc(S,1:NN);
+
+
+%% remove extra pulses so only those relating to start and stop in file
+rem_idx=find(S > 0)+1; % any pulse found is bad,so shift up by one to get same idx as FreqCHangesIn
+FreqChangesOut(rem_idx)=[]; %get rid of them!
 
 
 end
