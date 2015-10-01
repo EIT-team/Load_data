@@ -113,7 +113,7 @@ Data_end_s=Data_end*Fs;
 tstart=tic;
 
 %chunksize in seconds - how much data to load at once
-chunk_time=10*60; %10 minutes
+ chunk_time=20*60; %20 minutes
 % chunk_time=10;
 
 
@@ -307,16 +307,21 @@ while finished == 0
         Sw_seg=curInjSwitch(idx_f:idx_l)-datawindow(1);
         
         if SingleFreqMode
+            Sw_seg=curInjSwitch(idx_f:idx_l)-datawindow(1);
             FreqStart_seg=[];
             FreqStop_seg=[];
         else
+            Sw_seg=curInjSwitch(idx_f:idx_l-1)-datawindow(1);
+            
             %find the Starts and Stops related to this freq only
             FreqStart_seg_all=sort(curFreqStarts(curFreqOrder == iFreq)); % this is ALL of the frequency injections in file
             FreqStop_seg_all=sort(curFreqStops(curFreqOrder == iFreq));
             
+%             freq_idx_f=find
+            
             %only want the ones within the data loaded
-            FreqStart_seg=FreqStart_seg_all(idx_f:idx_l)-datawindow(1);
-            FreqStop_seg=FreqStop_seg_all(idx_f:idx_l)-datawindow(1);
+            FreqStart_seg=FreqStart_seg_all(idx_f:idx_l-1)-datawindow(1);
+            FreqStop_seg=FreqStop_seg_all(idx_f:idx_l-1)-datawindow(1);
         end
         %segment this data between the complete protocol lines
         [Vseg_demod{iFreq},Pseg_demod{iFreq}, lastprt]=ScouseTom_data_Seg(Vdemod(:,:,iFreq),Pdemod(:,:,iFreq),Sw_seg,FreqStart_seg,FreqStop_seg,0.0001,N_prt,N_elec,Fs,nextprt);
