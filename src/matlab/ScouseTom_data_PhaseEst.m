@@ -43,8 +43,17 @@ if (isempty(varargin) == 1 && N_prt > 1)%if no extra input then go ahead and res
     %put each protcol line one after each other
     for iPrt =1:N_prt
         idx=((iPrt-1)*N_elec) +1;
+        
+        if N_rep ==1
+            PhaseAngle(idx:idx+N_elec-1,1)=PhaseAngleTmp(iPrt,:);
+            PhaseAngleSTD(idx:idx+N_elec-1,1)=PhaseAngleSTDTmp(iPrt,:);
+            
+        else
+
         PhaseAngle(idx:idx+N_elec-1,:)=squeeze(PhaseAngleTmp(iPrt,:,:));
         PhaseAngleSTD(idx:idx+N_elec-1,:)=squeeze(PhaseAngleSTDTmp(iPrt,:,:));
+        end
+        
     end
     
     %unwrap results now its in the correct format

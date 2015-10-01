@@ -1,4 +1,4 @@
-function [ lastprt ] = ScouseTom_data_checkfirstinj( V,Fs,Prot,curInjSwitch,curFreqSwitch,idx_f,datawindow,SingleFreqMode )
+function [ lastprt ] = ScouseTom_data_checkfirstinj( V,Fs,Prot,InjSwitch,FreqStart,FreqStop,idx_f,datawindow,SingleFreqMode )
 %SCOSUETOM_DATA_CHECKFIRSTINJ Checks the first injection in the dataset to
 %see if it is the correct protocol line, adjusts the processing if not.
 %This is to account for
@@ -20,24 +20,24 @@ if SingleFreqMode
     
     %take either the first injection or the first second
     
-    tmp=curInjSwitch(idx_f+1)-curInjSwitch(idx_f);
+    tmp=InjSwitch(idx_f+1)-InjSwitch(idx_f);
     if tmp > Fs
         tmp=Fs;
     end
     
-    tmpidx=curInjSwitch(idx_f)-datawindow(1):curInjSwitch(idx_f)-datawindow(1)+tmp;
+    tmpidx=InjSwitch(idx_f)-datawindow(1):InjSwitch(idx_f)-datawindow(1)+tmp;
     
     
 else
     
     %take either the first injection or the first second
     
-    tmp=curFreqSwitch(3)-curFreqSwitch(2);
+    tmp=FreqStop(1,1)-FreqStart(1,1);
     if tmp > Fs
         tmp=Fs;
     end
     
-    tmpidx=curFreqSwitch(2)-datawindow(1):curFreqSwitch-datawindow(1)+tmp;
+    tmpidx=FreqStart(1,1)-datawindow(1):FreqStart(1,1)-datawindow(1)+tmp;
     
 end
 

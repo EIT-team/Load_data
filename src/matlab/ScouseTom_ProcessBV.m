@@ -52,11 +52,8 @@ else
     SingleFreqMode=0;
 end
 
-%if in multifrequency mode then we need the freq order found in varargin
-
-if ~SingleFreqMode
-    FreqOrder=varargin{1};
-end
+%if in multifrequency mode then we need the freq order found in processing
+%triggers
 
 %% calculate the keep and rem idx
 % need this beore loading data to know which channels to estimate contact
@@ -65,7 +62,7 @@ end
 [prt_full,keep_idx,rem_idx,Elec_inj]=ScouseTom_data_findprt(ExpSetup.Protocol,N_elec);
 
 %scale factor - impedance conversion
-ZSF=1/(ExpSetup.Amp); %keep this in uA as voltages are in uV
+ZSF=1./(ExpSetup.Amp); %keep this in uA as voltages are in uV
 
 %% create matfile object for saving data
 
@@ -88,12 +85,6 @@ bigmat.info=info;
 bigmat.keep_idx=keep_idx;
 bigmat.rem_idx=rem_idx;
 bigmat.prt_full=prt_full;
-
-%store frewq order if it exists
-if ~SingleFreqMode
-    bigmat.FreqOrder=FreqOrder;
-end
-
 
 %% Calculate Data Length
 
@@ -123,6 +114,8 @@ tstart=tic;
 
 %chunksize in seconds - how much data to load at once
 chunk_time=10*60; %10 minutes
+% chunk_time=10;
+
 
 %finished loading flag
 finished =0;
@@ -143,12 +136,16 @@ lastprt=0;
 %it
 iteration=0;
 
-
-curInjSwitch=TT.InjectionSwitches{1};
+%force first injection for now
+curInjSwitch=[TT.InjectionSwitches{1};TT.InjectionStops(1)];
 if ~SingleFreqMode
-    curFreqSwitch=TT.FreqChanges{1};
+    curFreqOrder=TT.FreqOrder{1};
+    curFreqStarts=TT.FreqStarts{1};
+    curFreqStops=TT.FreqStops{1};
 else
-    curFreqSwitch=[];
+    curFreqOrder=[];
+    curFreqStarts=[];
+    curFreqStops=[];
 end
 
 
@@ -157,6 +154,9 @@ while finished == 0
     
     iteration=iteration+1;
     
+    if iteration == 3
+        disp('bla');
+    end
     %convert window into samples to samples
     datawindow=(datawindow_s*Fs)+Data_start_sample;
     
@@ -168,7 +168,8 @@ while finished == 0
         idx_f=next_sw;
     end
     % find last COMPLETE switch in recording - complete needs two switches
-    idx_l=find(curInjSwitch > datawindow(2),1)-2;
+    % (also include stop switch here!
+    idx_l=find([curInjSwitch]   > datawindow(2),1)-2;
     
     if isempty(idx_l) ==1;
         %if no more switches in file then this is the last iteration
@@ -200,7 +201,7 @@ while finished == 0
     %stopped recording and we carried on.
     
     if first ==1
-        [ lastprt ] = ScouseTom_data_checkfirstinj( V(1:Fs*2,:),Fs,Prot,curInjSwitch,curFreqSwitch,idx_f,datawindow,SingleFreqMode );
+        [ lastprt ] = ScouseTom_data_checkfirstinj( V(1:Fs*2,:),Fs,Prot,curInjSwitch,curFreqStarts,curFreqStops,idx_f,datawindow,SingleFreqMode );
     end
     
     %next protocol line to use is one on from last one
@@ -219,22 +220,29 @@ while finished == 0
             %find carrier frequency and get filter coefficients as well as
             %the amount of data to remove each segment
             
+            
             [trim_demod,B,A,Fc]=ScouseTom_data_GetFilterTrim(V(fwind,Prot(nextprt,1)),Fs,BW,0 );
+            
+            %make it consistent with multifreq bits, whic are all cells
+            A={A};
+            B={B};
+            trim_demod={trim_demod};
         else
             %for multifreq do each one at a time
             for iFreq=1:N_freq
                 
-                f_idx_start=iFreq*2;
-                f_idx_stop=f_idx_start+1;
+                freqidx=find(curFreqOrder(1,:) == iFreq);
+                
+                f_idx_start=curFreqStarts(1,freqidx);
+                f_idx_stop=curFreqStops(1,freqidx);
                 
                 
                 %take only the samples within the current frequency
                 %injection
-                fwind=(curFreqSwitch(f_idx_start):curFreqSwitch(f_idx_stop))-curInjSwitch(nextprt);
-                
+                fwind=(f_idx_start:f_idx_stop)-datawindow(1);
                 
                 [trim_demod{iFreq},B{iFreq},A{iFreq},Fc{iFreq}]...
-                    =ScouseTom_data_GetFilterTrim( Vseg_demod(nextprt,fwind,Prot(nextprt,1),1),Fs,BW,0 );
+                    =ScouseTom_data_GetFilterTrim( V(fwind,Prot(nextprt,1)),Fs,BW,0 );
             end
             
         end
@@ -270,7 +278,8 @@ while finished == 0
     for iFreq=1:N_freq
         %demodulate entire channel at once
         for iElec=1:N_elec
-            [Vdemod(:,iElec,iFreq),Pdemod(:,iElec,iFreq)] =ScouseTom_data_DemodHilbert(V(:,iElec),B(iFreq,:),A(iFreq,:));
+
+            [Vdemod(:,iElec,iFreq),Pdemod(:,iElec,iFreq)] =ScouseTom_data_DemodHilbert(V(:,iElec),B{iFreq},A{iFreq});
         end
         
     end
@@ -279,57 +288,113 @@ while finished == 0
     
     %% Segment data into chunks
     
-    %multi freq will have to do this for each freq and put in cell array as
-    %arrays are all different length
+    %Segment each dataset into chunks - taking freq is needed
     
+    disp('Segmenting')
+    %%
+    %do this for each freq
     
+    Vseg_demod=cell(N_freq,1);
+    Pseg_demod=Vseg_demod;
+    lastprt=Vseg_demod;
     
-    %segment this data between the complete protocol lines
-    [Vseg_demod,Pseg_demod, lastprt]=ScouseTom_data_Seg(Vdemod,Pdemod,curInjSwitch(idx_f:idx_l)-datawindow(1),0.0001,N_prt,N_elec,Fs,nextprt);
+    %% put data into cell array
+    
+    %im sorry for this data structure....
+    for iFreq=1:N_freq
+        
+        %injection switches we need, wrt start of data NOT start of file
+        Sw_seg=curInjSwitch(idx_f:idx_l)-datawindow(1);
+        
+        if SingleFreqMode
+            FreqStart_seg=[];
+            FreqStop_seg=[];
+        else
+            %find the Starts and Stops related to this freq only
+            FreqStart_seg_all=sort(curFreqStarts(curFreqOrder == iFreq)); % this is ALL of the frequency injections in file
+            FreqStop_seg_all=sort(curFreqStops(curFreqOrder == iFreq));
+            
+            %only want the ones within the data loaded
+            FreqStart_seg=FreqStart_seg_all(idx_f:idx_l)-datawindow(1);
+            FreqStop_seg=FreqStop_seg_all(idx_f:idx_l)-datawindow(1);
+        end
+        %segment this data between the complete protocol lines
+        [Vseg_demod{iFreq},Pseg_demod{iFreq}, lastprt]=ScouseTom_data_Seg(Vdemod(:,:,iFreq),Pdemod(:,:,iFreq),Sw_seg,FreqStart_seg,FreqStop_seg,0.0001,N_prt,N_elec,Fs,nextprt);
+        
+    end
+    %% Any left overs?
     
     %   If there are any left overs then stick them at the beginning
     if exist('Vsegleftover','var') ==1
         
-        if size(Vseg_demod,2) == size(Vsegleftover,2)
-            Vseg_demod(1:size(Vsegleftover,1),:,:,1)=Vsegleftover;
-            Pseg_demod(1:size(Psegleftover,1),:,:,1)=Psegleftover;
-        else if size(Vseg_demod,2) > size(Vsegleftover,2) %i cant remember why this is necessary - sometimes the chunks are different by a sample maybe?
-                Vseg_demod(1:size(Vsegleftover,1),1:size(Vsegleftover,2),:,1)=Vsegleftover;
-                Pseg_demod(1:size(Psegleftover,1),1:size(Psegleftover,2),:,1)=Psegleftover;
-            else
-                Vseg_demod(1:size(Vsegleftover,1),:,:,1)=Vsegleftover(:,1:size(Vseg_demod,2),:);
-                Pseg_demod(1:size(Psegleftover,1),:,:,1)=Psegleftover(:,1:size(Pseg_demod,2),:);
+        for iFreq=1:N_freq
+            
+            if size(Vseg_demod{iFreq},2) == size(Vsegleftover{iFreq},2)
+                Vseg_demod{iFreq}(1:size(Vsegleftover{iFreq},1),:,:,1)=Vsegleftover{iFreq};
+                Pseg_demod{iFreq}(1:size(Psegleftover{iFreq},1),:,:,1)=Psegleftover{iFreq};
+            else if size(Vseg_demod{iFreq},2) > size(Vsegleftover{iFreq},2) %i cant remember why this is necessary - sometimes the chunks are different by a sample maybe?
+                    Vseg_demod{iFreq}(1:size(Vsegleftover{iFreq},1),1:size(Vsegleftover{iFreq},2),:,1)=Vsegleftover{iFreq};
+                    Pseg_demod{iFreq}(1:size(Psegleftover{iFreq},1),1:size(Psegleftover{iFreq},2),:,1)=Psegleftover{iFreq};
+                else
+                    Vseg_demod{iFreq}(1:size(Vsegleftover{iFreq},1),:,:,1)=Vsegleftover{iFreq}(:,1:size(Vseg_demod{iFreq},2),:);
+                    Pseg_demod{iFreq}(1:size(Psegleftover{iFreq},1),:,:,1)=Psegleftover{iFreq}(:,1:size(Pseg_demod{iFreq},2),:);
+                end
             end
+            
         end
+        
         
         clear Vsegleftover
         clear Psegleftover
     end
     
-    %take the incomplete repeat and trim matrix - only do this is there was
-    %more than 1 repeat so Vseg is 4D
-    if lastprt ~= N_prt && ndims(Vseg_demod) == 4
-        Vsegleftover=Vseg_demod(1:lastprt,:,:,end);
-        Vseg_demod(:,:,:,end)=[];
-        Psegleftover=Pseg_demod(1:lastprt,:,:,end);
-        Pseg_demod(:,:,:,end)=[];
+    %make leftover cell for each freq
+    for iFreq=1:N_freq
+        
+        %take the incomplete repeat and trim matrix - only do this is there was
+        %more than 1 repeat so Vseg is 4D
+        if lastprt ~= N_prt && ndims(Vseg_demod{iFreq}) == 4
+            Vsegleftover{iFreq}=Vseg_demod{iFreq}(1:lastprt,:,:,end);
+            Vseg_demod{iFreq}(:,:,:,end)=[];
+            Psegleftover{iFreq}=Pseg_demod{iFreq}(1:lastprt,:,:,end);
+            Pseg_demod{iFreq}(:,:,:,end)=[];
+        end
     end
     
+    %% output to user
+    
     %number of
-    N_rep=size(Vseg_demod,4);
-    N_sample=size(Vseg_demod,2);
+    N_rep=size(Vseg_demod{1},4);
     
     disp(['Number of complete repeats in chunk : ', num2str(N_rep)]);
     
     
     %% Calculate the standing BV for each channel
     disp('Getting Boundary Voltages');
-    %get boundary voltages by taking mean
-    [BV, STD]=ScouseTom_data_Seg2BV(Vseg_demod,trim_demod);
-    %get phase angle by comparing to Injection channels
-    [PhaseAngle,PhaseAngleSTD]=ScouseTom_data_PhaseEst(Pseg_demod,trim_demod,Prot);
+    
+    %     %Vdemod is not a cell if only 1 freq
+    %     if SingleFreqMode
+    %
+    %          [BV, STD]=ScouseTom_data_Seg2BV(Vseg_demod,trim_demod);
+    %         %get phase angle by comparing to Injection channels
+    %         [PhaseAngle,PhaseAngleSTD]=ScouseTom_data_PhaseEst(Pseg_demod,trim_demod,Prot);
+    %
+    %
+    %
+    %     else
     
     
+    clear BV STD PhaseAngle PhaseAngleSTD
+    for iFreq=1:N_freq
+        
+        %get boundary voltages by taking mean
+        [BV(:,:,iFreq), STD(:,:,iFreq)]=ScouseTom_data_Seg2BV(Vseg_demod{iFreq},trim_demod{iFreq});
+        %get phase angle by comparing to Injection channels
+        [PhaseAngle(:,:,iFreq),PhaseAngleSTD(:,:,iFreq)]=ScouseTom_data_PhaseEst(Pseg_demod{iFreq},trim_demod{iFreq},Prot);
+        
+    end
+    
+    %     end
     %% Calculate dZ and other Stimulation things
     
     %kirills code goes here
@@ -338,33 +403,51 @@ while finished == 0
     
     %% Calculate Impedance on each injection electrode
     
-    Z=nan(N_elec,N_rep);
+    Z=nan(N_elec,N_rep,N_freq);
     Zstd=Z;
-    %get contact impedance values from BV
-    for iElec=1:N_elec
+    
+    for iFreq=1:N_freq
         
-        if all(isnan(Elec_inj(iElec,:)))
-            Z(iElec,:)=nan;
-            Zstd(iElec,:)=nan;
-        else
-            Z(iElec,:)=ZSF*nanmean(BV(Elec_inj(iElec,~isnan(Elec_inj(iElec,:))),:),1);
-            Zstd(iElec,:)=ZSF*nanstd(BV(Elec_inj(iElec,~isnan(Elec_inj(iElec,:))),:),1);
+        %get contact impedance values from BV
+        for iElec=1:N_elec
+            
+            %set to nan is there were no injections on this elec
+            if all(isnan(Elec_inj(iElec,:)))
+                Z(iElec,:,iFreq)=nan;
+                Zstd(iElec,:,iFreq)=nan;
+            else %average all the voltages on the injection channel
+                Z(iElec,:,iFreq)=ZSF(iFreq)*nanmean(BV(Elec_inj(iElec,~isnan(Elec_inj(iElec,:))),:,iFreq),1);
+                Zstd(iElec,:,iFreq)=ZSF(iFreq)*nanstd(BV(Elec_inj(iElec,~isnan(Elec_inj(iElec,:))),:,iFreq),1);
+            end
         end
+        
     end
     
     %% save Data
     
-    %save them
-    bigmat.BV(1:size(BV,1),start_rep:start_rep+N_rep-1)=BV;
-    bigmat.STD(1:size(STD,1),start_rep:start_rep+N_rep-1)=STD;
-    bigmat.Z(1:size(Z,1),start_rep:start_rep+N_rep-1)=Z;
-    bigmat.Zstd(1:size(Zstd,1),start_rep:start_rep+N_rep-1)=Zstd;
-    bigmat.PhaseAngle(1:size(PhaseAngle,1),start_rep:start_rep+N_rep-1)=PhaseAngle;
-    bigmat.PhaseAngleSTD(1:size(PhaseAngle,1),start_rep:start_rep+N_rep-1)=PhaseAngleSTD;
+    %save them to the matfile
     
+    if SingleFreqMode %have to do this differently as the matfile doesnt like 3 indicies even if N_freq is 1
+        
+        bigmat.BV(1:size(BV,1),start_rep:start_rep+N_rep-1)=BV;
+        bigmat.STD(1:size(STD,1),start_rep:start_rep+N_rep-1)=STD;
+        bigmat.Z(1:size(Z,1),start_rep:start_rep+N_rep-1)=Z;
+        bigmat.Zstd(1:size(Zstd,1),start_rep:start_rep+N_rep-1)=Zstd;
+        bigmat.PhaseAngle(1:size(PhaseAngle,1),start_rep:start_rep+N_rep-1)=PhaseAngle;
+        bigmat.PhaseAngleSTD(1:size(PhaseAngle,1),start_rep:start_rep+N_rep-1)=PhaseAngleSTD;
+        
+        
+    else
+        bigmat.BV(1:size(BV,1),start_rep:start_rep+N_rep-1,1:N_freq)=BV;
+        bigmat.STD(1:size(STD,1),start_rep:start_rep+N_rep-1,1:N_freq)=STD;
+        bigmat.Z(1:size(Z,1),start_rep:start_rep+N_rep-1,1:N_freq)=Z;
+        bigmat.Zstd(1:size(Zstd,1),start_rep:start_rep+N_rep-1,1:N_freq)=Zstd;
+        bigmat.PhaseAngle(1:size(PhaseAngle,1),start_rep:start_rep+N_rep-1,1:N_freq)=PhaseAngle;
+        bigmat.PhaseAngleSTD(1:size(PhaseAngle,1),start_rep:start_rep+N_rep-1,1:N_freq)=PhaseAngleSTD;
+    end
     %% Output Progress
     
-     timedone=toc(tstart);
+    timedone=toc(tstart);
     
     disp([num2str(timedone,'%.0f') 's:Finished processing between ', num2str(datawindow_s(1)), 's and ', num2str(datawindow_s(2)), 's']);
     

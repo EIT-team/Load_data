@@ -131,7 +131,7 @@ for iInj=1:TotInj
     if isempty(curEnd) %if we didnt find any then fake one at end of file
         curEnd=N_samples -1;
         disp('No Stop Injection Found - Adding fake one at end of file');
-        InjectionStops(end)=curEnd;
+        InjectionStops(iInj)=curEnd;
     end
     
     %find the indicators which belong to this injection
@@ -147,8 +147,9 @@ for iInj=1:TotInj
     [FreqChanges{iInj},FreqOrder{iInj},FreqStarts{iInj}]=findfreqorder(FreqChanges{iInj},maxIDperiod);
     %arrange separate into freq starts and stops in matrix InjSwitches x
     %Freq - this makes processing easier
-    [FreqStarts{iInj}, FreqStops{iInj},FreqOrder{iInj}]=reshapefreqtriggers(FreqChanges{iInj},FreqOrder{iInj},FreqStarts{iInj},InjectionSwitches{iInj},N_samples);
+    [FreqStarts{iInj}, FreqStops{iInj},FreqOrder{iInj}]=reshapefreqtriggers(FreqChanges{iInj},FreqOrder{iInj},FreqStarts{iInj},InjectionSwitches{iInj},InjectionStops(iInj),N_samples);
     
+    % here is where you would do stim
     
     %% Clean them?
     
@@ -251,14 +252,18 @@ FreqChangesOut(rem_idx)=[]; %get rid of them!
 end
 
 
-function [FreqStarts, FreqStops,FreqOrderOut]=reshapefreqtriggers(FreqChanges,FreqOrderIn,FreqStartsIn,InjectionSwitches,N_samples)
+function [FreqStarts, FreqStops,FreqOrderOut]=reshapefreqtriggers(FreqChanges,FreqOrderIn,FreqStartsIn,InjectionSwitches,InjectionStop,N_samples)
 
 %find the corresponding freqstop pulse for each freq start, if one is
 %missing due to the file being truncated then add a fake one at the end
 
 
 
+
 %% find start and stops
+
+FreqStopsIn=nan(size(FreqStartsIn));
+
 for iFq=1:length(FreqStartsIn)
     
     curFstart=FreqStartsIn(iFq);
@@ -270,12 +275,12 @@ for iFq=1:length(FreqStartsIn)
     end
     
     FreqStopsIn(iFq,1)=curFstop;
-        
+    
 end
 %% arrange into each injection switch
 
 N_freq=max(FreqOrderIn);
-N_Sw=length(InjectionSwitches)-1;
+N_Sw=length(InjectionSwitches);
 
 % nan pad as the last one might not be the correct size as it might have
 % been truncated
@@ -285,10 +290,14 @@ FreqOrderOut=FreqStarts;
 
 
 for iSw=1:N_Sw
-
-    %find the index of frequency starts within the current injection switch
-    cur_idx=find(((FreqStartsIn > InjectionSwitches(iSw) & FreqStartsIn <= InjectionSwitches(iSw+1))));
     
+    %find the index of frequency starts within the current injection switch
+    
+    if iSw < N_Sw
+        cur_idx=find(((FreqStartsIn > InjectionSwitches(iSw) & FreqStartsIn <= InjectionSwitches(iSw+1))));
+    else % there is no injection switch for the final stop - so use injection stop
+        cur_idx=find(((FreqStartsIn > InjectionSwitches(iSw) & FreqStartsIn <= InjectionStop)));
+    end
     %I found that due to the speed of things on the Due, the Switch
     %Indication could actually occur *before* the frequency stop indicator (though the ISR),
     %despite coming ~50 lines of code afterwards - which means just finding
