@@ -108,7 +108,7 @@ for iZ = 1:Z_checks_num
     
     % data is now in big long streams - segment into separate lines of the
     % protocol - output is matrix of voltages size PRT x Sample x CHN x Repeat
-    [Vseg, Pseg]=ScouseTom_data_Seg(Vdemod,Pdemod,curInjSwitch-Data_start_s,0.0001,N_prt,N_elec,Fs);
+    [Vseg, Pseg]=ScouseTom_data_Seg(Vdemod,Pdemod,curInjSwitch-Data_start_s,[],[],0.0001,N_prt,N_elec,Fs);
     
     %get boundary voltages - average each segment - ignoring the messed up
     %edges
