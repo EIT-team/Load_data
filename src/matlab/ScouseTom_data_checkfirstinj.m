@@ -46,8 +46,13 @@ end
 %estimate the injection pairs from the two largest RMS values
 [InjPairs, estimatebadness]=ScouseTom_data_EstInjPair(V(tmpidx,:));
 
+Prot=sort(Prot,2);
+
+
 %get the injection pair from the protocol
 ProtPairs=Prot(1,:)';
+
+
 
 
 %if the estimation is OK then calculate automatically

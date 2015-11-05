@@ -30,7 +30,7 @@ end
 
 
 %if the biggest two arent more than 50% than the next one then warn
-if RMS_CHN(3) > 0.5*RMS_CHN(2)
+if RMS_CHN(3) > 0.4*RMS_CHN(2)
     warning('Voltages on other channels greater than half the voltage on injection pairs');
     badnessflag=1;
 end

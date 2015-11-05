@@ -93,6 +93,7 @@ bigmat.prt_full=prt_full;
 
 %sread needs integer seconds
 Data_start=floor(TT.InjectionStarts(1)/Fs);
+% Data_start=700;
 Data_end=ceil(TT.InjectionStops(1)/Fs);
 Data_length=fix(Data_end-Data_start);
 Data_start_sample=Data_start*Fs;
@@ -113,8 +114,8 @@ Data_end_s=Data_end*Fs;
 tstart=tic;
 
 %chunksize in seconds - how much data to load at once
- chunk_time=20*60; %20 minutes
-% chunk_time=10;
+chunk_time=5*60; %10 minutes
+% % chunk_time=10;
 
 
 %finished loading flag
@@ -152,11 +153,11 @@ end
 while finished == 0
     %% sort out which switches are in this chunk
     
-    iteration=iteration+1;
-    
-    if iteration == 3
-        disp('bla');
+    if iteration == 5;
+        disp('paasda');
     end
+    
+    iteration=iteration+1;
     %convert window into samples to samples
     datawindow=(datawindow_s*Fs)+Data_start_sample;
     
@@ -201,7 +202,7 @@ while finished == 0
     %stopped recording and we carried on.
     
     if first ==1
-        [ lastprt ] = ScouseTom_data_checkfirstinj( V(1:Fs*2,:),Fs,Prot,curInjSwitch,curFreqStarts,curFreqStops,idx_f,datawindow,SingleFreqMode );
+        [ lastprt ] = ScouseTom_data_checkfirstinj( V(1:Fs*3,:),Fs,Prot,curInjSwitch,curFreqStarts,curFreqStops,idx_f,datawindow,SingleFreqMode );
     end
     
     %next protocol line to use is one on from last one
@@ -278,7 +279,7 @@ while finished == 0
     for iFreq=1:N_freq
         %demodulate entire channel at once
         for iElec=1:N_elec
-
+            
             [Vdemod(:,iElec,iFreq),Pdemod(:,iElec,iFreq)] =ScouseTom_data_DemodHilbert(V(:,iElec),B{iFreq},A{iFreq});
         end
         
@@ -291,12 +292,12 @@ while finished == 0
     %Segment each dataset into chunks - taking freq is needed
     
     disp('Segmenting')
-    %%
+    
     %do this for each freq
     
     Vseg_demod=cell(N_freq,1);
     Pseg_demod=Vseg_demod;
-    lastprt=Vseg_demod;
+    
     
     %% put data into cell array
     
@@ -311,17 +312,34 @@ while finished == 0
             FreqStart_seg=[];
             FreqStop_seg=[];
         else
-            Sw_seg=curInjSwitch(idx_f:idx_l-1)-datawindow(1);
+            
             
             %find the Starts and Stops related to this freq only
             FreqStart_seg_all=sort(curFreqStarts(curFreqOrder == iFreq)); % this is ALL of the frequency injections in file
             FreqStop_seg_all=sort(curFreqStops(curFreqOrder == iFreq));
             
-%             freq_idx_f=find
+            freq_idx_f=idx_f; %first index for freqs we can assume is ok
+            
+            %if injection was stopped early, the number of
+            %complete injections could be different for each freq. I.e. ONly the ones
+            %completed fully would give a FreqStop_Seg_all the maximum length idx_l-1, so we
+            %have to find the maximum index separately, as
+            
+            if idx_l-1 > size(FreqStart_seg_all,1)
+                
+                
+                freq_idx_l=size(FreqStart_seg_all,1);
+            else
+                freq_idx_l=idx_l-1;
+            end
+            
             
             %only want the ones within the data loaded
-            FreqStart_seg=FreqStart_seg_all(idx_f:idx_l-1)-datawindow(1);
-            FreqStop_seg=FreqStop_seg_all(idx_f:idx_l-1)-datawindow(1);
+            FreqStart_seg=FreqStart_seg_all(freq_idx_f:freq_idx_l)-datawindow(1);
+            FreqStop_seg=FreqStop_seg_all(freq_idx_f:freq_idx_l)-datawindow(1);
+            
+            Sw_seg=curInjSwitch(freq_idx_f:idx_l)-datawindow(1);
+            
         end
         %segment this data between the complete protocol lines
         [Vseg_demod{iFreq},Pseg_demod{iFreq}, lastprt]=ScouseTom_data_Seg(Vdemod(:,:,iFreq),Pdemod(:,:,iFreq),Sw_seg,FreqStart_seg,FreqStop_seg,0.0001,N_prt,N_elec,Fs,nextprt);
@@ -403,6 +421,11 @@ while finished == 0
     %% Calculate dZ and other Stimulation things
     
     %kirills code goes here
+    
+    
+    %% clear variables
+    
+    %     clear Vseg_demod Pseg_demod Vdemod Pdemod
     
     
     

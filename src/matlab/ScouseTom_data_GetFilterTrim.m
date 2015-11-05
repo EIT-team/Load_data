@@ -31,7 +31,7 @@ Decay_coef=0.00001; %amount filter ripple must decay by before using data
 %they are within 1% of each other. IIR is MUCH faster than high order FIR
 %so use this to speed up the process
 
-if trim_max <1200
+if trim_max <20
     
     if (Fc - BW/2) > 0
         

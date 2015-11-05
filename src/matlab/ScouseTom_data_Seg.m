@@ -28,7 +28,6 @@ else
 end
 
 
-
 %% info for segmenting
 
 s_rem=fix(t_rem*Fs); %samples to remove
