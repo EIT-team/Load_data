@@ -3,12 +3,21 @@ function [] = ScouseTom_TrigView( HDR,Trigger )
 %   Detailed explanation goes here
 
 
-% TO DO:
-% needs to not plot repeated values to make it faster
+
+%% Get trigger channel input according to which file type it is
+switch HDR.TYPE
+    case 'BDF' % biosemi file
+        trignum=8;
+        [ IndicatorPinData,TrigPos ] = ScouseTom_getbdftrig( HDR,trignum );
+        fname=HDR.FILE.Name;
+    case 'EEG'
+    otherwise
+        error('Bad HDR');
+end
+
+Fs=HDR.SampleRate;
 
 %% get labels from trigger struct if given
-
-trignum=8;
 
 if exist('Trigger') %if trigger file was given, take the labels and the channels which actually have triggers in them
 
@@ -22,43 +31,26 @@ else %create generic labels if the trigger file is not given
 end
 
 
-%% Get trigger channel input according to which file type it is
-switch HDR.TYPE
-    case 'BDF' % biosemi file
-        IndicatorPinData=dec2bin(HDR.BDF.Trigger.TYP)-'0';
-        IndicatorPinData=IndicatorPinData(:,end-(trignum-1):end); % take only last 8 bits
-        IndicatorPinData=fliplr(IndicatorPinData); %sort into LSB
-        fname=HDR.FILE.Name;
-        TrigPos=HDR.BDF.Trigger.POS;
-    case 'EEG'
-end
-
-Fs=HDR.SampleRate;
-
 %% Process data
 
+%get time vector
 t=TrigPos/Fs;
-
-
 
 
 %% plot that!
 
 figure;
+%plot each trigger channel from 0 to 1 with separation of sep. This is like
+%plotting using strips, but not shit
 
 sep=0.5;
-hold on
+hold all
 for ichn=(1:length(TrigDisp))
-
 stairs(t,(1.5*(ichn-1)+sep)+IndicatorPinData(:,TrigDisp(ichn)));
-
-
 end
 hold off
 ylim([0 1.5*length(TrigDisp)+sep]);
-title(['Triggers in dataset: ' fname]);
-
-
+title(['Triggers in dataset: ' fname],'interpreter','none');
 
 set(gca,'YTickLabel',ChnLabel,'YTick',1.5*((1:length(TrigDisp))-1)+sep*2,'ygrid','on');
 xlabel('Time (s)')

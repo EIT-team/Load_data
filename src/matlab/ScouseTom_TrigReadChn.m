@@ -5,10 +5,18 @@ function [ Trigger ] = ScouseTom_TrigReadChn( HDR )
 
 % Todo - check HDR is ok - can run on broken files at the moment
 
+%% Get trigger channel input according to which file type it is
+switch HDR.TYPE
+    case 'BDF' % biosemi file
+        trignum=8;
+        [ IndicatorPinData,TrigPos ] = ScouseTom_getbdftrig( HDR,trignum );
+        % Other useful info from HDR
+        Fs=HDR.SampleRate;
+    case 'EEG'
+    otherwise
+        error('Bad HDR');
+end
 %% Define Variables
-
-% Other useful info from HDR
-Fs=HDR.SampleRate;
 
 %number of trigger channels
 trignum=8; % 8 for BioSemi and ActiChamp
@@ -47,18 +55,6 @@ ID_Codes.Num(5)=5;
 
 
 
-
-%% Get trigger channel input according to which file type it is
-switch HDR.TYPE
-    case 'BDF' % biosemi file
-        IndicatorPinData=dec2bin(HDR.BDF.Trigger.TYP)-'0';
-        IndicatorPinData=IndicatorPinData(:,end-(trignum-1):end); % take only last 8 bits
-        IndicatorPinData=fliplr(IndicatorPinData); %sort into LSB
-        TrigPos=HDR.BDF.Trigger.POS;
-    case 'EEG'
-end
-
-
 %% FIND EDGES IN EACH CHANNEL
 
 %find peaks by creating logical threshold array. then finding the rising
@@ -78,7 +74,6 @@ ThresEdges= diff(AboveThres); %take diff of this data. this is now nearly all 0 
 
 RisingEdges=TrigPos(RisingEdgesPosIdx);
 FallingEdges=TrigPos(FallingEdgesPosIdx);
-
 
 
 %% read triggers in each channel and reject orphaned ones or too short ones
@@ -174,7 +169,6 @@ for iChn=1:trignum
     end
     
 end
-
 
 %% output little bit of info about what was found
 

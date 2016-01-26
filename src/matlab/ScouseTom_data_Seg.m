@@ -1,4 +1,4 @@
-function [ Vseg, lastPrt ] = ScouseTom_data_Seg( data,InjSwitches,t_rem,N_prt,N_elec,Fs,varargin )
+function [ Vseg,Pseg, lastPrt ] = ScouseTom_data_Seg( Vdata,Pdata,InjSwitches,FreqStartSwitches,FreqStopSwitches,t_rem,N_prt,N_elec,Fs,varargin )
 %segment_ind segments data stream based on timepoints InjSwitches - taken
 %from HDR. data is removed hereto remove switching artefact, but this is
 %not used that much. most data removal is done in demodulation
@@ -14,85 +14,65 @@ else
     if isnumeric(tmp) ==1
         %this is unessesary now
         if tmp ~= 1
-            
             %if the next line is bigger than the number of protocol lines
             %then "wrap" it round
             if tmp>N_prt
                 iPrt=tmp-N_prt;
-                
             else
                 iPrt=tmp;
-                
             end
-            
-            
         else
             iPrt=1;
         end
     end
 end
 
-%% check for any anomalous short switches
 
-%this is necessary to get rid of really quick events on the trigger channel
-%as found in DAY 8/Bald_Nir_EZ at ~9532 seconds. This doesnt seem to
-%correspond to an actual switch of electrodes, so im not sure what the deal
-%is with that! but it can be removed ok
+%% info for segmenting
 
-Sw_in=diff(InjSwitches); %time gap between swtiches
-Sw_True=mode(Sw_in); %the most common switch
+s_rem=fix(t_rem*Fs); %samples to remove
 
-Bad_switches=find(Sw_in < fix(0.9*Sw_True) == 1)+1; %are any switches less than 90% of the "real" length
+N_switch=size(InjSwitches,1); %number of switches
 
-if ~isempty(Bad_switches) % if there are bad switches
+N_rep=ceil(N_switch/N_prt); %number of repeats of protocol
+
+%are we taking a specific bit within this injection for multiFreqMode?
+if (~isempty(FreqStartSwitches) && ~isempty(FreqStopSwitches))
+    MultiFreqMode =1;
+    %then the interval is the biggest gap between freqstart and freqstop
+    s_int=max(FreqStopSwitches-FreqStartSwitches);
     
-    warning('Small switches found in the sequence, deleting YOU MIGHT NOT WANT THIS');
+    %calculate vector of trimmed segments - reference everything to the
+    %Start switches moving the same amount - this ensures the same number
+    %of samples are read each time, even though they vary by 1 or 2
+    s_trim=[FreqStartSwitches+s_rem, FreqStartSwitches+s_int-s_rem];
     
-    %precaution to stop it running forever
-    maxit=length(Bad_switches);
     
-    it=0;
+else % we are ing singlefreqmode, and the interval is equal to the biggest gap between injection switches
+    MultiFreqMode =0;
+    s_int=max(max(diff(InjSwitches))); % interval in samples of each switch
     
-    while ~isempty(Bad_switches) && it <= maxit
-        
-        it=it+1;
-        
-        InjSwitches(Bad_switches(1))=[]; % get rid of the first one, then see if this has fixed it
-        Sw_in=diff(InjSwitches);
-        Bad_switches=find(Sw_in < fix(0.9*Sw_True) == 1)+1;
-        
-    end
+    %calculate vector of trimmed segments - this is the gap between inj
+    %switches
+    s_trim=[InjSwitches(:,1)+s_rem, InjSwitches(:,1)+s_int-s_rem];
+    
+    
+    % FIX LOADING DATA THAT ISNT THERE FOR VERY SHORT INJECTION
+    s_trim (s_trim > length(Vdata)) = length(Vdata);
     
 end
 
 
 
 
-%% info for segmenting
-
-s_rem=fix(t_rem*Fs); %samples to remove
-
-s_int=max(max(diff(InjSwitches))); % interval in samples of each switch
-
-N_switch=size(InjSwitches,1); %number of switches
-
-N_rep=ceil(N_switch/N_prt); %number of repeats of protocol
-
-
 %% segment data into injections
-
-%calculate vector of trimmed segments
-s_trim=[InjSwitches(:,1)+s_rem, InjSwitches(:,1)+s_int-s_rem];
-
-% FIX LOADING DATA THAT ISNT THERE FOR VERY SHORT INJECTION
-s_trim (s_trim > length(data)) = length(data);
-
 
 %calculate segment width
 seg_width=s_int-s_rem*2+1;
 
 %create vector of voltages PRT x Voltage x CHN x Repeat
 Vseg=nan(N_prt,seg_width,N_elec,N_rep);
+Pseg=Vseg;
 
 %% segment that shit
 
@@ -103,7 +83,12 @@ if N_rep > 1
     
     for injcnt = 1:N_switch
         
-        Vseg(iPrt,:,:,rep)=data(s_trim(injcnt,1):s_trim(injcnt,2),:);
+%         if injcnt==N_switch
+%            disp('blah'); 
+%         end
+        
+        Vseg(iPrt,:,:,rep)=Vdata(s_trim(injcnt,1):s_trim(injcnt,2),:);
+        Pseg(iPrt,:,:,rep)=Pdata(s_trim(injcnt,1):s_trim(injcnt,2),:);
         
         iPrt=iPrt+1; %update Prt pointer
         
@@ -116,9 +101,19 @@ if N_rep > 1
 else
     %if there is only 1 repeat then ignore the 4th dimension
     for injcnt = 1:N_switch
-        vtmp=data(s_trim(injcnt,1):s_trim(injcnt,2),:);
+        vtmp=Vdata(s_trim(injcnt,1):s_trim(injcnt,2),:);
         Vseg(iPrt,1:size(vtmp,1),:)=vtmp;
+        
+        ptmp=Pdata(s_trim(injcnt,1):s_trim(injcnt,2),:);
+        Pseg(iPrt,1:size(ptmp,1),:)=ptmp;
+        
         iPrt=iPrt+1; %update Prt pointer
+        
+        if iPrt > N_prt
+            iPrt=1;
+            rep=rep+1;
+        end
+        
         
     end
 end
