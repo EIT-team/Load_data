@@ -2,7 +2,7 @@ function [ BV,PhaseAngle ] = ScouseTom_ProcessBV( HDR,TT,ExpSetup,varargin )
 %SCOUSETOM_ Summary of this function goes here
 %   Detailed explanation goes here
 
-% ONLY DOES ONE INEJCTION AT THE MOMENT
+% ONLY DOES ONE INJECTION AT THE MOMENT
 
 %% Do error checking of inputs HERE
 
