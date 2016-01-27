@@ -7,7 +7,7 @@ function [ HDR ] = ScouseTom_getbdfHDR( varargin )
 %prompt user if no inputs
 if isempty(varargin) == 1
     
-    [filename, pathname] = uigetfile('*.bdf', 'Choose which Biosemi file with Zcheck to load');
+    [filename, pathname] = uigetfile('*.bdf', 'Choose which Biosemi file to load');
     if isequal(filename,0) || isequal(pathname,0)
         error('User pressed cancel')
     else
