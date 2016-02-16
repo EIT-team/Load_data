@@ -1,4 +1,4 @@
-function [ Vdemod ] = ScouseTom_data_DemodChn( V,B,A )
+function [ Vdemod,Pdemod ] = ScouseTom_data_DemodChn( V,B,A )
 %ScouseTom_data_DemodChn Demodulates each channel one at a time
 %   Detailed explanation goes here
 
@@ -12,10 +12,11 @@ function [ Vdemod ] = ScouseTom_data_DemodChn( V,B,A )
 %% demodulate data
 
 Vdemod=nan(size(V));
+Pdemod=nan(size(Vdemod));
 
     for iElec=1:N_elec
 
-            Vdemod(:,iElec)=ScouseTom_data_DemodHilbert(V(:,iElec),B,A);
+            [Vdemod(:,iElec), Pdemod(:,iElec)]=ScouseTom_data_DemodHilbert(V(:,iElec),B,A);
 
     end
 % disp('Demodulation done');
