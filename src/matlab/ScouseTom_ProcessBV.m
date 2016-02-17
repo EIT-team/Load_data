@@ -1,4 +1,4 @@
-function [ BV,PhaseAngle ] = ScouseTom_ProcessBV( HDR,TT,ExpSetup,varargin )
+    function [ BV,PhaseAngle,OutStruc] = ScouseTom_ProcessBV( HDR,TT,ExpSetup,varargin )
 %SCOUSETOM_ Summary of this function goes here
 %   Detailed explanation goes here
 
@@ -74,8 +74,10 @@ info.eegfname=eegfname;
 info.TimeNum=datenum(HDR.T0);
 info.TimeVec=HDR.T0;
 
+mfilename=fullfile(eegfpath,[eegfname '-BV.mat']);
+
 %create matfile object in same place as data
-bigmat=matfile(fullfile(eegfpath,[eegfname '-BV.mat']),'Writable',true);
+bigmat=matfile(mfilename,'Writable',true);
 % same tirgger info
 bigmat.TT=TT;
 %save the system settings
@@ -529,6 +531,9 @@ teatime=toc(tstart);
 fprintf('That took : %.1f seconds \r',teatime);
 
 BV=bigmat.BV;
+PhaseAngle=bigmat.PhaseAngle;
+OutStruc=load(mfilename);
+
 
 
 
