@@ -264,10 +264,6 @@ while finished == 0
     %do this here
     
     
-    
-    
-    
-    
     %% Demodulate Data - each channel at a time
     
     %demodulate data

@@ -45,26 +45,28 @@ end
 
 [pathstr,namestr,extstr] = fileparts(fname);
 
-
-
-switch extstr
-    case '.bdf'
-        
-   
-
-
 %% Load HDR
 
-%if HDR not given then load it 
+%if HDR not given then load it
 if exist('HDR','var') == 0
-    HDR=ScouseTom_getbdfHDR(fname);
+    
+    %use function for correct file type
+    switch extstr
+        case '.bdf'
+            HDR=ScouseTom_getbdfHDR(fname);
+        case {'.eeg','.vhdr','.vmrk'}
+            HDR=ScouseTom_geteegHDR(fname);
+        otherwise
+            error('Unknown file type');
+    end
+    
 end
 
-if ~strcmp(HDR.TYPE,'BDF') 
 
+%Check HDR
+if ~any(strcmp(HDR.TYPE,{'BDF','BrainVision'}))
     error('BAD HDR FILE');
 end
-
 
 %% Get Triggers
 
@@ -75,17 +77,21 @@ if exist('TT','var') == 0
     TT= ScouseTom_TrigProcess(Trigger, HDR);
 end
 
-
 %% Get ExpSetup - or find from file
 
+%if ExpSetup not given then load the one 
 
-%if ExpSetup not given then create one with the necessary info from HDR 
+mfilename=fullfile(pathstr,[namestr '_log.mat']);
 
 if exist('ExpSetup','var') == 0
-    ExpSetup.Elec_num=HDR.NS-1; %number of electrodes
-    ExpSetup.Bad_Elec=[]; %bad electrodes assume none
-    ExpSetup.Desc='THIS IS A DUMMY EXPSETUP MADE DURING ZCHECK';
-
+    
+    %check if _log file is with eeg file
+    if exist(mfilename,'file')
+        load(mfilename);
+    else
+        error('Cannot find ExpSetup');
+    end
+    
 end
 
 
