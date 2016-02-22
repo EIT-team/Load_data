@@ -14,8 +14,7 @@ switch HDR.TYPE
         
     case 'BrainVision'
         [ StatusChns,TrigPos ] = ScouseTom_geteegtrig( HDR );
-        fname=HDR.FILE.Name;
-        trignum=size(StatusChns,2);
+        
     otherwise
         error('Bad HDR');
 end
@@ -37,7 +36,7 @@ minwidth = floor(((minpulsemicros*10^-6)*Fs)); %rounded to nearest sample
 %define max period of INDENTIFICATION pulses at start of file, these are
 %1000us apart
 maxIDpulsemicros=2000; %max period of ID pulses to consider - this rejects all "real" pulses from start/stops/switching/stim
-maxIDperiod = fix((maxIDpulsemicros*10^-6*Fs)); %rounded to nearest sample
+maxIDperiod = ceil(((maxIDpulsemicros*10^-6)*Fs)); %rounded to nearest sample
 
 
 %% Channel ID Codes
@@ -63,12 +62,31 @@ ID_Codes.Num(5)=5;
 
 %% FIND EDGES IN EACH CHANNEL
 
+%only biosemi has proper record of rising AND falling edges, so we need to
+%process them slightly differently. For the diff to find Thresedges, we can
+%pad with the edge values for biosemi. But for the ActiChamp we need to pad
+%with zeros to ensure we have a rising edge at start
+
+
+
 %find peaks by creating logical threshold array. then finding the rising
 %and falling edges, checking the width is greater than the min width
 
 AboveThres=StatusChns > thres; %threshold indicator pin data
 
-AboveThres=[ AboveThres(1,:); AboveThres; AboveThres(end,:);]; % pad array (for diff below)
+% AboveThres=[ AboveThres(1,:); AboveThres; AboveThres(end,:);]; % pad array (for diff below)
+switch HDR.TYPE
+    case 'BDF' % biosemi file
+        AboveThres=[ AboveThres(1,:); AboveThres; AboveThres(end,:);]; % pad array (for diff below)
+        
+    case 'BrainVision'
+        AboveThres=[ zeros(size(AboveThres(1,:))); AboveThres; AboveThres(end,:);]; % pad array (for diff below)
+        
+    otherwise
+        error('Bad HDR');
+end
+
+
 %this is now a logical array of 0 1. pulses are found by finding when the
 %times when the data is above the threshold.
 
@@ -84,18 +102,25 @@ FallingEdges=TrigPos(FallingEdgesPosIdx);
 
 %% read triggers in each channel and reject orphaned ones or too short ones
 
+% only BioSemi has rising AND falling edges, so we cannot do this with
+% actichamp
+
+
 %find any orphaned falling edges at start of file which can happen if the
 %biosemi cries a little bit or if the recording was started *before*
 %arduino turns on. As pins are held HIGH by biosemi. And find orphaned
 %rising too, which can occur if the file stops early
 
 
-
-
 for iChn=1:trignum
     %take only rising and falling belonging to this channel
     curRising=RisingEdges(RisingEdgesChn == iChn);
     curFalling=FallingEdges(FallingEdgesChn == iChn);
+    
+%     figure;hold on;stairs(TrigPos,StatusChns(:,iChn));plot(curRising,[1],'o');plot(curFalling,[1],'x');hold off;title(['chn : ' num2str(iChn)]);
+    
+    
+    
     
     if (~isempty(curRising) && ~isempty(curFalling)) % if R and F edges found
         
@@ -108,10 +133,8 @@ for iChn=1:trignum
         end
         
     else %if both R and F dont exist then ignore all edges in this channel
-        
         curRising=[];
         curFalling=[];
-        
     end
     
     %now we have only actual pulses in the channel, remove short/weird
@@ -139,7 +162,6 @@ for iChn=1:trignum
     [S, NN]=bwlabel(BelowThres);
     
     %assume only 1 ID and this happens first
-    
     codetmp=find (S == 1);
     codesize=size(codetmp,1);
     
@@ -183,16 +205,21 @@ GoodChn=cellfun(@(x) ~isempty(x),Trigger.RisingEdges);
 
 UnknownChn=cellfun(@(x) ~isempty(x),strfind(Trigger.Type,'Unknown'));
 
-%get rid of Unkown channels in "good channels"
+%get rid of Unknown channels in "good channels"
 GoodChn=GoodChn ~= UnknownChn;
 
 NumUnknownChn=sum(UnknownChn);
 NumGoodChn=sum(GoodChn);
+NumIDchn=sum(~UnknownChn);
 
-fprintf('Found %d trig chn: ',NumGoodChn);
+fprintf('Found ID codes in %d trig chn: ',NumIDchn);
+fprintf('%s, ',Trigger.Type{~UnknownChn});
+fprintf('\nand %d unknown channel(s),',NumUnknownChn);
+fprintf('%d chns had trigs in them: ',NumGoodChn);
 fprintf('%s, ',Trigger.Type{GoodChn});
-fprintf('and %d unknown channel(s),',NumUnknownChn);
-fprintf(' so thats good.\n');
+fprintf('\nSo thats good.\n');
+
+
 
 
 end

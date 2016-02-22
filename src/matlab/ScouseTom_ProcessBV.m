@@ -1,4 +1,4 @@
-    function [ BV,PhaseAngle,OutStruc] = ScouseTom_ProcessBV( HDR,TT,ExpSetup,varargin )
+function [ BV,PhaseAngle,OutStruc] = ScouseTom_ProcessBV( HDR,TT,ExpSetup,varargin )
 %SCOUSETOM_ Summary of this function goes here
 %   Detailed explanation goes here
 

@@ -62,7 +62,6 @@ if exist('HDR','var') == 0
     
 end
 
-
 %Check HDR
 if ~any(strcmp(HDR.TYPE,{'BDF','BrainVision'}))
     error('BAD HDR FILE');

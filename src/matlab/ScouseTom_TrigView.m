@@ -1,5 +1,5 @@
 function [] = ScouseTom_TrigView( HDR,XaxisSampleFlag,Trigger )
-%SCOUSETOM_TRIGVIEW Plot trigs in dataset 
+%SCOUSETOM_TRIGVIEW Plot trigs in dataset
 %   Detailed explanation goes here
 
 
@@ -10,10 +10,12 @@ switch HDR.TYPE
         trignum=8;
         [ StatusChns,TrigPos ] = ScouseTom_getbdftrig( HDR,trignum );
         fname=HDR.FILE.Name;
+        plotstr='-';
     case 'BrainVision'
         [ StatusChns,TrigPos ] = ScouseTom_geteegtrig( HDR );
         fname=HDR.FILE.Name;
         trignum=size(StatusChns,2);
+        plotstr='-*';
     otherwise
         error('Bad HDR');
 end
@@ -23,7 +25,7 @@ Fs=HDR.SampleRate;
 %% get labels from trigger struct if given
 
 if exist('Trigger','var') %if trigger file was given, take the labels and the channels which actually have triggers in them
-
+    
     GoodChn=cellfun(@(x) ~isempty(x),Trigger.RisingEdges);
     TrigDisp=find(GoodChn);
     ChnLabel=(  Trigger.Type(TrigDisp));
@@ -65,7 +67,7 @@ end
 sep=0.5;
 hold all
 for ichn=(1:length(TrigDisp))
-stairs(xdata,(1.5*(ichn-1)+sep)+StatusChns(:,TrigDisp(ichn)));
+    stairs(xdata,(1.5*(ichn-1)+sep)+StatusChns(:,TrigDisp(ichn)),plotstr);
 end
 hold off
 ylim([0 1.5*length(TrigDisp)+sep]);
