@@ -52,6 +52,8 @@ ID_Codes.Name(4)={'Switch'};
 ID_Codes.Num(4)=3;
 ID_Codes.Name(5)={'Freq'};
 ID_Codes.Num(5)=5;
+ID_Codes.Name(6)={'Compliance'};
+ID_Codes.Num(6)=6;
 
 %there may be others here - system has 3 spare channles EX_1 2 and 3 on
 %arduino. and Kirills physchotool box stuff will also go here
