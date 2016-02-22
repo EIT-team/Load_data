@@ -205,17 +205,25 @@ GoodChn=cellfun(@(x) ~isempty(x),Trigger.RisingEdges);
 
 UnknownChn=cellfun(@(x) ~isempty(x),strfind(Trigger.Type,'Unknown'));
 
+EmptyChn=cellfun(@(x) isempty(x),Trigger.Type);
+
+
 %get rid of Unknown channels in "good channels"
 GoodChn=GoodChn ~= UnknownChn;
 
 NumUnknownChn=sum(UnknownChn);
 NumGoodChn=sum(GoodChn);
-NumIDchn=sum(~UnknownChn);
+NumIDchn=sum(~EmptyChn);
 
 fprintf('Found ID codes in %d trig chn: ',NumIDchn);
-fprintf('%s, ',Trigger.Type{~UnknownChn});
-fprintf('\nand %d unknown channel(s),',NumUnknownChn);
-fprintf('%d chns had trigs in them: ',NumGoodChn);
+fprintf('%s, ',Trigger.Type{~EmptyChn});
+
+if NumUnknownChn
+    
+fprintf('and %d unknown channel(s),',NumUnknownChn);
+end
+
+fprintf('\n%d chns had trigs in them: ',NumGoodChn);
 fprintf('%s, ',Trigger.Type{GoodChn});
 fprintf('\nSo thats good.\n');
 
