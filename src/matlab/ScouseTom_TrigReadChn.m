@@ -55,6 +55,9 @@ ID_Codes.Num(5)=5;
 ID_Codes.Name(6)={'Compliance'};
 ID_Codes.Num(6)=6;
 
+ID_Codes.Name(7)={'DummyIgnoreThisOne'};
+ID_Codes.Num(7)=8;
+
 %there may be others here - system has 3 spare channles EX_1 2 and 3 on
 %arduino. and Kirills physchotool box stuff will also go here
 
@@ -119,7 +122,7 @@ for iChn=1:trignum
     curRising=RisingEdges(RisingEdgesChn == iChn);
     curFalling=FallingEdges(FallingEdgesChn == iChn);
     
-%     figure;hold on;stairs(TrigPos,StatusChns(:,iChn));plot(curRising,[1],'o');plot(curFalling,[1],'x');hold off;title(['chn : ' num2str(iChn)]);
+    %     figure;hold on;stairs(TrigPos,StatusChns(:,iChn));plot(curRising,[1],'o');plot(curFalling,[1],'x');hold off;title(['chn : ' num2str(iChn)]);
     
     
     
@@ -200,6 +203,47 @@ for iChn=1:trignum
     
 end
 
+%% Clear the dummy channel
+
+%we have extra channel to force rising edges so the actichamp triggers make
+%sense. But we dont want this data so clear the channel
+
+
+%find the one with the correct ID code - This works for BDF files
+if any(cellfun(@(x) ~isempty(x),strfind(Trigger.Type,ID_Codes.Name{7})));
+    
+    DummyChn=find((cellfun(@(x) ~isempty(x),strfind(Trigger.Type,ID_Codes.Name{7}))));
+    
+end
+
+%find it from the first 8 rising edges - This works for ActiChamp
+
+%find first event on chn other than the dummy one
+MainIDCodeStart=find(sum(StatusChns,2) >1,1);
+
+%find what channels have rising edges in them - this should *all* be the
+%dummy channel (usually 8)
+[~, startidchn]=find(StatusChns(1:MainIDCodeStart-1,:));
+
+%if any of the first pulses happen *at least* 75% on the same channel, then
+%that is the dummy channel
+DummyChn=find(histc(startidchn,1:trignum) > length(startidchn)*0.75);
+
+
+
+if ~isempty(DummyChn)
+    
+    
+    Trigger.Type(DummyChn)={''};
+    Trigger.ID_Code(DummyChn)=nan;
+    Trigger.RisingEdges(DummyChn)={[]};
+    Trigger.FallingEdges(DummyChn)={[]};
+    Trigger.ID_Rising(DummyChn)={[]};
+    Trigger.ID_Falling(DummyChn)={[]};
+    
+    
+end
+
 %% output little bit of info about what was found
 
 %find channels that actually had pulses in them
@@ -222,7 +266,7 @@ fprintf('%s, ',Trigger.Type{~EmptyChn});
 
 if NumUnknownChn
     
-fprintf('and %d unknown channel(s),',NumUnknownChn);
+    fprintf('and %d unknown channel(s),',NumUnknownChn);
 end
 
 fprintf('\n%d chns had trigs in them: ',NumGoodChn);
