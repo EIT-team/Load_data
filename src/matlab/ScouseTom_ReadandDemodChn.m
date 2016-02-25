@@ -1,4 +1,4 @@
-function [ output_args ] = ScouseTom_ReadandDemodChn( HDRin,B,A,StartSec,StopSec )
+function [ output_args ] = ScouseTom_ReadandDemodChn( HDRin,B,A,Trim_demod,InjectionWindows,StartSec,StopSec )
 %UNTITLED5 Summary of this function goes here
 %   Detailed explanation goes here
 
@@ -28,7 +28,7 @@ for iChn=1:Nchn
     
     V=sread(HDR,StartSec,StopSec);
     [ Vdata_demod,Pdata_demod ] = ScouseTom_data_DemodHilbert( V,B,A);
-    [Vmag,Phase]=ScouseTom_
+    [Vmag,Phase]=ScouseTom_data_getBV(Vdata_demod,Pdata_demod,Trim_demod,InjectionWindows);
    
     
    %triggers should be in from [start1, stop1; start2,stop2;...]
