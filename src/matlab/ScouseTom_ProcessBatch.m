@@ -4,12 +4,14 @@ function [ output_args ] = ScouseTom_ProcessBatch( dirname )
 
 %% Check or get directory
 
-%user chooses directory where all the .bdfs are
-dirname=uigetdir('','Pick the directory where the data is located');
-if isempty(dirname)
-    error('User Pressed Cancel');
+if exist('dirname','var') ==0
+    %user chooses directory where all the .bdfs are
+    dirname=uigetdir('','Pick the directory where the data is located');
+    if isempty(dirname)
+        error('User Pressed Cancel');
+    end
+    
 end
-
 %% find all the .bdfs in the directory
 
 files=dir([dirname filesep '*.bdf']);
@@ -23,7 +25,7 @@ nfiles=length(files);
 
 disp(['Found ' num2str(nfiles) ' .bdf files in directory']);
 
-%ignore small files <1Mb as these are empty 
+%ignore small files <1Mb as these are empty
 
 smallfile=cell2mat({files.bytes})/1e6;
 smallfile = smallfile < 1;
@@ -31,14 +33,14 @@ smallfile = smallfile < 1;
 if any(smallfile)
     disp(['WARNING! ' num2str(nnz(smallfile)) ' VERY SMALL (<1 Mb) file(s) were detected! These will be ignored']);
     files(smallfile)=[];
-
+    
 end
 
 nfiles=length(files);
 
 %% process each bdf!
 
-tic 
+tic
 for iFile =1:nfiles
     disp(['Processing file ' num2str(iFile) ' of ' num2str(nfiles) ': ' files(iFile).name]);
     
