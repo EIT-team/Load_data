@@ -1,4 +1,4 @@
-function     [Vmag,Phase]=ScouseTom_data_getBV(Vdata_demod,Pdata_demod,Trim_demod,InjectionWindowsFull)
+function [Vmag,Vphase,Vmag_std,Vphase_std]=ScouseTom_data_getBV(Vdata_demod,Pdata_demod,Trim_demod,InjectionWindowsFull)
 %UNTITLED2 Summary of this function goes here
 %   Detailed explanation goes here
 
@@ -16,19 +16,34 @@ nInj=size(InjWind,1);
 %% preallocate
 
 
-Vmag = nan(
+Vmag = nan(nInj,1);
+Vphase=nan(size(Vmag));
+Vmag_std=nan(size(Vmag));
+Vphase_std=nan(size(Vmag));
 
 %%
 for iInj = 1:nInj
     
+    %get the current window
     curWind=InjWind(iInj,:);
     
+    %take the values of interest
     curV= Vdata_demod(curWind(1):curWind(2));
     curP=Pdata_demod(curWind(1):curWind(2));
     
-
-
-
-
+    %voltage
+    Vmag(iInj)=nanmean(Vdata_demod);
+    Vmag_std(iInj)=nanstd(Vdata_demod);
+    
+    Vphase(iInj)=nanmean(Pdata_demod);
+    Vphase_std(iInj)=nanstd(Pdata_demod);
+    
+    
+    
+    
+    
+    
+    
 end
 
+end

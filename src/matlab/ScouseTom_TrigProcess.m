@@ -114,13 +114,14 @@ fprintf('%d Injection starts and %d Contact starts found\n',NumInj,NumContact);
 
 %for now treat each injection the same
 
-InjectionSwitches=cell(1,TotInj);
-FreqChanges=InjectionSwitches;
-Stimulations=InjectionSwitches;
-ProtocolCompleteFlags=InjectionSwitches;
-FreqOrder=InjectionSwitches;
-FreqStarts=InjectionSwitches;
-FreqStops=InjectionSwitches;
+InjectionSwitchesIN=cell(1,TotInj);
+InjectionSwitches=InjectionSwitchesIN;
+FreqChanges=InjectionSwitchesIN;
+Stimulations=InjectionSwitchesIN;
+ProtocolCompleteFlags=InjectionSwitchesIN;
+FreqOrder=InjectionSwitchesIN;
+FreqStarts=InjectionSwitchesIN;
+FreqStops=InjectionSwitchesIN;
 
 
 %% loop through each injection start and process the switches inside
@@ -135,31 +136,26 @@ for iInj=1:TotInj
     end
     
     %find the indicators which belong to this injection
-    InjectionSwitches{iInj}= Switches (Switches >= curStart & Switches < curEnd);
+    InjectionSwitchesIN{iInj}= Switches (Switches >= curStart & Switches < curEnd);
     FreqChanges{iInj}= Freqs (Freqs >= curStart & Freqs < curEnd);
     Stimulations{iInj}= Stims (Stims >= curStart & Stims < curEnd);
     
     %% Process stuff
     %find the protocol complete flags
-    [InjectionSwitches{iInj},ProtocolCompleteFlags{iInj}]=findcompleteflags(InjectionSwitches{iInj},maxIDperiod);
+    [InjectionSwitchesIN{iInj},ProtocolCompleteFlags{iInj}]=findcompleteflags(InjectionSwitchesIN{iInj},maxIDperiod);
+    
     
     %find the frequency order from freq pulses
     [FreqChanges{iInj},FreqOrder{iInj},FreqStarts{iInj}]=findfreqorder(FreqChanges{iInj},maxIDperiod);
     %arrange separate into freq starts and stops in matrix InjSwitches x
     %Freq - this makes processing easier
-    [FreqStarts{iInj}, FreqStops{iInj},FreqOrder{iInj}]=reshapefreqtriggers(FreqChanges{iInj},FreqOrder{iInj},FreqStarts{iInj},InjectionSwitches{iInj},InjectionStops(iInj),N_samples);
+    [FreqStarts{iInj}, FreqStops{iInj},FreqOrder{iInj}]=reshapefreqtriggers(FreqChanges{iInj},FreqOrder{iInj},FreqStarts{iInj},InjectionSwitchesIN{iInj},InjectionStops(iInj),N_samples);
     
     % here is where you would do stim
     
     %% Clean them?
     
-    
-    
-    
-    
-    
-    
-    
+    InjectionSwitches{iInj}=[InjectionSwitchesIN{iInj}, [InjectionSwitchesIN{iInj}(2:end); InjectionStops(iInj)]];
     
     %Clean the injections somehow....
     
@@ -169,8 +165,8 @@ end
 %% Separate contact checks
 % Make separate cell arrays for contact checks (so as not to confuse further processing)
 
-Contact.InjectionSwitches=InjectionSwitches(ContactStartsIdx);
-InjectionSwitches(ContactStartsIdx)=[];
+Contact.InjectionSwitches=InjectionSwitchesIN(ContactStartsIdx);
+InjectionSwitchesIN(ContactStartsIdx)=[];
 Contact.FreqChanges=FreqChanges(ContactStartsIdx);
 FreqChanges(ContactStartsIdx)=[];
 Contact.Stimulations=Stimulations(ContactStartsIdx);

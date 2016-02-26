@@ -21,6 +21,14 @@ else
     
 end
 
+%% check if it exists
+
+if exist(bdfname,'file') ==0
+    fprintf(2,'WHOA! FILE DOESNT EXIST!\n');
+    HDR=[];
+    return
+end
+
 %% Read HDR header
 
 % Used in this way we get much less warnings!
