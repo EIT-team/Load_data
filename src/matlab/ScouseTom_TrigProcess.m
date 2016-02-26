@@ -115,7 +115,6 @@ fprintf('%d Injection starts and %d Contact starts found\n',NumInj,NumContact);
 %for now treat each injection the same
 
 InjectionSwitchesIN=cell(1,TotInj);
-InjectionSwitches=InjectionSwitchesIN;
 FreqChanges=InjectionSwitchesIN;
 Stimulations=InjectionSwitchesIN;
 ProtocolCompleteFlags=InjectionSwitchesIN;
@@ -144,7 +143,6 @@ for iInj=1:TotInj
     %find the protocol complete flags
     [InjectionSwitchesIN{iInj},ProtocolCompleteFlags{iInj}]=findcompleteflags(InjectionSwitchesIN{iInj},maxIDperiod);
     
-    
     %find the frequency order from freq pulses
     [FreqChanges{iInj},FreqOrder{iInj},FreqStarts{iInj}]=findfreqorder(FreqChanges{iInj},maxIDperiod);
     %arrange separate into freq starts and stops in matrix InjSwitches x
@@ -153,9 +151,29 @@ for iInj=1:TotInj
     
     % here is where you would do stim
     
-    %% Clean them?
+    %% Put into more sensible form
     
-    InjectionSwitches{iInj}=[InjectionSwitchesIN{iInj}, [InjectionSwitchesIN{iInj}(2:end); InjectionStops(iInj)]];
+    InjectionSwitches=cell(1,TotInj);
+    
+    
+    
+    if isempty(FreqChanges{iInj})
+        %if single frequency, then the windows come directly from
+        %INjectionSwitches
+        InjectionSwitches{iInj}=[InjectionSwitchesIN{iInj}, [InjectionSwitchesIN{iInj}(2:end); InjectionStops(iInj)]];
+        
+    else
+        %if multifreq mode then we are interested in the Freq Starts and
+        %Stops *not* the Injection Switches
+        
+        for iFreq=1:size(FreqStarts{1},2)
+            curSwitches=[FreqStarts{iInj}(:,iFreq), FreqStops{iInj}(:,iFreq)];
+            
+            InjectionSwitces{iInj,iFreq}=curSwitches(all(~isnan(curSwitches),2),:);
+        end
+        
+    end
+    
     
     %Clean the injections somehow....
     
@@ -167,6 +185,7 @@ end
 
 Contact.InjectionSwitches=InjectionSwitchesIN(ContactStartsIdx);
 InjectionSwitchesIN(ContactStartsIdx)=[];
+InjectionSwitches(ContactStartsIdx)=[];
 Contact.FreqChanges=FreqChanges(ContactStartsIdx);
 FreqChanges(ContactStartsIdx)=[];
 Contact.Stimulations=Stimulations(ContactStartsIdx);
