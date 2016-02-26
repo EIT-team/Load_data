@@ -4,7 +4,7 @@ function [Vmag,Vphase,Vmag_std,Vphase_std]=ScouseTom_data_getBV(Vdata_demod,Pdat
 
 Nsample=size(Vdata_demod,1);
 
-CompleteInj=all(InjectionWindowsFull > Nsample);
+CompleteInj=all(InjectionWindowsFull < Nsample,2);
 
 InjWind=InjectionWindowsFull(CompleteInj,:);
 
@@ -32,11 +32,11 @@ for iInj = 1:nInj
     curP=Pdata_demod(curWind(1):curWind(2));
     
     %voltage
-    Vmag(iInj)=nanmean(Vdata_demod);
-    Vmag_std(iInj)=nanstd(Vdata_demod);
+    Vmag(iInj)=nanmean(curV);
+    Vmag_std(iInj)=nanstd(curV);
     
-    Vphase(iInj)=nanmean(Pdata_demod);
-    Vphase_std(iInj)=nanstd(Pdata_demod);
+    Vphase(iInj)=nanmean(curP);
+    Vphase_std(iInj)=nanstd(curP);
     
     
     

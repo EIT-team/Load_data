@@ -1,4 +1,4 @@
-function [ output_args ] = ScouseTom_ReadandDemodChn( HDRin,B,A,Trim_demod,InjectionWindows,StartSec,StopSec )
+function [ VmagOut,PhaseOut ] = ScouseTom_ReadandDemodChn( HDRin,B,A,Trim_demod,InjectionWindows,StartSec,StopSec )
 %UNTITLED5 Summary of this function goes here
 %   Detailed explanation goes here
 
@@ -14,34 +14,42 @@ else
 end
 
 %% Check stuff
-Nsec=HDR.Nrec;
+Nsec=HDR.NRec;
 
-if StopSec > NSec
+if StopSec > Nsec
     error('Stop sec is too long!');
 end
 
 
+%% preallocate
+
+Vmag=nan(size(InjectionWindows,1),Nchn);
+Phase=Vmag;
+
+
+
+
 %% Read and Demod each channel
 for iChn=1:Nchn
+    fprintf('Doing Chn %d of %d\n',iChn,Nchn);
+    HDR.InChanSelect=iChn;
+    HDR.Calib=HDRin.Calib(1:2,1);
     
-    HDR.NS=iChn;
-    
-    V=sread(HDR,StartSec,StopSec);
+    V=sread(HDR,StopSec-StartSec,StartSec);
     [ Vdata_demod,Pdata_demod ] = ScouseTom_data_DemodHilbert( V,B,A);
-    [Vmag,Phase]=ScouseTom_data_getBV(Vdata_demod,Pdata_demod,Trim_demod,InjectionWindows);
-   
-    
-   %triggers should be in from [start1, stop1; start2,stop2;...]
+    [Vmag(:,iChn),Phase(:,iChn)]=ScouseTom_data_getBV(Vdata_demod,Pdata_demod,Trim_demod,InjectionWindows);
    
    %for loop through each trigger couple, and mean and trim each block
     
     
 end
-
+disp('done');
 
 %% reshape into each one
 
-%
+VmagOut=Vmag;
+PhaseOut=Phase;
+
 
 end
 
