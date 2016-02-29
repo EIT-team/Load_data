@@ -1,4 +1,4 @@
-function [ VmagOut,PhaseOut ] = ScouseTom_ReadandDemodChn( HDRin,B,A,Trim_demod,InjectionWindows,StartSec,StopSec )
+function [ VmagOut,PhaseOut ] = ScouseTom_ReadandDemodChn( HDRin,B,A,Trim_demod,InjectionWindows,StartSec,StopSec,Nprt )
 %UNTITLED5 Summary of this function goes here
 %   Detailed explanation goes here
 
@@ -45,10 +45,15 @@ for iChn=1:Nchn
 end
 disp('done');
 
-%% reshape into each one
+%% other step here?
 
-VmagOut=Vmag;
-PhaseOut=Phase;
+%need to preallocate and nan pad
+%find number of repeats
+
+
+Nrep=10;
+VmagOut=reshape(Vmag',Nchn*Nprt,Nrep);
+PhaseOut=reshape(Phase',Nchn*Nprt,Nrep);
 
 
 end

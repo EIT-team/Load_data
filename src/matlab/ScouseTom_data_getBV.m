@@ -21,7 +21,7 @@ Vphase=nan(size(Vmag));
 Vmag_std=nan(size(Vmag));
 Vphase_std=nan(size(Vmag));
 
-%%
+%% Loop through each injection window
 for iInj = 1:nInj
     
     %get the current window
