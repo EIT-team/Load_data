@@ -39,11 +39,6 @@ for iInj = 1:nInj
     Vphase_std(iInj)=nanstd(curP);
     
     
-    
-    
-    
-    
-    
 end
 
 end
