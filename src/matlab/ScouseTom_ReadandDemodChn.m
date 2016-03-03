@@ -18,17 +18,32 @@ Fs=HDR.SampleRate;
 
 %% Check stuff
 Nsec=HDR.NRec;
+Nfreq=size(InjectionWindows,2);
+
+
+
+
+firstinj=zeros(Nfreq,1);
+lastinj=zeros(Nfreq,1);
+%find earliest switch
+for iFreq=1:Nfreq
+    firstinj(iFreq)=min(InjectionWindows{iFreq}(1,:));
+    lastinj(iFreq)=max(InjectionWindows{iFreq}(end,:));
+end
+
+[FirstSample]=min(firstinj);
+[LastSample]=max(lastinj);
 
 %find the start time in seconds - subtract 1 to give more samples to reduce
 %filtering artefacts
-StartSec=floor(InjectionWindows(1,1)/Fs)-1;
+StartSec=floor(FirstSample/Fs)-1;
 if StartSec < 0
     StartSec =0; %make sure it is >=0
 end
 
 %find the stop time in seconds - add 1 to give more samples to reduce
 %filtering artefacts
-StopSec=ceil(InjectionWindows(end,end)/Fs)+1;
+StopSec=ceil(LastSample/Fs)+1;
 if StopSec > Nsec
     StopSec=StopSec-1; %remove added second if we go too far
 end
@@ -45,7 +60,15 @@ end
 
 %% preallocate
 
-Vmag=nan(size(InjectionWindows,1),Nchn);
+Vmag=cell(Nfreq,1);
+
+for iFreq=1:Nfreq
+    
+    Vmagtmp=nan(size(InjectionWindows{iFreq},1),Nchn);
+    
+    Vmag{iFreq}=Vmagtmp;
+    
+end
 Phase=Vmag;
 
 
@@ -58,32 +81,41 @@ for iChn=1:Nchn
     HDR.Calib=HDRin.Calib(1:2,1);
     
     V=sread(HDR,StopSec-StartSec,StartSec); %read whole channel
-    [ Vdata_demod,Pdata_demod ] = ScouseTom_data_DemodHilbert( V,B,A); % filter and demodulate channel
-    [Vmag(:,iChn),Phase(:,iChn)]=ScouseTom_data_getBV(Vdata_demod,Pdata_demod,Trim_demod,InjectionWindows-Start_Sample); %process each injection window, adjusting for new start time
     
+    %demodulate for each frequency
+    for iFreq=1:Nfreq
+        
+        [ Vdata_demod,Pdata_demod ] = ScouseTom_data_DemodHilbert( V,B{iFreq},A{iFreq}); % filter and demodulate channel
+        [Vmag{iFreq}(:,iChn),Phase{iFreq}(:,iChn)]=ScouseTom_data_getBV(Vdata_demod,Pdata_demod,Trim_demod{iFreq},InjectionWindows{iFreq}-Start_Sample); %process each injection window, adjusting for new start time
+        
+    end
     
 end
 disp('done');
 
 %% Pad to complete number of repeats
 
+for iFreq=1:Nfreq
+    
+    %find number of repeats - rounding up
+    Nrep=ceil(size(InjectionWindows{iFreq},1)/Nprt);
+    
+    VmagOutTmp=Vmag{iFreq}';
+    PhaseOutTmp=Phase{iFreq}';
+    
+    %pad with nans if needed
+    VmagOutTmp(:,end+1:Nrep*Nprt)=nan;
+    PhaseOutTmp(:,end+1:Nrep*Nprt)=nan;
+    
+    %% reshape into correct format
+    VmagOut{iFreq}=reshape(VmagOutTmp,Nchn*Nprt,Nrep);
+    PhaseOut{iFreq}=reshape(PhaseOutTmp,Nchn*Nprt,Nrep);
+    
+end
 
-%find number of repeats - rounding up
-Nrep=ceil(size(InjectionWindows,1)/Nprt);
-
-VmagOut=Vmag';
-PhaseOut=Phase';
-
-%pad with nans if needed
-VmagOut(:,end+1:Nrep*Nprt)=nan;
-PhaseOut(:,end+1:Nrep*Nprt)=nan;
 
 
 
-
-%% reshape into correct format
-VmagOut=reshape(VmagOut,Nchn*Nprt,Nrep);
-PhaseOut=reshape(PhaseOut,Nchn*Nprt,Nrep);
 
 
 end
