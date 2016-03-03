@@ -21,8 +21,10 @@ else
     
 end
 
-%% check if it exists
 
+fprintf('Getting HDR for %s\n',bdfname);
+
+%% check if it exists
 if exist(bdfname,'file') ==0
     fprintf(2,'WHOA! FILE DOESNT EXIST!\n');
     HDR=[];
