@@ -153,7 +153,10 @@ for iInj=1:TotInj
     
     %% Put into more sensible form
     
-    InjectionSwitches=cell(1,TotInj);
+    Nfreq=size(FreqStarts{1},2);
+    
+    
+    InjectionSwitches=cell(TotInj,Nfreq);
     
     
     
@@ -166,10 +169,10 @@ for iInj=1:TotInj
         %if multifreq mode then we are interested in the Freq Starts and
         %Stops *not* the Injection Switches
         
-        for iFreq=1:size(FreqStarts{1},2)
+        for iFreq=1:Nfreq
             curSwitches=[FreqStarts{iInj}(:,iFreq), FreqStops{iInj}(:,iFreq)];
             
-            InjectionSwitces{iInj,iFreq}=curSwitches(all(~isnan(curSwitches),2),:);
+            InjectionSwitches{iInj,iFreq}=curSwitches(all(~isnan(curSwitches),2),:);
         end
         
     end
