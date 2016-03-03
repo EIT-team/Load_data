@@ -1,4 +1,4 @@
-function [ B,A,TrimDemod,Fc ] = ScouseTom_FindFilterSettings( HDRin,TT,InjElec,BandWidth )
+function [ B,A,TrimDemod,Fc ] = ScouseTom_FindFilterSettings( HDRin,curInjectionSwitches,InjElec,BandWidth )
 %SCOUSETOM_FINDFILTERSETTINGS Summary of this function goes here
 %   Detailed explanation goes here
 
@@ -6,19 +6,12 @@ function [ B,A,TrimDemod,Fc ] = ScouseTom_FindFilterSettings( HDRin,TT,InjElec,B
 %% check if there are actually any injections etc.
 
 
-
-
 if exist('BandWidth','var') ==0
     BandWidth =50;
 end
 
 
-%% only for first injection at the moment
-
-
-%% Load first second of data
-
-curInjectionSwitches=TT.InjectionSwitches(1);
+%% Find relevant start inj
 
 
 Nfreq=size(curInjectionSwitches,2);
@@ -46,40 +39,38 @@ StopSample=StopSec*Fs;
 %preserve original HDR
 HDR=HDRin;
 
-% load only the injection electrode given
-HDR.InChanSelect=InjElec;
-HDR.Calib=HDRin.Calib(1:2,1);
-
-%only load data for first injection
-V=sread(HDR,StopSec-StartSec,StartSec);
-
 %% Find Filter settings for each Freq using relevant data window
 
-
-
 for iFreq=1:Nfreq
-
-%take either the first injection or the first second
-
-tmp=curInjectionSwitches{iFreq}(1,2)-curInjectionSwitches{iFreq}(1,1);
-if tmp > Fs
-    tmp=Fs; %if the first switch is longer than a second, only take a second
-end
-
-
-tmpstart=curInjectionSwitches{iFreq}(1,1)-StartSample;
-tmpidx=tmpstart:tmpstart+tmp;
-
-
-%find carrier frequency and get filter coefficients as well as
-%the amount of data to remove each segment
-[cur_trim_demod,cur_B,cur_A,cur_Fc]=ScouseTom_data_GetFilterTrim(V(tmpidx),Fs,BandWidth,0 );
-
-%make it consistent with multifreq bits, whic are all cells
-A{iFreq}=cur_A;
-B{iFreq}=cur_B;
-TrimDemod{iFreq}=cur_trim_demod;
-Fc{iFreq}=cur_Fc;
+    
+    % load only the injection electrode given
+    HDR.InChanSelect=InjElec(iFreq);
+    HDR.Calib=HDRin.Calib(1:2,1);
+    
+    %only load data for first injection
+    V=sread(HDR,StopSec-StartSec,StartSec);
+    
+    %take either the first injection or the first second
+    
+    tmp=curInjectionSwitches{iFreq}(1,2)-curInjectionSwitches{iFreq}(1,1);
+    if tmp > Fs
+        tmp=Fs; %if the first switch is longer than a second, only take a second
+    end
+    
+    
+    tmpstart=curInjectionSwitches{iFreq}(1,1)-StartSample;
+    tmpidx=tmpstart:tmpstart+tmp;
+    
+    
+    %find carrier frequency and get filter coefficients as well as
+    %the amount of data to remove each segment
+    [cur_trim_demod,cur_B,cur_A,cur_Fc]=ScouseTom_data_GetFilterTrim(V(tmpidx),Fs,BandWidth,0 );
+    
+    %make it consistent with multifreq bits, whic are all cells
+    A{iFreq}=cur_A;
+    B{iFreq}=cur_B;
+    TrimDemod{iFreq}=cur_trim_demod;
+    Fc{iFreq}=cur_Fc;
 end
 
 
