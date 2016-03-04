@@ -85,6 +85,13 @@ for iChn=1:Nchn
     %demodulate for each frequency
     for iFreq=1:Nfreq
         
+        
+        
+        
+        
+        
+        
+        
         [ Vdata_demod,Pdata_demod ] = ScouseTom_data_DemodHilbert( V,B{iFreq},A{iFreq}); % filter and demodulate channel
         [Vmag{iFreq}(:,iChn),Phase{iFreq}(:,iChn)]=ScouseTom_data_getBV(Vdata_demod,Pdata_demod,Trim_demod{iFreq},InjectionWindows{iFreq}-Start_Sample); %process each injection window, adjusting for new start time
         

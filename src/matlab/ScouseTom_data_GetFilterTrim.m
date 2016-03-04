@@ -31,7 +31,7 @@ Decay_coef=0.00001; %amount filter ripple must decay by before using data
 %they are within 1% of each other. IIR is MUCH faster than high order FIR
 %so use this to speed up the process
 
-if trim_max <20
+if trim_max <1200
     
     if (Fc - BW/2) > 0
         
@@ -44,8 +44,10 @@ if trim_max <20
     if plotflag ==1;
         figure;
         impz(B,A);
+        drawnow
         figure;
         freqz(B,A);
+        drawnow
     end
     disp('FIR with Blackman-Harris Window used');
 else
@@ -67,7 +69,7 @@ else
     
     
     %get filter response and estimate when to chop data
-    [H, T]= impz(B,A,fix(Nsamples));
+    [H, T]= impz(B,A,10*fix(Nsamples));
     [maxh, ih]=max(abs(H));
     
     %linear fit of the exponetial decay - when it reaches certain percentage of max
@@ -89,8 +91,10 @@ else
     if plotflag ==1;
         figure;
         impz(B,A)
+        drawnow
         figure;
         freqz(B,A);
+        drawnow
         
         
         figure;
@@ -102,12 +106,12 @@ else
         hold off
         title('impulse response of filter')
         set(gca,'Yscale','log');
+        drawnow
     end
     disp('3rd Order Butterworth Filter Used');
     
     
 end
-
 
 
 
