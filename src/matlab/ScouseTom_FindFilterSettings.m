@@ -64,7 +64,7 @@ for iFreq=1:Nfreq
     
     %find carrier frequency and get filter coefficients as well as
     %the amount of data to remove each segment
-    [cur_trim_demod,cur_B,cur_A,cur_Fc]=ScouseTom_data_GetFilterTrim(V(tmpidx),Fs,BandWidth,0 );
+    [cur_trim_demod,cur_B,cur_A,cur_Fc]=ScouseTom_data_GetFilterTrim(V(tmpidx),Fs,BandWidth,1 );
     
     %make it consistent with multifreq bits, whic are all cells
     A{iFreq}=cur_A;
