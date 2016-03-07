@@ -322,8 +322,13 @@ for iSw=1:N_Sw
     %the stop flags within the injection would sometimes not work. this
     %took *way* too long to figure out.
     
-    FreqStarts(iSw,1:length(cur_idx))=FreqStartsIn(cur_idx);
-    FreqStops(iSw,1:length(cur_idx))=FreqStopsIn(cur_idx);
+    %cur_idx is frequency starts in time order, but we want to store freq
+    %starts and stops in order of freq, so use freq order to sort them
+    
+    freq_order_idx=FreqOrderIn(cur_idx);
+    
+    FreqStarts(iSw,1:length(cur_idx))=FreqStartsIn(freq_order_idx);
+    FreqStops(iSw,1:length(cur_idx))=FreqStopsIn(freq_order_idx);
     FreqOrderOut(iSw,1:length(cur_idx))=FreqOrderIn(cur_idx);
     
     
