@@ -75,8 +75,17 @@ Phase=Vmag;
 
 
 %% Read and Demod each channel
+
+fprintf('Processing Channels\n');
+
+tstart=tic;
+
 for iChn=1:Nchn
-    fprintf('Doing Chn %d of %d\n',iChn,Nchn);
+    fprintf('Process Chn: %d of %d. Freq: ',iChn,Nchn);
+    
+    tchnstart=tic;
+    
+    %set variables in HDR for single channel only
     HDR.InChanSelect=iChn;
     HDR.Calib=HDRin.Calib(1:2,1);
     
@@ -84,21 +93,25 @@ for iChn=1:Nchn
     
     %demodulate for each frequency
     for iFreq=1:Nfreq
-        
-        
-        
-        
-        
-        
-        
-        
+        if iFreq < Nfreq
+        fprintf('%d,',iFreq);
+        else
+            fprintf('%d',iFreq);
+        end
         [ Vdata_demod,Pdata_demod ] = ScouseTom_data_DemodHilbert( V,B{iFreq},A{iFreq}); % filter and demodulate channel
         [Vmag{iFreq}(:,iChn),Phase{iFreq}(:,iChn)]=ScouseTom_data_getBV(Vdata_demod,Pdata_demod,Trim_demod{iFreq},InjectionWindows{iFreq}-Start_Sample); %process each injection window, adjusting for new start time
         
     end
     
+    t_el=toc(tstart);
+    
+    fprintf('. t=%.1f s\n',t_el);
+    
 end
-disp('done');
+
+teatime=toc(tstart);
+fprintf('ALL DONE! That took : %.1f seconds \r',teatime);
+
 
 %% Pad to complete number of repeats
 
