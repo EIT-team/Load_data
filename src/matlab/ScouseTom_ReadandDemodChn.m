@@ -95,7 +95,7 @@ for iChn=1:Nchn
     %demodulate for each frequency
     for iFreq=1:Nfreq
         if iFreq < Nfreq
-        fprintf('%d,',iFreq);
+            fprintf('%d,',iFreq);
         else
             fprintf('%d',iFreq);
         end
@@ -113,17 +113,18 @@ end
 teatime=toc(tstart);
 fprintf('ALL DONE! That took : %.1f seconds \r',teatime);
 
-%% Calculate Phase 
+%% Calculate Phase
 
-
-[Phase]=ScouseTom_data_PhaseEst(PhaseRaw,Protocol);
-
-
-
-
-
+%phase is absolute (or rather with respect to sin/cos starting at sample 0
+%of whole dataset. So we need to get the phase relative to the injection
+%electrodes
+for iFreq=1:Nfreq
+    [Phase{iFreq}]=ScouseTom_data_PhaseEst(PhaseRaw{iFreq},Protocol);
+end
 
 %% Pad to complete number of repeats
+
+%this does not yet handle not starting at first repeat
 
 for iFreq=1:Nfreq
     
