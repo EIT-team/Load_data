@@ -1,19 +1,19 @@
-function [ PhaseAngle, PhaseAngleSTD ] = ScouseTom_data_PhaseEst( Pdemod,trim_demod,Protocol,varargin )
+function [ PhaseAngle, PhaseAngleSTD ] = ScouseTom_data_PhaseEst( PhaseIn,Protocol,varargin )
 %ScouseTom_data_PhaseEst Estimate the phase angle through comparison to the
 %injection channels
 %   Detailed explanation goes here
 
 %get info about data
-N_prt=size(Pdemod,1);
-N_elec=size(Pdemod,3);
-N_rep=size(Pdemod,4);
+N_prt=size(Protocol,1);
+N_elec=size(PhaseIn,2);
+N_inj=size(PhaseIn,1);
 
 %get phase angle for each protocol injection line by subtracting the phase
 %from the injection electrode - ignoring trim section
 
 %%
 
-PhaseAngleTmp=nan(N_prt,N_elec,N_rep);
+PhaseAngleTmp=nan(size(PhaseIn));
 STDtmp=PhaseAngleTmp;
 
 % loop through each protcol line

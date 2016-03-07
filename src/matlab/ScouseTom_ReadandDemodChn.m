@@ -1,4 +1,4 @@
-function [ VmagOut,PhaseOut ] = ScouseTom_ReadandDemodChn( HDRin,B,A,Trim_demod,InjectionWindows,Nprt )
+function [ VmagOut,PhaseOut ] = ScouseTom_ReadandDemodChn( HDRin,B,A,Trim_demod,InjectionWindows,Protocol )
 %UNTITLED5 Summary of this function goes here
 %   Detailed explanation goes here
 
@@ -19,6 +19,7 @@ Fs=HDR.SampleRate;
 %% Check stuff
 Nsec=HDR.NRec;
 Nfreq=size(InjectionWindows,2);
+Nprt=size(Protocol,1);
 
 
 
@@ -69,7 +70,7 @@ for iFreq=1:Nfreq
     Vmag{iFreq}=Vmagtmp;
     
 end
-Phase=Vmag;
+PhaseRaw=Vmag;
 
 
 
@@ -99,7 +100,7 @@ for iChn=1:Nchn
             fprintf('%d',iFreq);
         end
         [ Vdata_demod,Pdata_demod ] = ScouseTom_data_DemodHilbert( V,B{iFreq},A{iFreq}); % filter and demodulate channel
-        [Vmag{iFreq}(:,iChn),Phase{iFreq}(:,iChn)]=ScouseTom_data_getBV(Vdata_demod,Pdata_demod,Trim_demod{iFreq},InjectionWindows{iFreq}-Start_Sample); %process each injection window, adjusting for new start time
+        [Vmag{iFreq}(:,iChn),PhaseRaw{iFreq}(:,iChn)]=ScouseTom_data_getBV(Vdata_demod,Pdata_demod,Trim_demod{iFreq},InjectionWindows{iFreq}-Start_Sample); %process each injection window, adjusting for new start time
         
     end
     
@@ -111,6 +112,15 @@ end
 
 teatime=toc(tstart);
 fprintf('ALL DONE! That took : %.1f seconds \r',teatime);
+
+%% Calculate Phase 
+
+
+[Phase]=ScouseTom_data_PhaseEst(PhaseRaw,Protocol);
+
+
+
+
 
 
 %% Pad to complete number of repeats
