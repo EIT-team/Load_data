@@ -1,4 +1,4 @@
-function [ VmagOut,PhaseOut ] = ScouseTom_ReadandDemodChn( HDRin,B,A,Trim_demod,InjectionWindows,Protocol )
+function [ VmagOut,PhaseOut,VmagOutSTD,PhaseOutSTD ] = ScouseTom_ReadandDemodChn( HDRin,B,A,Trim_demod,InjectionWindows,Protocol )
 %UNTITLED5 Summary of this function goes here
 %   Detailed explanation goes here
 
@@ -100,7 +100,7 @@ for iChn=1:Nchn
             fprintf('%d',iFreq);
         end
         [ Vdata_demod,Pdata_demod ] = ScouseTom_data_DemodHilbert( V,B{iFreq},A{iFreq}); % filter and demodulate channel
-        [Vmag{iFreq}(:,iChn),PhaseRaw{iFreq}(:,iChn)]=ScouseTom_data_getBV(Vdata_demod,Pdata_demod,Trim_demod{iFreq},InjectionWindows{iFreq}-Start_Sample); %process each injection window, adjusting for new start time
+        [Vmag{iFreq}(:,iChn),PhaseRaw{iFreq}(:,iChn),VmagSTD{iFreq}(:,iChn),PhaseRawSTD{iFreq}(:,iChn)]=ScouseTom_data_getBV(Vdata_demod,Pdata_demod,Trim_demod{iFreq},InjectionWindows{iFreq}-Start_Sample); %process each injection window, adjusting for new start time
         
     end
     
@@ -133,14 +133,20 @@ for iFreq=1:Nfreq
     
     VmagOutTmp=Vmag{iFreq}';
     PhaseOutTmp=Phase{iFreq}';
+    VmagOutSTDTmp=VmagSTD{iFreq}';
+    PhaseOutSTDTmp=PhaseRawSTD{iFreq}';
     
     %pad with nans if needed
     VmagOutTmp(:,end+1:Nrep*Nprt)=nan;
     PhaseOutTmp(:,end+1:Nrep*Nprt)=nan;
+    VmagOutSTDTmp(:,end+1:Nrep*Nprt)=nan;
+    PhaseOutSTDTmp(:,end+1:Nrep*Nprt)=nan;
     
     %% reshape into correct format
     VmagOut{iFreq}=reshape(VmagOutTmp,Nchn*Nprt,Nrep);
     PhaseOut{iFreq}=reshape(PhaseOutTmp,Nchn*Nprt,Nrep);
+    VmagOutSTD{iFreq}=reshape(VmagOutSTDTmp,Nchn*Nprt,Nrep);
+    PhaseOutSTD{iFreq}=reshape(PhaseOutSTDTmp,Nchn*Nprt,Nrep);
     
 end
 
