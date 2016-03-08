@@ -9,13 +9,19 @@ function [ Trigger ] = ScouseTom_TrigReadChn( HDR )
 switch HDR.TYPE
     case 'BDF' % biosemi file
         trignum=8;
-        [ IndicatorPinData,TrigPos ] = ScouseTom_getbdftrig( HDR,trignum );
+        [ StatusChns,TrigPos ] = ScouseTom_getbdftrig( HDR,trignum );
         % Other useful info from HDR
-        Fs=HDR.SampleRate;
-    case 'EEG'
+        
+    case 'BrainVision'
+        [ StatusChns,TrigPos ] = ScouseTom_geteegtrig( HDR );
+        fname=HDR.FILE.Name;
+        trignum=size(StatusChns,2);
     otherwise
         error('Bad HDR');
 end
+
+Fs=HDR.SampleRate;
+
 %% Define Variables
 
 %number of trigger channels
@@ -60,7 +66,7 @@ ID_Codes.Num(5)=5;
 %find peaks by creating logical threshold array. then finding the rising
 %and falling edges, checking the width is greater than the min width
 
-AboveThres=IndicatorPinData > thres; %threshold indicator pin data
+AboveThres=StatusChns > thres; %threshold indicator pin data
 
 AboveThres=[ AboveThres(1,:); AboveThres; AboveThres(end,:);]; % pad array (for diff below)
 %this is now a logical array of 0 1. pulses are found by finding when the
