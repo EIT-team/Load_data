@@ -66,8 +66,10 @@ info.eegfname=eegfname;
 info.TimeNum=datenum(HDR.T0);
 info.TimeVec=HDR.T0;
 
+mfilename=fullfile(eegfpath,[eegfname '-BV.mat']);
+
 %create matfile object in same place as data
-bigmat=matfile(fullfile(eegfpath,[eegfname '-BV.mat']),'Writable',true);
+bigmat=matfile(mfilename,'Writable',true);
 
 
 %% Loop through each injection start in file
@@ -122,6 +124,6 @@ teatime=toc(tstart);
 fprintf('That took : %.1f seconds \r',teatime);
 
 %output complete structure
-BVstruc=bigmat.BV;
+BVstruc=load(mfilename);
 end
 
