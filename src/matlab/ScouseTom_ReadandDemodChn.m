@@ -134,17 +134,21 @@ for iFreq=1:Nfreq
     
     %find number of repeats - rounding up
     Nrep=ceil(size(InjectionWindows{iFreq},1)/Nprt);
+    %number of injections found
+    Ninj=size(Vmag{iFreq},1);
+    %preallocate
+    VmagOutTmp=nan(Nchn,Nrep*Nprt);
+    PhaseOutTmp=VmagOutTmp;
+    VmagOutSTDTmp=VmagOutTmp;
+    PhaseOutSTDTmp=VmagOutTmp;
     
-    VmagOutTmp=Vmag{iFreq}';
-    PhaseOutTmp=Phase{iFreq}';
-    VmagOutSTDTmp=VmagSTD{iFreq}';
-    PhaseOutSTDTmp=PhaseRawSTD{iFreq}';
+    %put data we have in the correct place
+    VmagOutTmp(:,StartInj(iFreq):(StartInj(iFreq)-1)+Ninj)=Vmag{iFreq}';
+    PhaseOutTmp(:,StartInj(iFreq):(StartInj(iFreq)-1)+Ninj)=Phase{iFreq}';
+    VmagOutSTDTmp(:,StartInj(iFreq):(StartInj(iFreq)-1)+Ninj)=VmagSTD{iFreq}';
+    PhaseOutSTDTmp(:,StartInj(iFreq):(StartInj(iFreq)-1)+Ninj)=PhaseRawSTD{iFreq}';
     
-    %pad with nans if needed
-    VmagOutTmp(:,end+1:Nrep*Nprt)=nan;
-    PhaseOutTmp(:,end+1:Nrep*Nprt)=nan;
-    VmagOutSTDTmp(:,end+1:Nrep*Nprt)=nan;
-    PhaseOutSTDTmp(:,end+1:Nrep*Nprt)=nan;
+
     
     %% reshape into correct format
     VmagOut{iFreq}=reshape(VmagOutTmp,Nchn*Nprt,Nrep);
