@@ -1,4 +1,4 @@
-function [ VmagOut,PhaseOut,VmagOutSTD,PhaseOutSTD ] = ScouseTom_ReadandDemodChn( HDRin,B,A,Trim_demod,InjectionWindows,Protocol )
+function [ VmagOut,PhaseOut,VmagOutSTD,PhaseOutSTD ] = ScouseTom_ReadandDemodChn( HDRin,B,A,Trim_demod,InjectionWindows,Protocol,StartInj )
 %UNTITLED5 Summary of this function goes here
 %   Detailed explanation goes here
 
@@ -21,6 +21,10 @@ Nsec=HDR.NRec;
 Nfreq=size(InjectionWindows,2);
 Nprt=size(Protocol,1);
 
+
+if exist('StartInj','var') ==0
+    StartInj=ones(Nfreq,1);
+end
 
 
 
@@ -119,7 +123,7 @@ fprintf('ALL DONE! That took : %.1f seconds \r',teatime);
 %of whole dataset. So we need to get the phase relative to the injection
 %electrodes
 for iFreq=1:Nfreq
-    [Phase{iFreq}]=ScouseTom_data_PhaseEst(PhaseRaw{iFreq},Protocol);
+    [Phase{iFreq}]=ScouseTom_data_PhaseEst(PhaseRaw{iFreq},Protocol,StartInj);
 end
 
 %% Pad to complete number of repeats

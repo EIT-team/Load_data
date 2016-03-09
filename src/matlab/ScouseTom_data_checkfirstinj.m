@@ -72,7 +72,7 @@ for iFreq=1:Nfreq
     
     %if one was found then hooray
     if ~isempty(start_poss)
-        fprintf('Starting injection pair for freq %d was found to be : %d\n',iFreq, start_poss);
+        fprintf('Found sStart injection pair for freq %d: %d\n',iFreq, start_poss);
         StartInj(iFreq)=start_poss;
     else
         %if one was not found, then plot graph
