@@ -15,6 +15,11 @@ Nsamples=length(Vseg);
 
 %trim max is 25% of signal - to give 50% for the average
 trim_max=ceil(0.25*Nsamples);
+%round up to nearest 10 samples - this is so that data with window size 1
+%sample different (as can happen) produces the same filter, and thus the
+%same result.
+rndnum=10;
+trim_max=round(trim_max/rndnum)*rndnum;
 
 
 Decay_coef=0.00001; %amount filter ripple must decay by before using data
