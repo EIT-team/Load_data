@@ -57,9 +57,15 @@ ID_Codes.Name(5)={'Freq'};
 ID_Codes.Num(5)=5;
 
 
+ID_Codes.DefaultOrder=[4,1,2,3,5];
 
-ID_Codes.DefaultOrder=[3,1,2,
 
+ID_Codes.DefaultID=ID_Codes.Num([ID_Codes.DefaultOrder]);
+ID_Codes.DefaultName=ID_Codes.Name([ID_Codes.DefaultOrder]);
+
+ID_Codes.DefaultOrder(end+1:trignum)=nan;
+ID_Codes.DefaultID(end+1:trignum)=nan;
+ID_Codes.DefaultName(end+1:trignum)={''};
 
 %there may be others here - system has 3 spare channles EX_1 2 and 3 on
 %arduino. and Kirills physchotool box stuff will also go here
@@ -131,11 +137,9 @@ end
 
 %% NEXT IDENTIFY CHANNELS BY READING THE LITTLE COMMAND ONES TO START WITH
 
-
-if ~SkipIDCodes
-
 %counter for unknown trigger channels
 ChnUnknown=0;
+if ~SkipIDCodes
 
 for iChn=1:trignum
     
@@ -184,8 +188,9 @@ for iChn=1:trignum
 end
 
 else
-    fprintf(2,'SKIPPING ID CODE CHECK - ASSUMING EVERYTHING WIRED CORRECTLY!');
-    Trigger.ID_Code=[3,1,2,4,5,nan,nan,nan];
+    fprintf(2,'SKIPPING ID CODE CHECK - ASSUMING EVERYTHING WIRED CORRECTLY!\n');
+    Trigger.ID_Code=ID_Codes.DefaultID;
+    Trigger.Type=ID_Codes.DefaultName;
     
 end
 
@@ -197,7 +202,7 @@ GoodChn=cellfun(@(x) ~isempty(x),Trigger.RisingEdges);
 
 UnknownChn=cellfun(@(x) ~isempty(x),strfind(Trigger.Type,'Unknown'));
 
-%get rid of Unkown channels in "good channels"
+%get rid of Unknown channels in "good channels"
 GoodChn=GoodChn ~= UnknownChn;
 
 NumUnknownChn=sum(UnknownChn);
