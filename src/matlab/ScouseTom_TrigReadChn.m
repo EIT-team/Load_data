@@ -1,9 +1,7 @@
-function [ Trigger ] = ScouseTom_TrigReadChn( HDR )
+function [ Trigger ] = ScouseTom_TrigReadChn( HDR,SkipIDCodes )
 %SCOUSETOM_READTRIGCHN Identifies events on trigger channels, and identify
 %which is which according to the ID codes at the start of the file
 %   Detailed explanation goes here
-
-% Todo - check HDR is ok - can run on broken files at the moment
 
 %% Get trigger channel input according to which file type it is
 switch HDR.TYPE
@@ -23,6 +21,10 @@ end
 Fs=HDR.SampleRate;
 
 %% Define Variables
+
+if exist('SkipIDCodes','var') ==0
+    SkipIDCodes=0;
+end
 
 %number of trigger channels
 trignum=8; % 8 for BioSemi and ActiChamp
@@ -53,6 +55,11 @@ ID_Codes.Name(4)={'Switch'};
 ID_Codes.Num(4)=3;
 ID_Codes.Name(5)={'Freq'};
 ID_Codes.Num(5)=5;
+
+
+
+ID_Codes.DefaultOrder=[3,1,2,
+
 
 %there may be others here - system has 3 spare channles EX_1 2 and 3 on
 %arduino. and Kirills physchotool box stuff will also go here
@@ -89,9 +96,6 @@ FallingEdges=TrigPos(FallingEdgesPosIdx);
 %arduino turns on. As pins are held HIGH by biosemi. And find orphaned
 %rising too, which can occur if the file stops early
 
-
-
-
 for iChn=1:trignum
     %take only rising and falling belonging to this channel
     curRising=RisingEdges(RisingEdgesChn == iChn);
@@ -126,6 +130,9 @@ end
 
 
 %% NEXT IDENTIFY CHANNELS BY READING THE LITTLE COMMAND ONES TO START WITH
+
+
+if ~SkipIDCodes
 
 %counter for unknown trigger channels
 ChnUnknown=0;
@@ -175,6 +182,13 @@ for iChn=1:trignum
     end
     
 end
+
+else
+    fprintf(2,'SKIPPING ID CODE CHECK - ASSUMING EVERYTHING WIRED CORRECTLY!');
+    Trigger.ID_Code=[3,1,2,4,5,nan,nan,nan];
+    
+end
+
 
 %% output little bit of info about what was found
 
