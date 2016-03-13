@@ -58,8 +58,14 @@ ID_Codes.Num(5)=5;
 
 
 
-ID_Codes.DefaultOrder=[3,1,2,
+ID_Codes.DefaultOrder=[4,1,2,3,5];
 
+ID_Codes.DefaultID=ID_Codes.Num([ID_Codes.DefaultOrder]);
+ID_Codes.DefaultName=ID_Codes.Name([ID_Codes.DefaultOrder]);
+
+ID_Codes.DefaultOrder(end+1:trignum)=nan;
+ID_Codes.DefaultID(end+1:trignum)=nan;
+ID_Codes.DefaultName(end+1:trignum)={''};
 
 %there may be others here - system has 3 spare channles EX_1 2 and 3 on
 %arduino. and Kirills physchotool box stuff will also go here
@@ -131,83 +137,108 @@ end
 
 %% NEXT IDENTIFY CHANNELS BY READING THE LITTLE COMMAND ONES TO START WITH
 
-
-if ~SkipIDCodes
-
 %counter for unknown trigger channels
 ChnUnknown=0;
-
-for iChn=1:trignum
+if ~SkipIDCodes
     
-    PulseStart=Trigger.RisingEdges{iChn};
-    %find the pulses which are close together
-    BelowThres = (diff(PulseStart) < maxIDperiod);
-    %use bwlabel to find connections in array
-    [S, NN]=bwlabel(BelowThres);
-    
-    %assume only 1 ID and this happens first
-    
-    codetmp=find (S == 1);
-    codesize=size(codetmp,1);
-    
-    %find the ID code this belong to
-    chnID=find(ID_Codes.Num == codesize);
-    
-    if ~isempty(chnID)
+    for iChn=1:trignum
         
-        %assign this trigger a name
-        Trigger.Type(iChn)=ID_Codes.Name(chnID);
-        Trigger.ID_Code(iChn)=codesize;
+        %assume all ID codes must happen in the first second after first
+        %trigger. this is to limit multiple pulses like freq changes or
+        %protocol complete being read as id codes
         
-        %delete the references to the rising and falling edges for the ID codes
-        rem_idx=[true; S];
-        rem_idx=find(rem_idx ==1);
+        PulseStart=Trigger.RisingEdges{iChn} (Trigger.RisingEdges{iChn}< RisingEdges(1)+Fs);
+        %         PulseStart
+        %find the pulses which are close together
+        BelowThres = (diff(PulseStart) < maxIDperiod);
+        %use bwlabel to find connections in array
+        [S, NN]=bwlabel(BelowThres);
         
-        Trigger.ID_Rising(iChn)={Trigger.RisingEdges{iChn}(rem_idx)};
-        Trigger.ID_Falling(iChn)={Trigger.FallingEdges{iChn}(rem_idx)};
+        %assume only 1 ID and this happens first
         
-        Trigger.FallingEdges{iChn}(rem_idx)=[];
-        Trigger.RisingEdges{iChn}(rem_idx)=[];
+        codetmp=find (S == 1);
+        codesize=size(codetmp,1);
         
-    else
+        %find the ID code this belong to
+        chnID=find(ID_Codes.Num == codesize);
         
-        if ~isempty(PulseStart)
-            Trigger.Type(iChn)={['Unknown_' num2str(ChnUnknown)]}; %create name
-            ChnUnknown=ChnUnknown+1;
-            Trigger.ID_Code(iChn)=0;
+        if ~isempty(chnID)
+            
+            %assign this trigger a name
+            Trigger.Type(iChn)=ID_Codes.Name(chnID);
+            Trigger.ID_Code(iChn)=codesize;
+            
+            %delete the references to the rising and falling edges for the ID codes
+            rem_idx=[true; S];
+            rem_idx=find(rem_idx ==1);
+            
+            Trigger.ID_Rising(iChn)={Trigger.RisingEdges{iChn}(rem_idx)};
+            Trigger.ID_Falling(iChn)={Trigger.FallingEdges{iChn}(rem_idx)};
+            
+            Trigger.FallingEdges{iChn}(rem_idx)=[];
+            Trigger.RisingEdges{iChn}(rem_idx)=[];
+            
         else
-            Trigger.ID_Code(iChn)=nan;
-            Trigger.Type(iChn)={''};
+            
+            if ~isempty(PulseStart)
+                Trigger.Type(iChn)={['Unknown_' num2str(ChnUnknown)]}; %create name
+                ChnUnknown=ChnUnknown+1;
+                Trigger.ID_Code(iChn)=0;
+            else
+                Trigger.ID_Code(iChn)=nan;
+                Trigger.Type(iChn)={''};
+            end
         end
+        
     end
     
-end
-
 else
-    fprintf(2,'SKIPPING ID CODE CHECK - ASSUMING EVERYTHING WIRED CORRECTLY!');
-    Trigger.ID_Code=[3,1,2,4,5,nan,nan,nan];
+    fprintf(2,'SKIPPING ID CODE CHECK - ASSUMING EVERYTHING WIRED CORRECTLY!\n');
+    Trigger.ID_Code=ID_Codes.DefaultID;
+    Trigger.Type=ID_Codes.DefaultName;
     
 end
 
 
 %% output little bit of info about what was found
 
-%find channels that actually had pulses in them
-GoodChn=cellfun(@(x) ~isempty(x),Trigger.RisingEdges);
-
-UnknownChn=cellfun(@(x) ~isempty(x),strfind(Trigger.Type,'Unknown'));
-
-%get rid of Unkown channels in "good channels"
-GoodChn=GoodChn ~= UnknownChn;
-
-NumUnknownChn=sum(UnknownChn);
-NumGoodChn=sum(GoodChn);
-
-fprintf('Found %d trig chn: ',NumGoodChn);
-fprintf('%s, ',Trigger.Type{GoodChn});
-fprintf('and %d unknown channel(s),',NumUnknownChn);
-fprintf(' so thats good.\n');
 
 
+
+%% Check if this makes sense
+
+%at the moment, if we dont find switch, start and stop *at leas* then
+if (any(Trigger.ID_Code == ID_Codes.Num(2)) ...
+        && any(Trigger.ID_Code == ID_Codes.Num(3)) ...
+        && any(Trigger.ID_Code == ID_Codes.Num(4)))
+    
+    %find channels that actually had pulses in them
+    GoodChn=cellfun(@(x) ~isempty(x),Trigger.RisingEdges);
+    
+    UnknownChn=cellfun(@(x) ~isempty(x),strfind(Trigger.Type,'Unknown'));
+    
+    %get rid of Unkown channels in "good channels"
+    GoodChn=GoodChn ~= UnknownChn;
+    
+    NumUnknownChn=sum(UnknownChn);
+    NumGoodChn=sum(GoodChn);
+    
+    fprintf('Found %d trig chn: ',NumGoodChn);
+    fprintf('%s, ',Trigger.Type{GoodChn});
+    fprintf('and %d unknown channel(s),',NumUnknownChn);
+    fprintf(' so thats good.\n');
+    
+else
+    
+    if ~SkipIDCodes
+        fprintf(2,'STARTING CODES WERE FUCKED! Trying again but assuming start of file missing, and forcing default channels\n');
+        
+        Trigger=ScouseTom_TrigReadChn(HDR,1);
+    else
+        fprintf(2,'TRIGGERS ARE MESSED UP! Giving up \n');
+    end
+    
+    
+    
 end
 

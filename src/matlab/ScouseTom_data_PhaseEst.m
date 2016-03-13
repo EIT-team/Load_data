@@ -27,7 +27,8 @@ Prt_vecfull=mod(1:N_inj+StartInj+1,N_prt);
 Prt_vecfull(Prt_vecfull ==0)=N_prt;
 
 %then take the bit we want
-Prt_vec=Prt_vecfull(StartInj:N_inj+1);
+% Prt_vec=Prt_vecfull(StartInj:N_inj+1);
+Prt_vec=Prt_vecfull;
 
 
 PhaseAngleTmp=nan(size(PhaseIn));
