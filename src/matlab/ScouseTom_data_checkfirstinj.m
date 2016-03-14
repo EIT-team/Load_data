@@ -1,4 +1,4 @@
-function [ StartInj ] = ScouseTom_data_checkfirstinj(HDR,InjectionSwitchesCell,Protocol )
+function [ StartInj,EstimateBadness,RMSEst ] = ScouseTom_data_checkfirstinj(HDR,InjectionSwitchesCell,Protocol )
 %SCOSUETOM_DATA_CHECKFIRSTINJ Checks the first injection in the dataset to
 %see if it is the correct protocol line, adjusts the processing if not.
 %This is to account for
@@ -54,7 +54,7 @@ for iFreq=1:Nfreq
     Threshold=0.6; %coefficient for deciding good injection pair estimate
     
     %estimate the injection pairs from the two largest RMS values
-    [StartInjEst, estimatebadness,RmsEst]=ScouseTom_data_EstInjPair(V(tmpidx,:),Threshold);
+    [StartInjEst, EstimateBadness,RMSEst]=ScouseTom_data_EstInjPair(V(tmpidx,:),Threshold);
     
     %find desired first startinj - sort as we cant tell sources from sinks
     Protocol=sort(Protocol,2);
@@ -66,7 +66,7 @@ for iFreq=1:Nfreq
     start_poss=find(all([StartInjEst(1)==Protocol(:,1) StartInjEst(2)==Protocol(:,2)],2));
     
     %warn if estimate was not matching threshold
-    if estimatebadness ==1
+    if EstimateBadness ==1
         fprintf(2,'WARNING! The Injection start estimate did not meet threshold\n');
     end
     
@@ -80,14 +80,14 @@ for iFreq=1:Nfreq
         
         figure;
         hold on
-        bar(RmsEst)
-        plot([0 length(RmsEst)],repmat([max(RmsEst)*Threshold],1,2),'k-','Linewidth',2)
+        bar(RMSEst)
+        plot([0 length(RMSEst)],repmat([max(RMSEst)*Threshold],1,2),'k-','Linewidth',2)
         xlabel('Channel');
         ylabel('V RMS in first injection');
         title(['RMS in first inj. Freq ' num2str(iFreq) ', expected ' num2str(StartInjProt(1)) ' & ' num2str(StartInjProt(2)) ])
         
         StartInj(iFreq)=-1;
-        estimatebadness=1;
+        EstimateBadness=1;
         
     end
     

@@ -81,7 +81,7 @@ tstart=tic;
 
 for iChn=1:Nchn
     fprintf('Process Chn: %d of %d. Freq: ',iChn,Nchn);
-       
+    
     %set variables in HDR for single channel only
     HDR.InChanSelect=iChn;
     HDR.Calib=HDRin.Calib(1:2,1);
@@ -122,10 +122,12 @@ end
 
 for iFreq=1:Nfreq
     
-    %find number of repeats - rounding up
-    Nrep=ceil(size(InjectionWindows{iFreq},1)/Nprt);
     %number of injections found
     Ninj=size(Vmag{iFreq},1);
+    
+    %find number of repeats - rounding up
+    Nrep=ceil((StartInj(iFreq)+Ninj)/Nprt);
+    
     %preallocate
     VmagOutTmp=nan(Nchn,Nrep*Nprt);
     PhaseOutTmp=VmagOutTmp;
@@ -138,7 +140,7 @@ for iFreq=1:Nfreq
     VmagOutSTDTmp(:,StartInj(iFreq):(StartInj(iFreq)-1)+Ninj)=VmagSTD{iFreq}';
     PhaseOutSTDTmp(:,StartInj(iFreq):(StartInj(iFreq)-1)+Ninj)=PhaseRawSTD{iFreq}';
     
-
+    
     
     %% reshape into correct format
     VmagOut{iFreq}=reshape(VmagOutTmp,Nchn*Nprt,Nrep);
