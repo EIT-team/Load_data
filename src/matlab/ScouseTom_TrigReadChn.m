@@ -56,12 +56,13 @@ ID_Codes.Name(5)={'Freq'};
 ID_Codes.Num(5)=5;
 ID_Codes.Name(6)={'Compliance'};
 ID_Codes.Num(6)=6;
-
 ID_Codes.Name(7)={'DummyIgnoreThisOne'};
 ID_Codes.Num(7)=8;
+ID_Codes.Name(8)={'Unknown'};
+ID_Codes.Num(8)=-1;
 
 
-ID_Codes.DefaultOrder=[4,1,2,3,5];
+ID_Codes.DefaultOrder=[4,1,2,3,5,6,8,7];
 ID_Codes.DefaultID=ID_Codes.Num([ID_Codes.DefaultOrder]);
 ID_Codes.DefaultName=ID_Codes.Name([ID_Codes.DefaultOrder]);
 
@@ -133,8 +134,6 @@ for iChn=1:trignum
     curFalling=FallingEdges(FallingEdgesChn == iChn);
     
     %     figure;hold on;stairs(TrigPos,StatusChns(:,iChn));plot(curRising,[1],'o');plot(curFalling,[1],'x');hold off;title(['chn : ' num2str(iChn)]);
-    
-    
     
     
     if (~isempty(curRising) && ~isempty(curFalling)) % if R and F edges found
@@ -225,6 +224,7 @@ else
     Trigger.ID_Code=ID_Codes.DefaultID;
     Trigger.Type=ID_Codes.DefaultName;
 
+end
 %% Clear the dummy channel
 
 %we have extra channel to force rising edges so the actichamp triggers make
@@ -237,7 +237,6 @@ if any(cellfun(@(x) ~isempty(x),strfind(Trigger.Type,ID_Codes.Name{7})));
     DummyChn=find((cellfun(@(x) ~isempty(x),strfind(Trigger.Type,ID_Codes.Name{7}))));
     
 end
-%% Check if this makes sense
 %find it from the first 8 rising edges - This works for ActiChamp
 
 %find first event on chn other than the dummy one
@@ -251,8 +250,6 @@ MainIDCodeStart=find(sum(StatusChns,2) >1,1);
 %that is the dummy channel
 DummyChn=find(histc(startidchn,1:trignum) > length(startidchn)*0.75);
 
-
-
 if ~isempty(DummyChn)
     
     
@@ -265,6 +262,9 @@ if ~isempty(DummyChn)
     
     
 end
+
+%% Check if ok and output
+
 %at the moment, if we dont find switch, start and stop *at leas* then
 if (any(Trigger.ID_Code == ID_Codes.Num(2)) ...
         && any(Trigger.ID_Code == ID_Codes.Num(3)) ...
