@@ -57,8 +57,9 @@ ID_Codes.Name(5)={'Freq'};
 ID_Codes.Num(5)=5;
 
 
-
 ID_Codes.DefaultOrder=[4,1,2,3,5];
+
+ID_Codes.DefaultOrder=[3,1,2,
 
 ID_Codes.DefaultID=ID_Codes.Num([ID_Codes.DefaultOrder]);
 ID_Codes.DefaultName=ID_Codes.Name([ID_Codes.DefaultOrder]);
@@ -140,6 +141,7 @@ end
 %counter for unknown trigger channels
 ChnUnknown=0;
 if ~SkipIDCodes
+if ~SkipIDCodes
     
     for iChn=1:trignum
         
@@ -204,6 +206,8 @@ end
 
 
 
+%get rid of Unkown channels in "good channels"
+GoodChn=GoodChn ~= UnknownChn;
 
 %% Check if this makes sense
 
