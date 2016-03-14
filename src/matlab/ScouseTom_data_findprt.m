@@ -33,19 +33,20 @@ keep_idx=setdiff(1:length(prt_full),rem_idx);
 N_prt=size(InjectionPairs,1);
 
 %Electrode Injections
-Elec_inj=nan(N_elec,N_prt);
+Elec_inj_mat=nan(N_elec,N_prt);
 
 for iPrt = 1:N_prt
     Prt_cur=InjectionPairs(iPrt,:);
     start_idx=((iPrt-1)*N_elec);
     BV_chn=start_idx+Prt_cur;
-    Elec_inj(Prt_cur,iPrt)=BV_chn;
+    Elec_inj_mat(Prt_cur,iPrt)=BV_chn;
 end
 
-Elec_inj=sort(Elec_inj,2);
+Elec_inj_mat=sort(Elec_inj_mat,2);
 
-%clear up matrix
-Elec_inj(:,all(isnan(Elec_inj),1))=[];
+for iElec=1:N_elec
+    Elec_inj{iElec}=Elec_inj_mat(iElec,~isnan(Elec_inj_mat(iElec,:)));
+end
 
 
 

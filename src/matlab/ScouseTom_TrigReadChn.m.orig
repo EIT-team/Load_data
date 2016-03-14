@@ -127,6 +127,10 @@ FallingEdges=TrigPos(FallingEdgesPosIdx);
 %arduino turns on. As pins are held HIGH by biosemi. And find orphaned
 %rising too, which can occur if the file stops early
 
+<<<<<<< HEAD
+
+=======
+>>>>>>> PerChn
 for iChn=1:trignum
     %take only rising and falling belonging to this channel
     curRising=RisingEdges(RisingEdgesChn == iChn);
@@ -167,7 +171,25 @@ end
 
 %counter for unknown trigger channels
 ChnUnknown=0;
+<<<<<<< HEAD
+
+for iChn=1:trignum
+    
+    PulseStart=Trigger.RisingEdges{iChn};
+    %find the pulses which are close together
+    BelowThres = (diff(PulseStart) < maxIDperiod);
+    %use bwlabel to find connections in array
+    [S, NN]=bwlabel(BelowThres);
+    
+    %assume only 1 ID and this happens first
+    codetmp=find (S == 1);
+    codesize=size(codetmp,1);
+    
+    %find the ID code this belong to
+    chnID=find(ID_Codes.Num == codesize);
+=======
 if ~SkipIDCodes
+>>>>>>> PerChn
     
     for iChn=1:trignum
         
@@ -224,7 +246,11 @@ else
     fprintf(2,'SKIPPING ID CODE CHECK - ASSUMING EVERYTHING WIRED CORRECTLY!\n');
     Trigger.ID_Code=ID_Codes.DefaultID;
     Trigger.Type=ID_Codes.DefaultName;
+    
+end
+%% Check if this makes sense
 
+<<<<<<< HEAD
 %% Clear the dummy channel
 
 %we have extra channel to force rising edges so the actichamp triggers make
@@ -237,7 +263,7 @@ if any(cellfun(@(x) ~isempty(x),strfind(Trigger.Type,ID_Codes.Name{7})));
     DummyChn=find((cellfun(@(x) ~isempty(x),strfind(Trigger.Type,ID_Codes.Name{7}))));
     
 end
-%% Check if this makes sense
+
 %find it from the first 8 rising edges - This works for ActiChamp
 
 %find first event on chn other than the dummy one
@@ -265,6 +291,40 @@ if ~isempty(DummyChn)
     
     
 end
+
+%% output little bit of info about what was found
+
+%find channels that actually had pulses in them
+GoodChn=cellfun(@(x) ~isempty(x),Trigger.RisingEdges);
+
+UnknownChn=cellfun(@(x) ~isempty(x),strfind(Trigger.Type,'Unknown'));
+
+EmptyChn=cellfun(@(x) isempty(x),Trigger.Type);
+
+
+%get rid of Unknown channels in "good channels"
+GoodChn=GoodChn ~= UnknownChn;
+
+NumUnknownChn=sum(UnknownChn);
+NumGoodChn=sum(GoodChn);
+NumIDchn=sum(~EmptyChn);
+
+fprintf('Found ID codes in %d trig chn: ',NumIDchn);
+fprintf('%s, ',Trigger.Type{~EmptyChn});
+
+if NumUnknownChn
+    
+    fprintf('and %d unknown channel(s),',NumUnknownChn);
+end
+
+fprintf('\n%d chns had trigs in them: ',NumGoodChn);
+fprintf('%s, ',Trigger.Type{GoodChn});
+fprintf('\nSo thats good.\n');
+
+
+
+
+=======
 %at the moment, if we dont find switch, start and stop *at leas* then
 if (any(Trigger.ID_Code == ID_Codes.Num(2)) ...
         && any(Trigger.ID_Code == ID_Codes.Num(3)) ...
@@ -298,5 +358,6 @@ else
     
     
     
+>>>>>>> PerChn
 end
 

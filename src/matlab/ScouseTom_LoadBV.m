@@ -97,7 +97,7 @@ end
 %% Process Boundary Voltages
 
 %process the boundary voltages and only take the output structure
-[~,~,BVstruc]=ScouseTom_ProcessBV(HDR,TT,ExpSetup);
+[BVstruc]=ScouseTom_ProcessBV(HDR,TT,ExpSetup);
 
 
 

@@ -1,37 +1,34 @@
-function [ Inj_pairs, badnessflag ] = ScouseTom_data_EstInjPair( Vin )
+function [ Inj_pairs, badnessflag,RMS_CHN ] = ScouseTom_data_EstInjPair( Vin,Threshold )
 %ScouseTom_EstimateInjPair Simply estimates which channels are injecting by
 %finding the two biggest channels using RMS
 %   Detailed explanation goes here
 
-%%
+%% parse inputs
+
+if exist('Threshold','var')==0
+    Threshold=0.5;
+end
 
 N_elec=size(Vin,2);
 RMS_CHN=nan(N_elec,1);
 badnessflag=0;
 
-maxlen=1000;
-
-%%
-
-if size(Vin,1) > maxlen
-    idxmax=maxlen;
-else
-    idxmax=size(Vin,1);
-end
+%% Find RMS
 
 %get rms for each channel
 for iElec=1:N_elec
-    tmp=Vin(1:idxmax,iElec); %only take first bit to save processing time on big injects
+    tmp=Vin(:,iElec); %only take first bit to save processing time on big injects
     RMS_CHN(iElec)=sqrt(mean(detrend(tmp).^2));
 end
 
+%% Find Biggest Two Channels
 %sort into order
-[RMS_CHN ,I]=sort(RMS_CHN,1,'descend');
+[RMS_CHNS ,I]=sort(RMS_CHN,1,'descend');
 
 
 %if the biggest two arent more than 50% than the next one then warn
-if RMS_CHN(3) > 0.4*RMS_CHN(2)
-    warning('Voltages on other channels greater than half the voltage on injection pairs');
+if RMS_CHNS(3) > Threshold*RMS_CHNS(2)
+    fprintf(2,'Voltages on other channels greater than %.2f the voltage on injection pairs\n',Threshold);
     badnessflag=1;
 end
 
