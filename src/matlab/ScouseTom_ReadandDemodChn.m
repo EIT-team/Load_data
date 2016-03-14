@@ -5,7 +5,6 @@ function [ VmagOut,PhaseOut,VmagOutSTD,PhaseOutSTD ] = ScouseTom_ReadandDemodChn
 %% Fiddling with inputs
 HDR=HDRin;
 
-
 if strcmp(HDR.TYPE,'BDF');
     %biosemi has status channel as a separate chn in file
     %THIS WILL BREAK IF AUX SENSORS SELECTED
@@ -21,12 +20,9 @@ Nsec=HDR.NRec;
 Nfreq=size(InjectionWindows,2);
 Nprt=size(Protocol,1);
 
-
 if exist('StartInj','var') ==0
     StartInj=ones(Nfreq,1);
 end
-
-
 
 firstinj=zeros(Nfreq,1);
 lastinj=zeros(Nfreq,1);
@@ -68,15 +64,12 @@ end
 Vmag=cell(Nfreq,1);
 
 for iFreq=1:Nfreq
-    
     Vmagtmp=nan(size(InjectionWindows{iFreq},1),Nchn);
-    
     Vmag{iFreq}=Vmagtmp;
-    
 end
 PhaseRaw=Vmag;
-
-
+VmagSTD=Vmag;
+PhaseRawSTD=Vmag;
 
 
 %% Read and Demod each channel
@@ -87,9 +80,7 @@ tstart=tic;
 
 for iChn=1:Nchn
     fprintf('Process Chn: %d of %d. Freq: ',iChn,Nchn);
-    
-    tchnstart=tic;
-    
+       
     %set variables in HDR for single channel only
     HDR.InChanSelect=iChn;
     HDR.Calib=HDRin.Calib(1:2,1);
@@ -109,7 +100,6 @@ for iChn=1:Nchn
     end
     
     t_el=toc(tstart);
-    
     fprintf('. t=%.1f s\n',t_el);
     
 end
@@ -128,7 +118,6 @@ end
 
 %% Pad to complete number of repeats
 
-%this does not yet handle not starting at first repeat
 
 for iFreq=1:Nfreq
     
