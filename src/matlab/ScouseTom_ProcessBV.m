@@ -25,7 +25,10 @@ BW=50; %bandwidth of bandpass filter in demod
 switch HDR.TYPE
     case 'BDF' % biosemi file
         MaxV=0.5e6; %500mV range on BioSemi
-    case 'EEG'
+    case 'BrainVision'
+    
+    otherwise
+       error('Weird HDR'); 
 end
 
 
@@ -81,7 +84,7 @@ bigmat=matfile(mfilename,'Writable',true);
 [B,A,FilterTrim,Fc]=ScouseTom_FindFilterSettings(HDR,TT.InjectionSwitches(1,:),ExpSetup.Protocol(StartInj,1));
 
 %process the data to get the magnitude and phase
-[BV,PA,BVSTD,PASTD] = ScouseTom_ReadandDemodChn( HDR,B,A,FilterTrim,TT.InjectionSwitches(1,:),ExpSetup.Protocol);
+[BV,PA,BVSTD,PASTD,Vmag] = ScouseTom_ReadandDemodChn( HDR,B,A,FilterTrim,TT.InjectionSwitches(1,:),ExpSetup.Protocol,StartInj);
 
 %estimate the contact impedances on the injection electrodes
 [Z,Zstd] = ScouseTom_data_estZ( BV,Elec_inj,ZSF);

@@ -5,12 +5,11 @@ function [ Vdata_demod,Pdata_demod ] = ScouseTom_data_DemodHilbert( data,B,A)
 %   Data- signal to be demodulated
 % B A - Filter coefficients
 
-% ADD PHASE ESTIMATE INTO THIS BIT!!
-
 if any(isnan(data))
-    data_demod = nan;
+    Vdata_demod = nan;
+    Pdata_demod=nan;
     
-    %     warning('Nans in data bro!');
+    fprintf(2,'Nans in data!');
 else
    
     %filter data using coefs

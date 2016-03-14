@@ -1,4 +1,4 @@
-function [ VmagOut,PhaseOut,VmagOutSTD,PhaseOutSTD ] = ScouseTom_ReadandDemodChn( HDRin,B,A,Trim_demod,InjectionWindows,Protocol,StartInj )
+function [ VmagOut,PhaseOut,VmagOutSTD,PhaseOutSTD,Vmag ] = ScouseTom_ReadandDemodChn( HDRin,B,A,Trim_demod,InjectionWindows,Protocol,StartInj )
 %UNTITLED5 Summary of this function goes here
 %   Detailed explanation goes here
 
@@ -22,6 +22,7 @@ Nprt=size(Protocol,1);
 
 if exist('StartInj','var') ==0
     StartInj=ones(Nfreq,1);
+    fprintf(2,'WARNING. NO STARTINJ SPECIFIED. ASSUMING 1. \n');
 end
 
 firstinj=zeros(Nfreq,1);
