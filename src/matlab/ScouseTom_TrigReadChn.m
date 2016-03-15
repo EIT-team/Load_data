@@ -223,7 +223,7 @@ else
     fprintf(2,'SKIPPING ID CODE CHECK - ASSUMING EVERYTHING WIRED CORRECTLY!\n');
     Trigger.ID_Code=ID_Codes.DefaultID;
     Trigger.Type=ID_Codes.DefaultName;
-
+    
 end
 %% Clear the dummy channel
 
@@ -231,24 +231,26 @@ end
 %sense. But we dont want this data so clear the channel
 
 
-%find the one with the correct ID code - This works for BDF files
+%find the one with the correct ID code - This works for BDF files or if we
+%have forced defaults above
 if any(cellfun(@(x) ~isempty(x),strfind(Trigger.Type,ID_Codes.Name{7})));
     
     DummyChn=find((cellfun(@(x) ~isempty(x),strfind(Trigger.Type,ID_Codes.Name{7}))));
     
+else
+    %find it from the first 8 rising edges - This works for ActiChamp
+    
+    %find first event on chn other than the dummy one
+    MainIDCodeStart=find(sum(StatusChns,2) >1,1);
+    
+    %find what channels have rising edges in them - this should *all* be the
+    %dummy channel (usually 8)
+    [~, startidchn]=find(StatusChns(1:MainIDCodeStart-1,:));
+    
+    %if any of the first pulses happen *at least* 75% on the same channel, then
+    %that is the dummy channel
+    DummyChn=find(histc(startidchn,1:trignum) > length(startidchn)*0.75);
 end
-%find it from the first 8 rising edges - This works for ActiChamp
-
-%find first event on chn other than the dummy one
-MainIDCodeStart=find(sum(StatusChns,2) >1,1);
-
-%find what channels have rising edges in them - this should *all* be the
-%dummy channel (usually 8)
-[~, startidchn]=find(StatusChns(1:MainIDCodeStart-1,:));
-
-%if any of the first pulses happen *at least* 75% on the same channel, then
-%that is the dummy channel
-DummyChn=find(histc(startidchn,1:trignum) > length(startidchn)*0.75);
 
 if ~isempty(DummyChn)
     
