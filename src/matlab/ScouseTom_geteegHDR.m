@@ -25,7 +25,7 @@ end
 
 %Actichamp is much nicer so loading HDR is much less complicated
 
-HDR=sopen(eegname);
+HDR=sopen(eegname,'r',[],['OVERFLOWDETECTION:OFF']);
 
 
 end
