@@ -56,7 +56,7 @@ Stop_Sample=StopSec*Fs;
 
 
 if StopSec > Nsec
-    error('Stop sec is too long!');
+    fprintf(2,'Stop sec is too long!\n');
 end
 
 
