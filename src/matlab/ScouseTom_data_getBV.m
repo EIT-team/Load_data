@@ -1,4 +1,4 @@
-function [Vmag,Vphase,Vmag_std,Vphase_std]=ScouseTom_data_getBV(Vdata_demod,Pdata_demod,Trim_demod,InjectionWindowsFull)
+function [Vmag,Vphase,Vmag_std,Vphase_std]=ScouseTom_data_getBV(Vdata_demod,Pdata_demod,Trim_demod,InjectionWindowsFull,Protocol,StartInj)
 %UNTITLED2 Summary of this function goes here
 %   Detailed explanation goes here
 
@@ -29,7 +29,7 @@ for iInj = 1:nInj
     
     %take the values of interest
     curV= Vdata_demod(curWind(1):curWind(2));
-    curP=Pdata_demod(curWind(1):curWind(2));
+    curP=unwrap(Pdata_demod(curWind(1):curWind(2)));
     
     %voltage
     Vmag(iInj)=nanmean(curV);

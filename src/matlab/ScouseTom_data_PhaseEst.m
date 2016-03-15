@@ -11,6 +11,7 @@ N_inj=size(PhaseIn,1);
 
 if exist('StartInj','var') ==0
     StartInj=1;
+    fprintf(2,'StartInj missing from phase est. assuming 1\n');
 end
 
 
@@ -43,7 +44,7 @@ for iInj=1:N_inj
     %and find difference relative to the first line of the injection
     %protocol - this is the source. Also unwrap it to give a more
     %sensible value
-    curPA=unwrap(curPA - repmat(curPA(Protocol(Prt_vec(iInj),1)),1,N_elec));
+    curPA=(curPA - repmat(curPA(Protocol(Prt_vec(iInj),1)),1,N_elec));
     
     %the phase angle is estimated as the mean of the data, within the
     %section of interest
