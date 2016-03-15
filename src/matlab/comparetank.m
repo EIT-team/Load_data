@@ -20,9 +20,9 @@ if ~(isfield(BVstruc,'BVave'))
     %if its the new cell type strucutre then take only the first freq *FOR
     %NOW*
     if iscell(BVstruc.BV)
-      BVstruc.BVave=mean(BVstruc.BV{1},2);
+      BVstruc.BVave=nanmean(BVstruc.BV{1},2);
     else
-      BVstruc.BVave=mean(BVstruc.BV,2);
+      BVstruc.BVave=nanmean(BVstruc.BV,2);
     end
 end
 
