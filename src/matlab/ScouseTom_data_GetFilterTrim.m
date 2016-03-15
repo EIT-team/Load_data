@@ -27,6 +27,13 @@ Decay_coef=0.00001; %amount filter ripple must decay by before using data
 
 %BW=50; %bandwidth of filters
 
+%the filter takes some time in seconds to decay to ~zero for IIR butterworth filters.
+%This is independent of sampling rate, so we need to have a different max
+%number of samples for different sampling rates
+
+decay_seconds=0.08; %this is based on number of samples in chapter 3 in y thesis. although it could be more rigourously chosen
+threshold_samples = floor(decay_seconds*Fs);
+
 
 
 %% choose filter
@@ -36,7 +43,7 @@ Decay_coef=0.00001; %amount filter ripple must decay by before using data
 %they are within 1% of each other. IIR is MUCH faster than high order FIR
 %so use this to speed up the process
 
-if trim_max <1200
+if trim_max <threshold_samples
     
     if (Fc - BW/2) > 0
         
