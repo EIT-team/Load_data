@@ -21,6 +21,15 @@ else
     
 end
 
+fprintf('Getting HDR for %s\n',eegname);
+
+%% check if it exists
+if exist(eegname,'file') ==0
+    fprintf(2,'WHOA! FILE DOESNT EXIST!\n');
+    HDR=[];
+    return
+end
+
 %% Read HDR header
 
 %Actichamp is much nicer so loading HDR is much less complicated
