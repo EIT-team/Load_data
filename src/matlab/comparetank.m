@@ -13,13 +13,20 @@ if exist('plotflag','var') ==0
     plotflag =[1 1 1];
 end
 
-%%
+%% Get mean experimental voltages
 
+%this may have been calculated before
 if ~(isfield(BVstruc,'BVave'))
-    BVstruc.BVave=mean(BVstruc.BV,2);
+    %if its the new cell type strucutre then take only the first freq *FOR
+    %NOW*
+    if iscell(BVstruc.BV)
+      BVstruc.BVave=mean(BVstruc.BV{1},2);
+    else
+      BVstruc.BVave=mean(BVstruc.BV,2);
+    end
 end
 
-
+%%
 
 %convert collected data to mV
 Vexp_full=(abs(BVstruc.BVave)/1e6).*1000;
