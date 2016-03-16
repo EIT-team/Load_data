@@ -19,23 +19,25 @@ switch HDR.TYPE
     case 'BDF' % biosemi file
         
         MaxV=0.5e6; %500mV range on BioSemi
-        Fs=HDR.SampleRate;
-        fname=HDR.FILE.Name;
         
+    case 'BrainVision' %actichamp
+        MaxV=0.25e6; %250mV range on BioSemi
         
-    case 'EEG' %actichamp
     otherwise
-        error('Bad HDR');
+        error('Unknown HDR Type');
 end
+
+Fs=HDR.SampleRate;
+fname=HDR.FILE.Name;
 
 %% Get variables
 
 N_elec=ExpSetup.Elec_num; %number of electrodes
 N_prt=N_elec; %this is the same as N_elec as the protocol lines is equal to number of electrodes for contact checks
 
-
+%create the contact check protocol - assuming neighbouring pairs
 Contact_Protocol=[1:N_elec; circshift(1:N_elec,-1,2)]';
-Contact_Protocol=Contact_Protocol(~(any(ismember(Contact_Protocol,ExpSetup.Bad_Elec),2)),:);
+Contact_Protocol=Contact_Protocol(~(any(ismember(Contact_Protocol,ExpSetup.Bad_Elec),2)),:); %remove reference to bad electrodes
 
 %% Amplitude and freq
 
@@ -57,7 +59,7 @@ RecZ=1000; %recommended contact impedance
 % run each
 Z_checks_num=length(TT.Contact.InjectionStarts);
 
-if ~length(Z_checks_num)
+if isempty(Z_checks_num)
     warning('No Contact Checks Found');
     return
 end
@@ -94,17 +96,16 @@ for iZ = 1:Z_checks_num
     
     tmp=curInjSwitch(swidx+1)-curInjSwitch(swidx);
     fwind=curInjSwitch(swidx)-Data_start_s:curInjSwitch(swidx)-Data_start_s+tmp;
-
+    
     %determine the Carrier Frequency, Filter coeffs, and amount of signal
     %to trim from the electrode on the *second* injection
-    [trim_demod,B,A,Fc]=ScouseTom_data_GetFilterTrim( V(fwind,Contact_Protocol(swidx,1)),Fs,BW,0 );
+    %find the corresponding filter settings
+    [B,A,FilterTrim,Fc]=ScouseTom_FindFilterSettings(HDR,TT.InjectionSwitches(1,:),Contact_Protocol(2,1));
     
     
     %demodulate each segment in turn using hilber transfrom
-    fprintf('Demodulating...');
-    for iElec=1:N_elec
-        [Vdemod(:,iElec),Pdemod(:,iElec)] =ScouseTom_data_DemodHilbert(V(:,iElec),B,A);
-    end
+    [ Vdata_demod,Pdata_demod ] = ScouseTom_data_DemodHilbert( V,B{iFreq},A{iFreq}); % filter and demodulate channel
+
     fprintf('Done!\n');
     
     % data is now in big long streams - segment into separate lines of the

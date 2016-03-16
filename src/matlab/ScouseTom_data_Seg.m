@@ -56,7 +56,6 @@ else % we are ing singlefreqmode, and the interval is equal to the biggest gap b
     %switches
     s_trim=[InjSwitches(:,1)+s_rem, InjSwitches(:,1)+s_int-s_rem];
     
-    
     % FIX LOADING DATA THAT ISNT THERE FOR VERY SHORT INJECTION
     s_trim (s_trim > length(Vdata)) = length(Vdata);
     
