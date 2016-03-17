@@ -102,19 +102,14 @@ for iZ = 1:Z_checks_num
     %find the corresponding filter settings
     [B,A,FilterTrim,Fc]=ScouseTom_FindFilterSettings(HDR,TT.InjectionSwitches(1,:),Contact_Protocol(2,1));
     
-    
     %demodulate each segment in turn using hilber transfrom
-    [ Vdata_demod,Pdata_demod ] = ScouseTom_data_DemodHilbert( V,B{iFreq},A{iFreq}); % filter and demodulate channel
+    [ Vdata_demod,Pdata_demod ] = ScouseTom_data_DemodHilbert( V,B{1},A{1}); % filter and demodulate channel
 
-    fprintf('Done!\n');
+    [Vmag,PhaseRaw]=ScouseTom_data_getBV(Vdata_demod,Pdata_demod,FilterTrim{1},TT.Contact.InjectionSwitches{iZ}-Data_start_s); %process each injection window, adjusting for new start time
+
+    [Phase{iFreq}]=ScouseTom_data_PhaseEst(PhaseRaw{iFreq},Protocol,StartInj);
     
-    % data is now in big long streams - segment into separate lines of the
-    % protocol - output is matrix of voltages size PRT x Sample x CHN x Repeat
-    [Vseg, Pseg]=ScouseTom_data_Seg(Vdemod,Pdemod,curInjSwitch-Data_start_s,[],[],0.0001,N_prt,N_elec,Fs);
-    
-    %get boundary voltages - average each segment - ignoring the messed up
-    %edges
-    BV=ScouseTom_data_Seg2BV(Vseg,trim_demod,'please dont reshape thank youu please');
+    %need reshape here
     
     %only interested in the injection voltages
     
