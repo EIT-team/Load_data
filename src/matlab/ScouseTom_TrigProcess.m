@@ -182,16 +182,13 @@ for iInj=1:TotInj
         
     end
     
-    
-    %Clean the injections somehow....
-    
 end
 
 
 %% Separate contact checks
 % Make separate cell arrays for contact checks (so as not to confuse further processing)
 
-Contact.InjectionSwitches=InjectionSwitchesIN(ContactStartsIdx);
+Contact.InjectionSwitches=InjectionSwitches(ContactStartsIdx);
 InjectionSwitchesIN(ContactStartsIdx)=[];
 InjectionSwitches(ContactStartsIdx)=[];
 Contact.FreqChanges=FreqChanges(ContactStartsIdx);
@@ -206,7 +203,6 @@ Contact.InjectionStops=InjectionStops(ContactStartsIdx);
 
 
 %% output dat shit
-disp('Triggers Processed OK');
 
 TT.InjectionSwitches =InjectionSwitches;
 %TT.FreqChanges=FreqChanges;
@@ -220,6 +216,8 @@ TT.FreqOrder=FreqOrder;
 TT.FreqStarts=FreqStarts;
 TT.FreqStops=FreqStops;
 
+%we might want more detailed output here
+disp('Triggers Processed OK');
 
 end
 
