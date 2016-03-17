@@ -14,8 +14,6 @@ if exist('StartInj','var') ==0
     fprintf(2,'StartInj missing from phase est. assuming 1\n');
 end
 
-
-
 %get phase angle for each protocol injection line by subtracting the phase
 %from the injection electrode
 
@@ -30,7 +28,6 @@ Prt_vecfull(Prt_vecfull ==0)=N_prt;
 %then take the bit we want
 % Prt_vec=Prt_vecfull(StartInj:N_inj+1);
 Prt_vec=Prt_vecfull;
-
 
 PhaseAngleTmp=nan(size(PhaseIn));
 STDtmp=PhaseAngleTmp;

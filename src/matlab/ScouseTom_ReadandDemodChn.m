@@ -9,14 +9,19 @@ if strcmp(HDR.TYPE,'BDF');
     %biosemi has status channel as a separate chn in file
     %THIS WILL BREAK IF AUX SENSORS SELECTED
     Nchn=HDR.NS -1;
+    Nsec=HDR.NRec;
 else
     Nchn=HDR.NS;
+    Nsec=
 end
 
 Fs=HDR.SampleRate;
 
 %% Check stuff
-Nsec=HDR.NRec;
+
+
+
+
 Nfreq=size(InjectionWindows,2);
 Nprt=size(Protocol,1);
 
@@ -52,8 +57,6 @@ end
 
 
 Start_Sample=StartSec*Fs;
-Stop_Sample=StopSec*Fs;
-
 
 if StopSec > Nsec
     fprintf(2,'Stop sec is too long!\n');
@@ -71,6 +74,7 @@ end
 PhaseRaw=Vmag;
 VmagSTD=Vmag;
 PhaseRawSTD=Vmag;
+Phase=Vmag;
 
 
 %% Read and Demod each channel
