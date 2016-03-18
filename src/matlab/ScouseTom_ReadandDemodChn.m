@@ -4,23 +4,25 @@ function [ VmagOut,PhaseOut,VmagOutSTD,PhaseOutSTD,Vmag ] = ScouseTom_ReadandDem
 
 %% Fiddling with inputs
 HDR=HDRin;
-
-if strcmp(HDR.TYPE,'BDF');
-    %biosemi has status channel as a separate chn in file
-    %THIS WILL BREAK IF AUX SENSORS SELECTED
-    Nchn=HDR.NS -1;
-    Nsec=HDR.NRec;
-else
-    Nchn=HDR.NS;
-    Nsec=
+switch HDR.TYPE
+    case 'BDF' % biosemi file
+        %biosemi is stored as 1sec long records. so number of seconds is
+        %Nrec
+        Nsec=HDR.NRec;
+        %biosemi file size is stored in bytes
+        Fsize=HDR.FILE.size;
+    case 'BrainVision'
+        Nsec=ceil(HDRac.SPR/HDRac.SampleRate);
+        %actichamp HDR points to header .vhdr file, so filesize is wrong
+        eegfile=dir(fullfile(HDR.FILE.Path,[HDR.FILE.Name '.eeg']));
+        Fsize=eegfile.bytes;
+    otherwise
+        error('Bad HDR');
 end
-
+Nchn=size(HDR.InChanSelect,1);
 Fs=HDR.SampleRate;
 
-%% Check stuff
-
-
-
+%% Check inputs 
 
 Nfreq=size(InjectionWindows,2);
 Nprt=size(Protocol,1);
@@ -29,6 +31,12 @@ if exist('StartInj','var') ==0
     StartInj=ones(Nfreq,1);
     fprintf(2,'WARNING. NO STARTINJ SPECIFIED. ASSUMING 1. \n');
 end
+
+if length(StartInj) ~= Nfreq
+    error('Wrong number of start injections');
+end
+
+%% Find start and finish times
 
 firstinj=zeros(Nfreq,1);
 lastinj=zeros(Nfreq,1);
@@ -55,7 +63,6 @@ if StopSec > Nsec
     StopSec=StopSec-1; %remove added second if we go too far
 end
 
-
 Start_Sample=StartSec*Fs;
 
 if StopSec > Nsec
@@ -76,6 +83,24 @@ VmagSTD=Vmag;
 PhaseRawSTD=Vmag;
 Phase=Vmag;
 
+%% Based on file size, determine how to load data
+MaxMemoryUsage=4e9; %maximum memory usage for larger variables stored during demodulation
+% MaxMemoryUsage=.1e9; %maximum memory usage for V variable in bytes
+
+ChnSize=(Fsize*2.4)/Nchn; %file size in bytes is ~double when stored in matlab as double
+
+ChnSize=ChnSize*4; %this is because we have to store the demod V and Phase for each channel - add more because the fft in hilbert takes LOADS of ram
+
+MaxChnNum=floor(MaxMemoryUsage/ChnSize); %maximum number of channels this length which could be put into memory
+
+BlocksNum=ceil(Nchn/MaxChnNum); %how many blocks do we have to split channels into
+
+Blocks=((1:BlocksNum)+(((1:BlocksNum)-1).*MaxChnNum))'; %starting channel for each block
+
+Blocks=[Blocks Blocks+MaxChnNum]; %ending channel is starting plus maxchnnum
+
+Blocks(Blocks > Nchn)=Nchn; %to prevent loading channels that dont exist 
+
 
 %% Read and Demod each channel
 
@@ -83,25 +108,32 @@ fprintf('Processing Channels\n');
 
 tstart=tic;
 
-for iChn=1:Nchn
-    fprintf('Process Chn: %d of %d. Freq: ',iChn,Nchn);
+for iBlk=1:BlocksNum
+    
+    
+    fprintf('Process Chn %d to %d. Freq: ',Blocks(iBlk,1),Blocks(iBlk,2));
+    
+    curChn=Blocks(iBlk,1):Blocks(iBlk,2);
+    curChnNum=size(curChn,2);
     
     %set variables in HDR for single channel only
-    HDR.InChanSelect=iChn;
-    HDR.Calib=HDRin.Calib(1:2,1);
+    HDR.InChanSelect=curChn;
+    HDR.Calib=HDRin.Calib(1:curChnNum+1,1:curChnNum);
     
     V=sread(HDR,StopSec-StartSec,StartSec); %read whole channel
     
     %demodulate for each frequency
     for iFreq=1:Nfreq
+        %display which freq we are doing
         if iFreq < Nfreq
             fprintf('%d,',iFreq);
         else
             fprintf('%d',iFreq);
         end
-        [ Vdata_demod,Pdata_demod ] = ScouseTom_data_DemodHilbert( V,B{iFreq},A{iFreq}); % filter and demodulate channel
-        [Vmag{iFreq}(:,iChn),PhaseRaw{iFreq}(:,iChn),VmagSTD{iFreq}(:,iChn),PhaseRawSTD{iFreq}(:,iChn)]=ScouseTom_data_getBV(Vdata_demod,Pdata_demod,Trim_demod{iFreq},InjectionWindows{iFreq}-Start_Sample); %process each injection window, adjusting for new start time
-        
+         % filter and demodulate channel
+        [ Vdata_demod,Pdata_demod ] = ScouseTom_data_DemodHilbert( V,B{iFreq},A{iFreq});
+        %process each injection window, adjusting for new start time
+        [Vmag{iFreq}(:,curChn),PhaseRaw{iFreq}(:,curChn),VmagSTD{iFreq}(:,curChn),PhaseRawSTD{iFreq}(:,curChn)]=ScouseTom_data_getBV(Vdata_demod,Pdata_demod,Trim_demod{iFreq},InjectionWindows{iFreq}-Start_Sample); 
     end
     
     t_el=toc(tstart);
