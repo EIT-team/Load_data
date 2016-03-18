@@ -21,7 +21,7 @@ switch HDR.TYPE
         MaxV=0.5e6; %500mV range on BioSemi
         
     case 'BrainVision' %actichamp
-        MaxV=0.25e6; %250mV range on BioSemi
+        MaxV=0.25e6; %250mV range on ActiChamp
         
     otherwise
         error('Unknown HDR Type');
@@ -32,25 +32,31 @@ fname=HDR.FILE.Name;
 
 %% Get variables
 
-N_elec=ExpSetup.Elec_num; %number of electrodes
-N_prt=N_elec; %this is the same as N_elec as the protocol lines is equal to number of electrodes for contact checks
+Nelec=ExpSetup.Elec_num; %number of electrodes
+Nprt=Nelec; %this is the same as N_elec as the protocol lines is equal to number of electrodes for contact checks
 
 %create the contact check protocol - assuming neighbouring pairs
-Contact_Protocol=[1:N_elec; circshift(1:N_elec,-1,2)]';
+Contact_Protocol=[1:Nelec; circshift(1:Nelec,-1,2)]';
 Contact_Protocol=Contact_Protocol(~(any(ismember(Contact_Protocol,ExpSetup.Bad_Elec),2)),:); %remove reference to bad electrodes
 
 %% Amplitude and freq
 
 %these are fixed in the arduino code in Injection.h in ScouseTom repo
-
 Amp=141; % 141 uA
 Frq=1000; %1 kHz
+
+
+%scale factor - impedance conversion
+ZSF=1/(Amp); %VOLTAGE GIVEN IN uV SO AMP in uA too
+
+MaxZ=MaxV*ZSF;
+
+
 
 %% Defaults for filtering and contact impedance values
 
 %bandwidth of filter
 BW=50;
-
 RecZ=1000; %recommended contact impedance
 
 
@@ -94,61 +100,90 @@ for iZ = 1:Z_checks_num
     %something was wrong with first (warming up or delay starting etc.)
     swidx=2;
     
-    tmp=curInjSwitch(swidx+1)-curInjSwitch(swidx);
-    fwind=curInjSwitch(swidx)-Data_start_s:curInjSwitch(swidx)-Data_start_s+tmp;
-    
     %determine the Carrier Frequency, Filter coeffs, and amount of signal
     %to trim from the electrode on the *second* injection
     %find the corresponding filter settings
-    [B,A,FilterTrim,Fc]=ScouseTom_FindFilterSettings(HDR,TT.InjectionSwitches(1,:),Contact_Protocol(2,1));
+    [B,A,FilterTrim,Fc]=ScouseTom_FindFilterSettings(HDR,TT.Contact.InjectionSwitches(iZ,:),Contact_Protocol(swidx,1));
     
     %demodulate each segment in turn using hilber transfrom
     [ Vdata_demod,Pdata_demod ] = ScouseTom_data_DemodHilbert( V,B{1},A{1}); % filter and demodulate channel
-
+    
     [Vmag,PhaseRaw]=ScouseTom_data_getBV(Vdata_demod,Pdata_demod,FilterTrim{1},TT.Contact.InjectionSwitches{iZ}-Data_start_s); %process each injection window, adjusting for new start time
-
-    [Phase{iFreq}]=ScouseTom_data_PhaseEst(PhaseRaw{iFreq},Protocol,StartInj);
     
-    %need reshape here
+    [Phase]=ScouseTom_data_PhaseEst(PhaseRaw,Contact_Protocol,1);
     
-    %only interested in the injection voltages
+    %% calc z
+    CurElecs=unique(Contact_Protocol);
     
-    Injchn=[1:N_elec; circshift(1:N_elec,[1 -1])]';
-    InjchnV=nan(size(Injchn));
-    Injchndiff=nan(N_elec,1);
-    
-    
-    %get the injection voltages from each pair as well as the "legacy"
-    %difference measurements
-    for iElec=1:N_elec;
+    %for each electrode
+    for iElec=1:Nelec
+        %if it was skipped as a BAD ELEC
+        if ismember(iElec,CurElecs)
+            %find the voltages when this electrode is injecting
+            InjchnV=Vmag(any(Contact_Protocol == iElec,2),iElec);
+            %convert into impedances using peak amplitude values and convert uV to V
+            Z(iElec,:)=InjchnV*ZSF;
+            
+            %calc the "legacy" UCH 2 channel one too - the difference
+            %between adjacent pairs
+            Injchndiff=diff(Vmag(Contact_Protocol(:,1) == iElec,1:2));
+            dZ(iElec)=abs(Injchndiff*ZSF);
+            
+        else
+            dZ(iElec)=nan;
+            Z(iElec,:)=nan(1,2);
+        end
         
-        InjchnV(iElec,:)=BV(iElec,Injchn(iElec,:));
-        Injchndiff(iElec)=diff(InjchnV(iElec,:));
+        
+        
     end
     
-    %convert into impedances using peak amplitude values and convert uV to V
-    
-    %use peak values as peak values calculated during demod
-    
-    %scale factor - impedance conversion
-    ZSF=1/(Amp); %VOLTAGE GIVEN IN uV SO AMP in uA too
-    
-    MaxZ=MaxV*ZSF;
-    
-    %calc impedances and align each repeat for electrode
-    Z=InjchnV*ZSF;
-    Z=[Z(:,1), circshift(Z(:,2),[1 1])];
-    %calc the "legacy" UCH 2 channel one too
-    dZ=Injchndiff*ZSF;
-    
-    
-    %take average of the two readings for each electrode
-    Zave=nanmean(Z,2);
+    Zave=mean(Z,2);
     
     %date stamp for this z check
     datestart=HDR.T0;
     datestart(6)=datestart(6)+Data_start;
     datestart=datenum(datestart);
+    
+    %%
+    %Classify each impedance as good bad or ok
+    bad_idx = find(Zave > MaxZ);
+    ok_idx=find(Zave > RecZ & Zave < MaxZ);
+    good_idx =find(Zave < RecZ);
+    
+    badchn=nan(size(Zave));
+    goodchn=badchn;
+    okchn=badchn;
+    
+    okchn(ok_idx)=Zave(ok_idx);
+    goodchn(good_idx)=Zave(good_idx);
+    badchn(bad_idx)=Zave(bad_idx);
+    
+    numbad=length(bad_idx);
+    numok=length(ok_idx);
+    
+    
+    fprintf('Found ');
+    if numbad
+        
+        fprintf(2,'%d bad electrodes ',numbad);
+        fprintf('and ');
+    end
+    
+    fprintf('%d warning electrodes\n',numok);
+    
+    if numbad
+        fprintf(2,'BAD ELECS : ');
+        fprintf(2,'%d,',bad_idx);
+        fprintf(2,'\n');
+    end
+    
+    if numok
+        fprintf('Warning elecs : ');
+        fprintf('%d,',ok_idx);
+        fprintf('\n');
+    end
+    
     
     %% plot results
     
@@ -158,23 +193,11 @@ for iZ = 1:Z_checks_num
         
         %         title([datestr(datestart), ': Contact Z @ ', num2str(Fc), ' Hz, and ', num2str(Amp), ' A'])
         
-        title(sprintf('Z Check %d, in %s @ %s\n%d Hz and %d A',iZ,fname,datestr(datestart),Fc,Amp),'interpreter','none');
+        title(sprintf('Z Check %d, in %s @ %s\n%d Hz and %d A',iZ,fname,datestr(datestart),Fc{1},Amp),'interpreter','none');
         
         
         hold all
         
-        %Classify each impedance as good bad or ok
-        bad_idx = find(Zave > MaxZ);
-        ok_idx=find(Zave > RecZ & Zave < MaxZ);
-        good_idx =find(Zave < RecZ);
-        
-        badchn=nan(size(Zave));
-        goodchn=badchn;
-        okchn=badchn;
-        
-        okchn(ok_idx)=Zave(ok_idx);
-        goodchn(good_idx)=Zave(good_idx);
-        badchn(bad_idx)=Zave(bad_idx);
         
         %plot each set
         bar(goodchn,'Facecolor',[0 0.5 0]);
@@ -182,18 +205,18 @@ for iZ = 1:Z_checks_num
         bar(badchn,'Facecolor',[1 0 0]);
         
         %make indication lines for recomended and max impedances
-        line([0 N_elec+1],[MaxZ MaxZ],'color','r','linewidth',5)
-        line([0 N_elec+1],[RecZ RecZ],'color','y','linewidth',5)
+        line([0 Nelec+1],[MaxZ MaxZ],'color','r','linewidth',5)
+        line([0 Nelec+1],[RecZ RecZ],'color','y','linewidth',5)
         text(1,RecZ,'FUZZY LOGIC OK','BackgroundColor',[1 1 1],'color',[0 0 0])
         text(1,MaxZ,'MAX Z','color','r','BackgroundColor',[1 1 1])
         hold off
-        set(gca,'Xtick',[1:N_elec])
-        xlim([0,N_elec+1])
+        set(gca,'Xtick',[1:Nelec])
+        xlim([0,Nelec+1])
         
         xlabel('Electrode');
         ylabel('~Impedance Ohm');
         
-        
+        drawnow
     end
     
     %% Add to Structure
@@ -206,7 +229,7 @@ for iZ = 1:Z_checks_num
     Zout.info.B=B;
     Zout.info.A=A;
     Zout.info.Fc=Fc;
-    Zout.info.trim_demod=trim_demod;
+    Zout.info.FilterTrim=FilterTrim;
     Zout.info.bdf_filename=HDR.FILE.Name;
     Zout.TimeNum=datestart;
     Zout.TimeVec=datevec(datestart);
