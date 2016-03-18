@@ -37,7 +37,7 @@ end
 %do it once without naming channels to find out how many channels there are
 HDR=sopen(bdfname,'r',[],['OVERFLOWDETECTION:OFF','BDF:[4]']);
 
-N_elec=HDR.NS-1; %number of electrodes
+N_elec=size(HDR.InChanSelect,1); %number of electrodes
 
 %create HDR again, but with correct number of electrodes, Im not exactly
 %sure why it doesnt load it properly first
