@@ -1,4 +1,4 @@
-function [Vmag,Vphase,Vmag_std,Vphase_std]=ScouseTom_data_getBV(Vdata_demod,Pdata_demod,Trim_demod,InjectionWindowsFull,Protocol,StartInj)
+function [Vmag,Vphase,Vmag_std,Vphase_std]=ScouseTom_data_getBV(Vdata_demod,Pdata_demod,Trim_demod,InjectionWindowsFull)
 %UNTITLED2 Summary of this function goes here
 %   Detailed explanation goes here
 
