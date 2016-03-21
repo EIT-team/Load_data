@@ -52,15 +52,7 @@ end
 %if HDR not given then load it
 if exist('HDR','var') == 0
     
-    %use function for correct file type
-    switch extstr
-        case '.bdf'
-            HDR=ScouseTom_getbdfHDR(fname);
-        case {'.eeg','.vhdr','.vmrk'}
-            HDR=ScouseTom_geteegHDR(fname);
-        otherwise
-            error('Unknown file type');
-    end
+    HDR=ScouseTom_getHDR(fname);
     
 end
 

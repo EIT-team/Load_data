@@ -12,7 +12,7 @@ switch HDR.TYPE
         %biosemi file size is stored in bytes
         Fsize=HDR.FILE.size;
     case 'BrainVision'
-        Nsec=ceil(HDRac.SPR/HDRac.SampleRate);
+        Nsec=ceil(HDR.SPR/HDR.SampleRate);
         %actichamp HDR points to header .vhdr file, so filesize is wrong
         eegfile=dir(fullfile(HDR.FILE.Path,[HDR.FILE.Name '.eeg']));
         Fsize=eegfile.bytes;

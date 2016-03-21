@@ -124,7 +124,6 @@ else
     LastPlotSample=floor(LastSample+WindLength/2-Start_Sample);
 end
 
-
 V=sread(HDR,StopSec-StartSec,StartSec);
 
 %% Plot
@@ -139,8 +138,6 @@ hold on
 %plot other channels
 
 plot(t(FirstPlotSample:LastPlotSample),V(FirstPlotSample:LastPlotSample,OtherChannels),'color',[0.8 0.8 0.8],'Linewidth',0.8)
-
-
 
 %plot voltage of interest
 plot(t(FirstPlotSample:LastPlotSample),V(FirstPlotSample:LastPlotSample,CurrentChannel),'Linewidth',2,'color',b(1,:))

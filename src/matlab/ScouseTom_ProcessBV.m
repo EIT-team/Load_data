@@ -1,4 +1,4 @@
-function [BVstruc] = ScouseTom_ProcessBV( HDR,TT,ExpSetup,varargin )
+function [BVstruc] = ScouseTom_ProcessBV( HDR,TT,ExpSetup,BW )
 %SCOUSETOM_ Summary of this function goes here
 %   Detailed explanation goes here
 
@@ -9,47 +9,24 @@ function [BVstruc] = ScouseTom_ProcessBV( HDR,TT,ExpSetup,varargin )
 %is there any data, do TT and ExpSetup match? Is the freq order ok?
 %Expsetup and freq order should match
 
-%allow for passing filter info into function
-
 
 %% Defaults
-BW=50; %bandwidth of bandpass filter in demod
 
-
-%% See what type of system we are using
-
-
-%the maximum voltage is different for each system, this *should* be in the
-%HDR structure somewhere, but I dont know where it is
-
-switch HDR.TYPE
-    case 'BDF' % biosemi file
-        MaxV=0.5e6; %500mV range on BioSemi
-    case 'BrainVision'
-    
-    otherwise
-       error('Weird HDR'); 
+if exist('BW','var') == 0  || isempty(BW)
+    BW=50; %bandwidth of bandpass filter in demod
 end
-
 
 %% get some variables from inputs Structures
 
-Prot=ExpSetup.Protocol;
-N_prt=size(Prot,1);
-N_elec=ExpSetup.Elec_num;
+N_elec=size(HDR.InChanSelect,1);
 N_freq=ExpSetup.Info.FreqNum;
 N_starts=length(TT.InjectionStarts);
 
-Fs=HDR.SampleRate;
 eegfname=HDR.FILE.Name;
 eegfpath=HDR.FILE.Path;
 
-
 fprintf('Processing data in %s\n',eegfname);
 tstart=tic;
-
-
-
 %% calculate the keep and rem idx
 % need this beore loading data to know which channels to estimate contact
 % impedance on
@@ -73,23 +50,19 @@ mfilename=fullfile(eegfpath,[eegfname '-BV.mat']);
 
 %create matfile object in same place as data
 bigmat=matfile(mfilename,'Writable',true);
-
-
 %% Loop through each injection start in file
 
 %find which line in the protocol the data starts with
 [StartInj] = ScouseTom_data_checkfirstinj(HDR,TT.InjectionSwitches(1,:),ExpSetup.Protocol );
 
 %find the corresponding filter settings
-[B,A,FilterTrim,Fc]=ScouseTom_FindFilterSettings(HDR,TT.InjectionSwitches(1,:),ExpSetup.Protocol(StartInj,1));
+[B,A,FilterTrim,Fc]=ScouseTom_FindFilterSettings(HDR,TT.InjectionSwitches(1,:),ExpSetup.Protocol(StartInj,1),BW);
 
 %process the data to get the magnitude and phase
-[BV,PA,BVSTD,PASTD,Vmag] = ScouseTom_ReadandDemodChn( HDR,B,A,FilterTrim,TT.InjectionSwitches(1,:),ExpSetup.Protocol,StartInj);
+[BV,PA,BVSTD,PASTD] = ScouseTom_ReadandDemodChn( HDR,B,A,FilterTrim,TT.InjectionSwitches(1,:),ExpSetup.Protocol,StartInj);
 
 %estimate the contact impedances on the injection electrodes
 [Z,Zstd] = ScouseTom_data_estZ( BV,Elec_inj,ZSF);
-
-
 
 %% Save the info to the matfile
 
