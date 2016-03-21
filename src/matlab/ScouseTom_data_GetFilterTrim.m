@@ -6,9 +6,6 @@ function [ trim_demod, B,A,Fc ] = ScouseTom_data_GetFilterTrim( Vseg,Fs,BW,plotf
 %get carrier frequency
 Fc=ScouseTom_data_GetCarrier(Vseg,Fs);
 
-%give explicitly
-% Fc=10;
-
 
 %get number of samples in segment
 Nsamples=length(Vseg);
@@ -21,35 +18,87 @@ trim_max=ceil(0.25*Nsamples);
 rndnum=10;
 trim_max=round(trim_max/rndnum)*rndnum;
 
-
-Decay_coef=0.00001; %amount filter ripple must decay by before using data
-
-
-%BW=50; %bandwidth of filters
+%amount filter ripple must decay by before using data%this is based on
+%number of samples in chapter 3 in y thesis. although it could be more
+%rigourously chosen
+Decay_coef=0.001;
 
 %the filter takes some time in seconds to decay to ~zero for IIR butterworth filters.
 %This is independent of sampling rate, so we need to have a different max
 %number of samples for different sampling rates
 
-decay_seconds=0.08; %this is based on number of samples in chapter 3 in y thesis. although it could be more rigourously chosen
+decay_seconds=0.08;
 threshold_samples = floor(decay_seconds*Fs);
 
+%% Estimate decay time for IIR filter
+% if IIR decay time this is too long then we have to use much slow FIR
+% filters to avoid artefacts
 
+if (Fc - BW/2) > 0
+    [B,A] = butter(3,(Fc+[-BW/2,BW/2])./(Fs/2));
+else
+    [B,A] = butter(2,(Fc+[-5,5])./(Fs/2));
+    fprintf(2,'WARNING! CHOSEN BANDWIDTH TOO LARGE FOR CARRIER FREQUENCY! USING SMALLER DEFAULT ONE\n');
+end
+
+
+if Nsamples > 5*Fs
+    tdec=ceil(5*Fs);
+else
+    tdec=5*fix(Nsamples);
+end
+
+%get filter response and estimate when to chop data
+[H, T]= impz(B,A,tdec);
+[maxh, ih]=max(abs(H));
+
+%linear fit of the exponetial decay - when it reaches certain percentage of max
+Htofit=log(abs(H(ih:end)./maxh));
+
+minh=Htofit(end);
+
+iminh=find( Htofit < 0.95*minh,1);
+    
+
+% figure;plot(T(ih:end),Htofit)
+P=polyfit(T(ih:iminh+ih-1),Htofit(1:iminh),1);
+%sample where decay reaches the desired value
+Decay_samples=ceil(log(Decay_coef)/P(1));
+
+%total amount to trim is decay time plus time to max
+Samples_needed=Decay_samples+ih;
+
+if plotflag ==1;
+    figure;
+    hold on
+    plot(T,(H))
+    %line([0 length(T)],[maxh*Decay_coef maxh*Decay_coef],'color','r');
+    line([Samples_needed Samples_needed],[min(H) max(H)],'color','r');
+    line([trim_max trim_max],[min(H) max(H)],'color',[0 0.5 0]);
+    hold off
+    title('impulse response of 3rd order IIR filter')
+    xlim([0 (ceil(Samples_needed/1000))*1000])
+    % set(gca,'Yscale','log');
+    legend('Filter response','Req. Trim Samples','Max Trim Samples')
+    drawnow
+end
 
 %% choose filter
 
-
-%from TestFilterSNR - FIR outperforms IIR until around 1100 samples, then
+%from TestFilterSNR - FIR outperforms IIR until around 1200 samples (on biosemi Fs and BW50), then
 %they are within 1% of each other. IIR is MUCH faster than high order FIR
 %so use this to speed up the process
 
-if trim_max <threshold_samples
-    
+if trim_max <Samples_needed
+   %if we do not have enough samples to allow for the filter to decay
+   %sufficiently, then use the slower FIR filter. Blackman harris window
+   %chosen as it gives the best
     if (Fc - BW/2) > 0
         
         [B,A]=fir1(trim_max,(Fc+[-BW/2,BW/2])./(Fs/2),'bandpass',window(@blackmanharris,trim_max+1));
     else
         [B,A]=fir1(trim_max,(Fc+Fc/2)./(Fs/2),'low',window(@blackmanharris,trim_max+1));
+        fprintf(2,'WARNING! CHOSEN BANDWIDTH TOO LARGE FOR CARRIER FREQUENCY! USING SMALLER DEFAULT ONE\n');
     end
     
     trim_demod=trim_max;
@@ -63,43 +112,10 @@ if trim_max <threshold_samples
     end
     disp('FIR with Blackman-Harris Window used');
 else
-    
-    %otherwise use the 3rd order one
-    
-    Nord=3; %order of the filter
-    
-    %make butterworth filter
-    
-    if (Fc - BW/2) > 0
-        
-        [B,A] = butter(Nord,(Fc+[-BW/2,BW/2])./(Fs/2));
-        
-    else
-        [B,A] = butter(2,(Fc+[-5,5])./(Fs/2));
-    end
-    
-    
-    
-    %get filter response and estimate when to chop data
-    [H, T]= impz(B,A,10*fix(Nsamples));
-    [maxh, ih]=max(abs(H));
-    
-    %linear fit of the exponetial decay - when it reaches certain percentage of max
-    Htofit=log(abs(H(ih:end)./maxh));
-    % figure;plot(T(ih:end),Htofit)
-    P=polyfit(T(ih:end),Htofit,1);
-    decay_samples=ceil(log(Decay_coef)/P(1));
-    
-    %total amount to trim is decay time plus time to max
-    trim_demod=decay_samples+ih;
-    
-    %if this trim amount is to great set it to trim_max
-    
-    if trim_demod > trim_max
+    %if we have more samples than we need, still use the max as we want the
+    %filter to decay as much as possible (I think)
         trim_demod=trim_max;
-    end
-    
-    
+
     if plotflag ==1;
         figure;
         impz(B,A)
@@ -107,22 +123,9 @@ else
         figure;
         freqz(B,A);
         drawnow
-        
-        
-        figure;
-        hold on
-        plot(T,abs((H)))
-        line([0 length(T)],[maxh*Decay_coef maxh*Decay_coef],'color','r');
-        line([trim_demod trim_demod],[min(abs(H)) maxh],'color','k');
-        line([trim_max trim_max],[min(abs(H)) maxh],'color',[0 0.5 0]);
-        hold off
-        title('impulse response of filter')
-        set(gca,'Yscale','log');
-        drawnow
     end
     disp('3rd Order Butterworth Filter Used');
-    
-    
+
 end
 
 
