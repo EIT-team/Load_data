@@ -2,6 +2,7 @@ function [ HDR ] = ScouseTom_getHDR( varargin )
 %SCOUSETOM_GETBDFHDR Summary of this function goes here
 %   Detailed explanation goes here
 
+MinFileSize=10e6; %Minimum file size in bytes
 
 %% Ask user for file if not given
 %prompt user if no inputs
@@ -65,6 +66,27 @@ if ~any(strcmp(HDR.TYPE,{'BDF','BrainVision'}))
 end
 
 
+switch HDR.TYPE
+    case 'BDF' % biosemi file
+        %biosemi is stored as 1sec long records. so number of seconds is
+        %Nrec
+        Nsec=HDR.NRec;
+        %biosemi file size is stored in bytes
+        Fsize=HDR.FILE.size;
+    case 'BrainVision'
+        Nsec=ceil(HDR.SPR/HDR.SampleRate);
+        %actichamp HDR points to header .vhdr file, so filesize is wrong
+        eegfile=dir(fullfile(HDR.FILE.Path,[HDR.FILE.Name '.eeg']));
+        Fsize=eegfile.bytes;
+    otherwise
+        error('Bad HDR');
+end
+
+if Fsize < MinFileSize
+    fprintf(2,'WHOA! FILE IS WAY TOO SMALL! DID YOU FORGET TO START RECORDING?\n');
+    HDR=[];
+    return
+end
 
 
 
