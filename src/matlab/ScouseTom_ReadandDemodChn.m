@@ -104,12 +104,15 @@ Blocks(Blocks > Nchn)=Nchn; %to prevent loading channels that dont exist
 
 %% Read and Demod each channel
 
-fprintf('Processing Channels\n');
+fprintf('Processing %d Channels',Nchn);
+if Nfreq > 1
+    fprintf(' at %d Frequencies',Nfreq);
+end
+fprintf('\n');
 
 tstart=tic;
 
 for iBlk=1:BlocksNum
-    
     
     fprintf('Process Chn %d to %d. Freq: ',Blocks(iBlk,1),Blocks(iBlk,2));
     
@@ -155,7 +158,6 @@ end
 
 %% Pad to complete number of repeats
 
-
 for iFreq=1:Nfreq
     
     %number of injections found
@@ -175,9 +177,7 @@ for iFreq=1:Nfreq
     PhaseOutTmp(:,StartInj(iFreq):(StartInj(iFreq)-1)+Ninj)=Phase{iFreq}';
     VmagOutSTDTmp(:,StartInj(iFreq):(StartInj(iFreq)-1)+Ninj)=VmagSTD{iFreq}';
     PhaseOutSTDTmp(:,StartInj(iFreq):(StartInj(iFreq)-1)+Ninj)=PhaseRawSTD{iFreq}';
-    
-    
-    
+
     %% reshape into correct format
     VmagOut{iFreq}=reshape(VmagOutTmp,Nchn*Nprt,Nrep);
     PhaseOut{iFreq}=reshape(PhaseOutTmp,Nchn*Nprt,Nrep);
