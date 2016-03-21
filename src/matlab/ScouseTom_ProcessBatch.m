@@ -33,7 +33,7 @@ smallbdffile=cell2mat({bdffiles.bytes})/1e6;
 smallbdffile = smallbdffile < 1;
 
 if any(smallbdffile)
-    fprintf(2,'WARNING! %d VERY SMALL (<1 Mb) bdf file(s) were detected! These will be ignored\n',num2str(nnz(smallbdffile)));
+    fprintf(2,'WARNING! %d VERY SMALL (<1 Mb) bdf file(s) were detected! These will be ignored\n',nnz(smallbdffile));
     bdffiles(smallbdffile)=[];
 end
 
@@ -41,39 +41,59 @@ smalleegfile=cell2mat({bdffiles.bytes})/1e6;
 smalleegfile = smalleegfile < 1;
 
 if any(smalleegfile)
-    fprintf(2,'WARNING! %d VERY SMALL (<1 Mb) eeg file(s) were detected! These will be ignored\n',num2str(nnz(smalleegfile)));
+    fprintf(2,'WARNING! %d VERY SMALL (<1 Mb) eeg file(s) were detected! These will be ignored\n',nnz(smalleegfile));
     bdffiles(smalleegfile)=[];
 end
 
 nbdffiles=length(bdffiles);
 neegfiles=length(eegfiles);
 
+brokenfiles=0;
+
 %% process each bdf!
 if (nbdffiles > 0)
     tic
     for iFile =1:nbdffiles
         disp(['Processing bdf file ' num2str(iFile) ' of ' num2str(nbdffiles) ': ' bdffiles(iFile).name]);
-        ScouseTom_LoadBV(fullfile(dirname,bdffiles(iFile).name));
+        try
+            ScouseTom_LoadBV(fullfile(dirname,bdffiles(iFile).name));
+        catch
+            fprintf(2,'OH NO! Problem loading file! \n');
+            brokenfiles=brokenfiles+1;
+        end
+        
         disp('=========================================================');
     end
     el=toc;
-    fprintf('All .BDF Processing finished in : %.2f seconds\r\n',el);  
+    fprintf('All .BDF Processing finished in : %.2f seconds\r\n',el);
 end
 %% process each eeg
 if (neegfiles > 0)
     tic
     for iFile =1:neegfiles
         disp(['Processing eeg file ' num2str(iFile) ' of ' num2str(neegfiles) ': ' eegfiles(iFile).name]);
-        ScouseTom_LoadBV(fullfile(dirname,eegfiles(iFile).name));
+        try
+            ScouseTom_LoadBV(fullfile(dirname,eegfiles(iFile).name));
+        catch
+            fprintf(2,'OH NO! Problem loading file! \n');
+            brokenfiles=brokenfiles+1;
+        end
+        
         disp('=========================================================');
     end
     el=toc;
-    fprintf('All .EEG Processing finished in : %.2f seconds\n',el);  
+    fprintf('All .EEG Processing finished in : %.2f seconds\n',el);
 end
 
-%% 
+%%
 
-fprintf('ALL DONE! AWW YISSSS\n');
+fprintf('ALL FILES DONE! AWW YISSSS\n');
+
+if brokenfiles
+    fprintf(2,'THERE WERE ERRORS IN %d FILES',brokenfiles);
+end
+
+
 
 
 
