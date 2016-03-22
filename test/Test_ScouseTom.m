@@ -1,6 +1,6 @@
 
 % datadir='C:\Users\James\Documents\Test Data\';
-datadir='E:\testperchn\';
+datadir='E:\Load_data_testing\';
 
 %% load bdfs
 
@@ -111,6 +111,47 @@ catch err
     somethingwentwrong=1;
     fprintf(2, '%s\n', getReport(err, 'extended'));
 end
+
+
+%% AC check
+
+try
+    BVs=ScouseTom_LoadBV([datadir 'rptest2.eeg']);
+catch err
+    fprintf(2,'error on Multifreq missing both test\n');
+    somethingwentwrong=1;
+end
+
+disp('=================================================');
+disp('=================================================');
+disp('=================================================');
+
+try
+    BVs=ScouseTom_LoadBV([datadir 'rptest3.eeg']);
+catch err
+    fprintf(2,'error on Multifreq missing both test\n');
+    somethingwentwrong=1;
+end
+
+disp('=================================================');
+disp('=================================================');
+disp('=================================================');
+
+
+%% Big file
+
+try
+    BVs=ScouseTom_LoadBV([datadir 'RealThing_NIRFACE_2.bdf']);
+catch err
+    fprintf(2,'error on Multifreq big file test\n');
+    somethingwentwrong=1;
+end
+
+disp('=================================================');
+disp('=================================================');
+disp('=================================================');
+
+
 
 %% did it work?
 
