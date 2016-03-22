@@ -10809,24 +10809,24 @@ if ~isfield(HDR.EVENT,'CHN') && ~isfield(HDR.EVENT,'DUR'),
 	% convert EVENT.Version 1 to 3, currently used by GDF, BDF and alpha
 	flag_remove = zeros(size(HDR.EVENT.TYP));
 	types  = unique(HDR.EVENT.TYP);
-	for k1 = find(bitand(types(:)',hex2dec('8000')));
-		TYP0 = bitand(types(k1),hex2dec('7fff'));
-		TYP1 = types(k1);
-		ix0  = (HDR.EVENT.TYP==TYP0);
-		ix1  = (HDR.EVENT.TYP==TYP1);
-
-	        if sum(ix0)==sum(ix1), 
-	                HDR.EVENT.DUR(ix0) = HDR.EVENT.POS(ix1) - HDR.EVENT.POS(ix0);
-	                flag_remove = flag_remove | (HDR.EVENT.TYP==TYP1);
-                else 
-	                fprintf(2,'Warning SOPEN: number of event onset (TYP=%s) and event offset (TYP=%s) differ (%i,%i)\n',dec2hex(double(TYP0)),dec2hex(double(TYP1)),sum(ix0),sum(ix1));
-                        %% double(.) operator needed because Matlab6.5 can not fix fix(uint16(..))
-	        end;
-	end
-	if any(HDR.EVENT.DUR<0)
-	        fprintf(2,'Warning SOPEN: EVENT ONSET later than EVENT OFFSET\n',dec2hex(TYP0),dec2hex(TYP1));
-	        %HDR.EVENT.DUR(:) = 0
-	end;
+% 	for k1 = find(bitand(types(:)',hex2dec('8000')));
+% 		TYP0 = bitand(types(k1),hex2dec('7fff'));
+% 		TYP1 = types(k1);
+% 		ix0  = (HDR.EVENT.TYP==TYP0);
+% 		ix1  = (HDR.EVENT.TYP==TYP1);
+% 
+% 	        if sum(ix0)==sum(ix1), 
+% 	                HDR.EVENT.DUR(ix0) = HDR.EVENT.POS(ix1) - HDR.EVENT.POS(ix0);
+% 	                flag_remove = flag_remove | (HDR.EVENT.TYP==TYP1);
+%                 else 
+% 	                fprintf(2,'Warning SOPEN: number of event onset (TYP=%s) and event offset (TYP=%s) differ (%i,%i)\n',dec2hex(double(TYP0)),dec2hex(double(TYP1)),sum(ix0),sum(ix1));
+%                         %% double(.) operator needed because Matlab6.5 can not fix fix(uint16(..))
+% 	        end;
+% 	end
+% 	if any(HDR.EVENT.DUR<0)
+% 	        fprintf(2,'Warning SOPEN: EVENT ONSET later than EVENT OFFSET\n',dec2hex(TYP0),dec2hex(TYP1));
+% 	        %HDR.EVENT.DUR(:) = 0
+% 	end;
 	HDR.EVENT.TYP = HDR.EVENT.TYP(~flag_remove);
 	HDR.EVENT.POS = HDR.EVENT.POS(~flag_remove);
 	HDR.EVENT.CHN = HDR.EVENT.CHN(~flag_remove);
