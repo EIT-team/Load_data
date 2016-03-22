@@ -1,0 +1,15 @@
+2015-06-01: Release of TSA 4.3.2
+
+- ready for gcc/g++ v5
+- support Debian's hardening flags
+- fix version check (bug #44989)
+- fix documentation [bugs #44673]
+- fix installation on OpenSuse
+
+2015-01-24: Release of TSA 4.2.9
+
+- support for MacOSX added                
+  (tested on Homebrew Octave)
+
+2015-01-18
+	maintenance release: fixes minor bugs and configuration issues
