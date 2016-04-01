@@ -162,7 +162,7 @@ for iZ = 1:Z_checks_num
     numbad=length(bad_idx);
     numok=length(ok_idx);
     
-    
+    disp('------------------------------------');
     fprintf('Found ');
     if numbad
         
