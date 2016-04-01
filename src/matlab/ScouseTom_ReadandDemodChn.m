@@ -183,6 +183,15 @@ for iFreq=1:Nfreq
     PhaseOut{iFreq}=reshape(PhaseOutTmp,Nchn*Nprt,Nrep);
     VmagOutSTD{iFreq}=reshape(VmagOutSTDTmp,Nchn*Nprt,Nrep);
     PhaseOutSTD{iFreq}=reshape(PhaseOutSTDTmp,Nchn*Nprt,Nrep);
+    %% remove empty repeats
+    %easier to it this way that to ensure it doesnt happen higher up
+    
+    VmagOut{iFreq}(:,all(isnan(VmagOut{iFreq})))=[];
+    PhaseOut{iFreq}(:,all(isnan(PhaseOut{iFreq})))=[];
+    VmagOutSTD{iFreq}(:,all(isnan(VmagOutSTD{iFreq})))=[];
+    PhaseOutSTD{iFreq}(:,all(isnan(PhaseOutSTD{iFreq})))=[];
+    
+    
     
 end
 
