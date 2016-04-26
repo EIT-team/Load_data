@@ -69,7 +69,6 @@ if StopSec > Nsec
     fprintf(2,'Stop sec is too long!\n');
 end
 
-
 %% preallocate
 
 Vmag=cell(Nfreq,1);
@@ -84,7 +83,7 @@ PhaseRawSTD=Vmag;
 Phase=Vmag;
 
 %% Based on file size, determine how to load data
-MaxMemoryUsage=4e9; %maximum memory usage for larger variables stored during demodulation
+MaxMemoryUsage=8e9; %maximum memory usage for larger variables stored during demodulation
 % MaxMemoryUsage=.1e9; %maximum memory usage for V variable in bytes
 
 ChnSize=(Fsize*2.4)/Nchn; %file size in bytes is ~double when stored in matlab as double
@@ -100,7 +99,6 @@ Blocks=((1:BlocksNum)+(((1:BlocksNum)-1).*MaxChnNum))'; %starting channel for ea
 Blocks=[Blocks Blocks+MaxChnNum]; %ending channel is starting plus maxchnnum
 
 Blocks(Blocks > Nchn)=Nchn; %to prevent loading channels that dont exist 
-
 
 %% Read and Demod each channel
 
@@ -191,14 +189,7 @@ for iFreq=1:Nfreq
     VmagOutSTD{iFreq}(:,all(isnan(VmagOutSTD{iFreq})))=[];
     PhaseOutSTD{iFreq}(:,all(isnan(PhaseOutSTD{iFreq})))=[];
     
-    
-    
 end
-
-
-
-
-
 
 end
 

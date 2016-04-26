@@ -90,7 +90,7 @@ if plotflag ==1;
     line([Samples_needed Samples_needed],[min(H) max(H)],'color','r');
     line([trim_max trim_max],[min(H) max(H)],'color',[0 0.5 0]);
     hold off
-    title('impulse response of 3rd order IIR filter')
+    title('impulse response of IIR filter')
     xlim([0 (ceil(Samples_needed/1000))*1000])
     % set(gca,'Yscale','log');
     legend('Filter response','Req. Trim Samples','Max Trim Samples')
@@ -106,18 +106,23 @@ end
 if trim_max <Samples_needed
     %if we do not have enough samples to allow for the filter to decay
     %sufficiently, then use the slower FIR filter. Blackman harris window
-    %chosen as it gives the best
+    %chosen as it gives the best trade off between stopband ripple and
+    %rolloff
+    
+    filter_size = min([trim_max threshold_samples]);
+    
+    
     if (Fc - BW/2) > 0
         
-        [B,A]=fir1(trim_max,(Fc+[-BW/2,BW/2])./(Fs/2),'bandpass',window(@blackmanharris,trim_max+1));
+        [B,A]=fir1(filter_size,(Fc+[-BW/2,BW/2])./(Fs/2),'bandpass',window(@blackmanharris,filter_size+1));
     else
         % maximum bandwidth with 3Hz clearance for slower rolloff
         maxBWhalf = floor(Fc)-3;
-        [B,A]=fir1(trim_max,(Fc+[-maxBWhalf,maxBWhalf])./(Fs/2),'bandpass',window(@blackmanharris,trim_max+1));
+        [B,A]=fir1(filter_size,(Fc+[-maxBWhalf,maxBWhalf])./(Fs/2),'bandpass',window(@blackmanharris,filter_size+1));
         fprintf(2,'WARNING! CHOSEN BANDWIDTH TOO LARGE FOR CARRIER FREQUENCY! USING SMALLER DEFAULT ONE\n');
     end
     
-    trim_demod=trim_max;
+    trim_demod=filter_size;
     if plotflag ==1;
         figure;
         impz(B,A);
