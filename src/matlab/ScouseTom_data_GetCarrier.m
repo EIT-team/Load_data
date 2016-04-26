@@ -15,8 +15,8 @@ function [ Fc ] = ScouseTom_data_GetCarrier( data,Fs )
 
 %find spectrum of signal with no overlaps or windowing
     [Pxx,w] = pwelch(detrend(data),[],0,2^16,Fs);
-    % find the largest bunch
-    w_ind = find(w>105);
+    % we only want frequencies above 3 Hz 
+    w_ind = find(w>3);
     %find the biggest one
     [~,maxw] = max(Pxx(w_ind));
     %find carrier one
