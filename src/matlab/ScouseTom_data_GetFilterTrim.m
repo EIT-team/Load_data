@@ -37,7 +37,21 @@ threshold_samples = floor(decay_seconds*Fs);
 if (Fc - BW/2) > 0
     [B,A] = butter(3,(Fc+[-BW/2,BW/2])./(Fs/2));
 else
-    [B,A] = butter(2,(Fc+[-5,5])./(Fs/2));
+    % maximum bandwidth - with at least 1Hz clearance
+    maxBWhalf = floor(Fc)-1;
+    
+    % try third order filter
+    [B,A] = butter(3,(Fc+[-maxBWhalf,maxBWhalf])./(Fs/2));
+    
+    % if max occurs in the second half of the impulse responmse, the filter
+    % is unstable
+    [h,t]=impz(B,A);
+    [mm, midx]=max(abs(h));
+    
+    if midx > length(h)/2
+        [B,A] = butter(2,(Fc+[-maxBWhalf,maxBWhalf])./(Fs/2));
+    end
+    
     fprintf(2,'WARNING! CHOSEN BANDWIDTH TOO LARGE FOR CARRIER FREQUENCY! USING SMALLER DEFAULT ONE\n');
 end
 
@@ -58,7 +72,7 @@ Htofit=log(abs(H(ih:end)./maxh));
 minh=Htofit(end);
 
 iminh=find( Htofit < 0.95*minh,1);
-    
+
 
 % figure;plot(T(ih:end),Htofit)
 P=polyfit(T(ih:iminh+ih-1),Htofit(1:iminh),1);
@@ -90,14 +104,16 @@ end
 %so use this to speed up the process
 
 if trim_max <Samples_needed
-   %if we do not have enough samples to allow for the filter to decay
-   %sufficiently, then use the slower FIR filter. Blackman harris window
-   %chosen as it gives the best
+    %if we do not have enough samples to allow for the filter to decay
+    %sufficiently, then use the slower FIR filter. Blackman harris window
+    %chosen as it gives the best
     if (Fc - BW/2) > 0
         
         [B,A]=fir1(trim_max,(Fc+[-BW/2,BW/2])./(Fs/2),'bandpass',window(@blackmanharris,trim_max+1));
     else
-        [B,A]=fir1(trim_max,(Fc+Fc/2)./(Fs/2),'low',window(@blackmanharris,trim_max+1));
+        % maximum bandwidth with 3Hz clearance for slower rolloff
+        maxBWhalf = floor(Fc)-3;
+        [B,A]=fir1(trim_max,(Fc+[-maxBWhalf,maxBWhalf])./(Fs/2),'bandpass',window(@blackmanharris,trim_max+1));
         fprintf(2,'WARNING! CHOSEN BANDWIDTH TOO LARGE FOR CARRIER FREQUENCY! USING SMALLER DEFAULT ONE\n');
     end
     
@@ -114,8 +130,8 @@ if trim_max <Samples_needed
 else
     %if we have more samples than we need, still use the max as we want the
     %filter to decay as much as possible (I think)
-        trim_demod=trim_max;
-
+    trim_demod=trim_max;
+    
     if plotflag ==1;
         figure;
         impz(B,A)
@@ -125,7 +141,7 @@ else
         drawnow
     end
     disp('3rd Order Butterworth Filter Used');
-
+    
 end
 
 
