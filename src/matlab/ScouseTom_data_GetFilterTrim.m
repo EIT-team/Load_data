@@ -42,62 +42,70 @@ end
 % if IIR decay time this is too long then we have to use much slow FIR
 % filters to avoid artefacts
 
-if (Fc - BW/2) > 0
-    [B,A] = butter(3,(Fc+[-BW/2,BW/2])./(Fs/2));
-else
-    % maximum bandwidth - with at least 1Hz clearance
-    maxBWhalf = floor(Fc)-1;
-    
-    % try third order filter
-    [B,A] = butter(3,(Fc+[-maxBWhalf,maxBWhalf])./(Fs/2));
-    
-    % if max occurs in the second half of the impulse responmse, the filter
-    % is unstable
-    [h,t]=impz(B,A,tdec);
-    [mm, midx]=max(abs(h));
-    
-    if midx > length(h)/2
-        [B,A] = butter(2,(Fc+[-maxBWhalf,maxBWhalf])./(Fs/2));
+IIRfailed =0;
+
+try
+
+    if (Fc - BW/2) > 0
+        [B,A] = butter(3,(Fc+[-BW/2,BW/2])./(Fs/2));
+    else
+        fprintf(2,'WARNING! CHOSEN BANDWIDTH TOO LARGE FOR CARRIER FREQUENCY! USING SMALLER DEFAULT ONE\n');
+        % maximum bandwidth - with at least 1Hz clearance
+        maxBWhalf = floor(Fc)-1;
+
+        % try third order filter
+        [B,A] = butter(3,(Fc+[-maxBWhalf,maxBWhalf])./(Fs/2));
+
+        % if max occurs in the second half of the impulse responmse, the filter
+        % is unstable
+        [h,t]=impz(B,A,tdec);
+        [mm, midx]=max(abs(h));
+
+        if midx > length(h)/2
+            [B,A] = butter(2,(Fc+[-maxBWhalf,maxBWhalf])./(Fs/2));
+        end
+
     end
+
+
+    %get filter response and estimate when to chop data
+    [H, T]= impz(B,A,tdec);
+    [maxh, ih]=max(abs(H));
+
+    %linear fit of the exponetial decay - when it reaches certain percentage of max
+    Htofit=log(abs(H(ih:end)./maxh));
+
+    minh=Htofit(end);
+
+    iminh=find( Htofit < 0.95*minh,1);
+
+
+    % figure;plot(T(ih:end),Htofit)
+    P=polyfit(T(ih:iminh+ih-1),Htofit(1:iminh),1);
+    %sample where decay reaches the desired value
+    Decay_samples=ceil(log(Decay_coef)/P(1));
+
+    %total amount to trim is decay time plus time to max
+    Samples_needed=Decay_samples+ih;
+
+    if plotflag ==1;
+        figure;
+        hold on
+        plot(T,(H))
+        %line([0 length(T)],[maxh*Decay_coef maxh*Decay_coef],'color','r');
+        line([Samples_needed Samples_needed],[min(H) max(H)],'color','r');
+        line([trim_max trim_max],[min(H) max(H)],'color',[0 0.5 0]);
+        hold off
+        title('impulse response of IIR filter')
+        xlim([0 (ceil(Samples_needed/1000))*1000])
+        % set(gca,'Yscale','log');
+        legend('Filter response','Req. Trim Samples','Max Trim Samples')
+        drawnow
+    end
+catch
+    IIRfailed =1 ;
+end
     
-    fprintf(2,'WARNING! CHOSEN BANDWIDTH TOO LARGE FOR CARRIER FREQUENCY! USING SMALLER DEFAULT ONE\n');
-end
-
-
-%get filter response and estimate when to chop data
-[H, T]= impz(B,A,tdec);
-[maxh, ih]=max(abs(H));
-
-%linear fit of the exponetial decay - when it reaches certain percentage of max
-Htofit=log(abs(H(ih:end)./maxh));
-
-minh=Htofit(end);
-
-iminh=find( Htofit < 0.95*minh,1);
-
-
-% figure;plot(T(ih:end),Htofit)
-P=polyfit(T(ih:iminh+ih-1),Htofit(1:iminh),1);
-%sample where decay reaches the desired value
-Decay_samples=ceil(log(Decay_coef)/P(1));
-
-%total amount to trim is decay time plus time to max
-Samples_needed=Decay_samples+ih;
-
-if plotflag ==1;
-    figure;
-    hold on
-    plot(T,(H))
-    %line([0 length(T)],[maxh*Decay_coef maxh*Decay_coef],'color','r');
-    line([Samples_needed Samples_needed],[min(H) max(H)],'color','r');
-    line([trim_max trim_max],[min(H) max(H)],'color',[0 0.5 0]);
-    hold off
-    title('impulse response of IIR filter')
-    xlim([0 (ceil(Samples_needed/1000))*1000])
-    % set(gca,'Yscale','log');
-    legend('Filter response','Req. Trim Samples','Max Trim Samples')
-    drawnow
-end
 
 %% choose filter
 
@@ -105,7 +113,7 @@ end
 %they are within 1% of each other. IIR is MUCH faster than high order FIR
 %so use this to speed up the process
 
-if trim_max <Samples_needed
+if (trim_max <Samples_needed) || IIRfailed
     %if we do not have enough samples to allow for the filter to decay
     %sufficiently, then use the slower FIR filter. Blackman harris window
     %chosen as it gives the best trade off between stopband ripple and
