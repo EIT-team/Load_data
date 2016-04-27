@@ -30,6 +30,14 @@ Decay_coef=0.001;
 decay_seconds=0.08;
 threshold_samples = floor(decay_seconds*Fs);
 
+
+if Nsamples > 5*Fs
+    tdec=ceil(5*Fs);
+else
+    tdec=5*fix(Nsamples);
+end
+
+
 %% Estimate decay time for IIR filter
 % if IIR decay time this is too long then we have to use much slow FIR
 % filters to avoid artefacts
@@ -45,7 +53,7 @@ else
     
     % if max occurs in the second half of the impulse responmse, the filter
     % is unstable
-    [h,t]=impz(B,A);
+    [h,t]=impz(B,A,tdec);
     [mm, midx]=max(abs(h));
     
     if midx > length(h)/2
@@ -55,12 +63,6 @@ else
     fprintf(2,'WARNING! CHOSEN BANDWIDTH TOO LARGE FOR CARRIER FREQUENCY! USING SMALLER DEFAULT ONE\n');
 end
 
-
-if Nsamples > 5*Fs
-    tdec=ceil(5*Fs);
-else
-    tdec=5*fix(Nsamples);
-end
 
 %get filter response and estimate when to chop data
 [H, T]= impz(B,A,tdec);
