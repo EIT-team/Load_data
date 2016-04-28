@@ -92,6 +92,12 @@ ChnSize=ChnSize*4; %this is because we have to store the demod V and Phase for e
 
 MaxChnNum=floor(MaxMemoryUsage/ChnSize); %maximum number of channels this length which could be put into memory
 
+%force us to use at least one channel at once, this could still mean you
+%run out of memory later!
+if MaxChnNum < 1
+    MaxChnNum =1;
+end
+
 BlocksNum=ceil(Nchn/MaxChnNum); %how many blocks do we have to split channels into
 
 Blocks=((1:BlocksNum)+(((1:BlocksNum)-1).*MaxChnNum))'; %starting channel for each block
