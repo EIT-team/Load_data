@@ -10,17 +10,29 @@ if any(isnan(data))
     Pdata_demod=nan;
     
     fprintf(2,'Nans in data!');
-else
-   
+    return
+end
+
+
+if ~iscell(A)
+    
     %filter data using coefs
     data = filtfilt(B,A,data);
-    %get envelope of signal using hilbert transform
-    data = (hilbert(data));
     
-    Vdata_demod=abs(data); %amplitude is abs of hilbert
-    Pdata_demod=angle(data); % phase is the imaginary part 
-        
+else
+    for iFilter = 1 : length(A)
+        data = filtfilt(B{iFilter},A{iFilter},data);
+    end
+    
 end
+
+%get envelope of signal using hilbert transform
+data = (hilbert(data));
+
+Vdata_demod=abs(data); %amplitude is abs of hilbert
+Pdata_demod=angle(data); % phase is the imaginary part
+
+
 
 end
 
