@@ -90,7 +90,7 @@ end
 fprintf('ALL FILES DONE! AWW YISSSS\n');
 
 if brokenfiles
-    fprintf(2,'THERE WERE ERRORS IN %d FILES',brokenfiles);
+    fprintf(2,'THERE WERE ERRORS IN %d FILES\n',brokenfiles);
 end
 
 
