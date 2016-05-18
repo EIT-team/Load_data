@@ -52,7 +52,7 @@ for iCode=1:length(Codes)
     tmp=str2double(Codes{iCode}(2:end));
     
     %if its empty or has some other type e.g. 'boundary'
-    if ~isempty(tmp) && ~isnan(tmp)
+    if ~isempty(tmp) && ~any(isnan(tmp))
     Codes_dec(iCode)=str2double(Codes{iCode}(2:end));
     else
         Codes_dec(iCode)=0;
