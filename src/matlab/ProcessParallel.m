@@ -1,4 +1,4 @@
-function [dV_signal, t_signal,V_signal,P_baseline,P_signal ] = ProcessParallel( fname,BaselineWindow,SignalWindow,TimeStep,InjsSim,BV0)
+function [dV_signal, t_signal,V_signal,V_baseline,P_signal ,P_baseline] = ProcessParallel( fname,BaselineWindow,SignalWindow,TimeStep,InjsSim,BV0,F)
 %PROCESSPARALLEL Summary of this function goes here
 %   Detailed explanation goes here
 
@@ -14,6 +14,14 @@ StopSec=max([BaselineWindow SignalWindow])+1;
 
 V=sread(HDR,StopSec-StartSec,StartSec);
 
+
+%figure
+plot(mean(V))
+xlabel('channel')
+ylabel('uV')
+title('mean voltage - USE THIS TO SEE WHAT ELECS YOU WANT TO REMOVE!!!');
+drawnow
+
 t=(0:length(V)-1)/Fs;
 
 %% Time chunks
@@ -27,6 +35,8 @@ BW=1/TimeStep;
 
 %% Find injection electrodes and freqs
 
+if exist('F','var') == 0
+
 [InjsExp, Freqs] = Find_Injection_Freqs_And_Elecs(V(t<1,:),Fs);
 
 %make sure they are in the same order
@@ -37,6 +47,8 @@ InjsSim=sort(InjsSim,2);
 [~,Locb]=ismember(InjsSim(:,1),InjsExp(:,1));
 F=Freqs(Locb);
 
+end
+    
 nFreq=length(F);
 
 %% Demodulate each channel after notch filtering out the other frequencies
@@ -44,6 +56,7 @@ Vfull=zeros(size(V,1),size(V,2)*nFreq);
 Pfull=zeros(size(Vfull));
 
 for iFreq=1:length(F);
+    fprintf('Processing Freq : %d of %d\n',iFreq,length(F));
     cFreq=F(iFreq);
     
     otherfreqs=F;
@@ -135,7 +148,7 @@ signal_idx=tbin > signal_wind(1) & tbin < signal_wind(2);
 V_signal=Vbin(signal_idx,:);
 P_signal=Pbin(signal_idx,:);
 
-t_signal=(0:length(V_signal)-1)/Fs;
+t_signal=(0:size(signal_idx)-1)/Fs;
 
 %% change in voltage
 
