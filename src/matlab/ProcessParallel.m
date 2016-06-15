@@ -1,8 +1,14 @@
-function [dV_signal, t_signal,V_signal,V_baseline,P_signal ,P_baseline] = ProcessParallel( fname,BaselineWindow,SignalWindow,TimeStep,InjsSim,BV0,F)
+function [dV_signal, t_signal,V_signal,V_baseline,P_signal ,P_baseline] = ProcessParallel( fname,BaselineWindow,SignalWindow,TimeStep,InjsSim,BV0,F,plotflag)
 %PROCESSPARALLEL Summary of this function goes here
 %   Detailed explanation goes here
 
 %%
+
+
+if exist('plotflag','var') == 0
+    plotflag = 1;
+end
+
 
 HDR=ScouseTom_getHDR(fname);
 
@@ -14,13 +20,15 @@ StopSec=max([BaselineWindow SignalWindow])+1;
 
 V=sread(HDR,StopSec-StartSec,StartSec);
 
-
-%figure
-plot(mean(V))
-xlabel('channel')
-ylabel('uV')
-title('mean voltage - USE THIS TO SEE WHAT ELECS YOU WANT TO REMOVE!!!');
-drawnow
+if plotflag
+    figure
+    bar(mean(V))
+    xlabel('channel')
+    ylabel('uV')
+    title('mean voltage - USE THIS TO SEE WHAT ELECS YOU WANT TO REMOVE!!!');
+    ylim(max(ylim) * [-1 1]);
+    drawnow
+end
 
 t=(0:length(V)-1)/Fs;
 
@@ -36,19 +44,19 @@ BW=1/TimeStep;
 %% Find injection electrodes and freqs
 
 if exist('F','var') == 0
-
-[InjsExp, Freqs] = Find_Injection_Freqs_And_Elecs(V(t<1,:),Fs);
-
-%make sure they are in the same order
-InjsExp=sort(InjsExp,2);
-InjsSim=sort(InjsSim,2);
-
-%put freqs in order to give same protocol as simulation
-[~,Locb]=ismember(InjsSim(:,1),InjsExp(:,1));
-F=Freqs(Locb);
-
-end
     
+    [InjsExp, Freqs] = Find_Injection_Freqs_And_Elecs(V(t<1,:),Fs);
+    
+    %make sure they are in the same order
+    InjsExp=sort(InjsExp,2);
+    InjsSim=sort(InjsSim,2);
+    
+    %put freqs in order to give same protocol as simulation
+    [~,Locb]=ismember(InjsSim(:,1),InjsExp(:,1));
+    F=Freqs(Locb);
+    
+end
+
 nFreq=length(F);
 
 %% Demodulate each channel after notch filtering out the other frequencies
@@ -73,7 +81,7 @@ for iFreq=1:length(F);
     
     %band pass filter for demodulation
     [Bdemod,Ademod] = butter(3,(cFreq+[-BW,BW])./(Fs/2));
-    [Vdemod,Pdemod]=ScouseTom_data_DemodHilbert(V,Bdemod,Ademod);
+    [Vdemod,Pdemod]=ScouseTom_data_DemodHilbert(Vf,Bdemod,Ademod);
     
     vidx=(iFreq-1)*Nchn + 1:(iFreq)*Nchn;
     
@@ -85,19 +93,19 @@ end
 Vfull=Vfull*1e-6;
 
 %% plot data here
-
-figure;
-hold on
-h1=plot(t,Vfull);
-h2=plot([baseline_wind(1) baseline_wind(1)],ylim,'k--','DisplayName','BaselineWindow');
-h3=plot([baseline_wind(2) baseline_wind(2)],ylim,'k--');
-h4=plot([signal_wind(1) signal_wind(1)],ylim,'r:','DisplayName','SignalWindow');
-h5=plot([signal_wind(2) signal_wind(2)],ylim,'r:');
-hold off
-legend([h2 h4])
-title('Demodulated signals')
-drawnow
-
+if plotflag
+    figure;
+    hold on
+    h1=plot(StartSec+t,Vfull);
+    h2=plot(StartSec+[baseline_wind(1) baseline_wind(1)],ylim,'k--','DisplayName','BaselineWindow');
+    h3=plot(StartSec+[baseline_wind(2) baseline_wind(2)],ylim,'k--');
+    h4=plot(StartSec+[signal_wind(1) signal_wind(1)],ylim,'r:','DisplayName','SignalWindow');
+    h5=plot(StartSec+[signal_wind(2) signal_wind(2)],ylim,'r:');
+    hold off
+    legend([h2 h4])
+    title('Demodulated signals')
+    drawnow
+end
 
 %% bin data into timesteps to reduce file size
 
@@ -125,18 +133,19 @@ tbin=(0:length(tbins)-1).*TimeStep;
 Vbin=Vbin.*repmat(sign(BV0'),size(Vbin,1),1);
 
 %%
-figure;
-hold on
-h1=plot(tbin,Vbin);
-h2=plot([baseline_wind(1) baseline_wind(1)],ylim,'k--','DisplayName','BaselineWindow');
-h3=plot([baseline_wind(2) baseline_wind(2)],ylim,'k--');
-h4=plot([signal_wind(1) signal_wind(1)],ylim,'r:','DisplayName','SignalWindow');
-h5=plot([signal_wind(2) signal_wind(2)],ylim,'r:');
-hold off
-legend([h2 h4])
-title('Binned and signed signal')
-drawnow
-
+if plotflag
+    figure;
+    hold on
+    h1=plot(StartSec+tbin,Vbin);
+    h2=plot(StartSec+[baseline_wind(1) baseline_wind(1)],ylim,'k--','DisplayName','BaselineWindow');
+    h3=plot(StartSec+[baseline_wind(2) baseline_wind(2)],ylim,'k--');
+    h4=plot(StartSec+[signal_wind(1) signal_wind(1)],ylim,'r:','DisplayName','SignalWindow');
+    h5=plot(StartSec+[signal_wind(2) signal_wind(2)],ylim,'r:');
+    hold off
+    legend([h2 h4])
+    title('Binned and signed signal')
+    drawnow
+end
 
 %% take chunks
 
@@ -159,36 +168,38 @@ dV_signal=dV_full(signal_idx,:);
 
 [maxval, maxchn]=max(max(dV_signal));
 
-
-figure;
-hold on
-h1=plot(tbin,abs(Vbin(:,maxchn)));
-h2=plot(t,abs(Vfull(:,maxchn)));
-% h2=plot([baseline_wind(1) baseline_wind(1)],ylim,'k--','DisplayName','BaselineWindow');
-% h3=plot([baseline_wind(2) baseline_wind(2)],ylim,'k--');
-% h4=plot([signal_wind(1) signal_wind(1)],ylim,'r:','DisplayName','SignalWindow');
-% h5=plot([signal_wind(2) signal_wind(2)],ylim,'r:');
-hold off
-% legend([h2 h4])
-title('signal comparison on chn with max dV')
-ylim((maxval*[-1 1])+abs(V_baseline(maxchn)))
-drawnow
-
+if plotflag
+    figure;
+    hold on
+    h1=plot(StartSec+tbin,abs(Vbin(:,maxchn)));
+    h2=plot(StartSec+t,abs(Vfull(:,maxchn)));
+    % h2=plot([baseline_wind(1) baseline_wind(1)],ylim,'k--','DisplayName','BaselineWindow');
+    % h3=plot([baseline_wind(2) baseline_wind(2)],ylim,'k--');
+    % h4=plot([signal_wind(1) signal_wind(1)],ylim,'r:','DisplayName','SignalWindow');
+    % h5=plot([signal_wind(2) signal_wind(2)],ylim,'r:');
+    hold off
+    % legend([h2 h4])
+    title('signal comparison on chn with max dV')
+    ylim((maxval*[-1 1])+abs(V_baseline(maxchn)))
+    drawnow
+end
 
 
 %% plot final dV
-figure
-hold on
-h1=plot(tbin,dV_full);
-ylim(maxval*[-1 1])
-h2=plot([baseline_wind(1) baseline_wind(1)],ylim,'k--','DisplayName','BaselineWindow');
-h3=plot([baseline_wind(2) baseline_wind(2)],ylim,'k--');
-h4=plot([signal_wind(1) signal_wind(1)],ylim,'r:','DisplayName','SignalWindow');
-h5=plot([signal_wind(2) signal_wind(2)],ylim,'r:');
-hold off
-legend([h2 h4])
-title('Voltage Change whole data set')
-drawnow
+if plotflag
+    figure
+    hold on
+    h1=plot(StartSec+tbin,dV_full);
+    ylim(maxval*[-1 1])
+    h2=plot(StartSec+[baseline_wind(1) baseline_wind(1)],ylim,'k--','DisplayName','BaselineWindow');
+    h3=plot(StartSec+[baseline_wind(2) baseline_wind(2)],ylim,'k--');
+    h4=plot(StartSec+[signal_wind(1) signal_wind(1)],ylim,'r:','DisplayName','SignalWindow');
+    h5=plot(StartSec+[signal_wind(2) signal_wind(2)],ylim,'r:');
+    hold off
+    legend([h2 h4])
+    title('Voltage Change whole data set')
+    drawnow
+end
 
 end
 
