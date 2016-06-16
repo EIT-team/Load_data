@@ -1,4 +1,4 @@
-function [dV_signal, t_signal,V_signal,V_baseline,P_signal ,P_baseline] = ProcessParallel( fname,BaselineWindow,SignalWindow,TimeStep,InjsSim,BV0,F,plotflag)
+function [dV_signal, t_signal,V_signal,V_baseline,P_signal ,P_baseline,Vmax] = ProcessParallel( fname,BaselineWindow,SignalWindow,TimeStep,InjsSim,BV0,F,plotflag)
 %PROCESSPARALLEL Summary of this function goes here
 %   Detailed explanation goes here
 
@@ -15,17 +15,39 @@ HDR=ScouseTom_getHDR(fname);
 Fs=HDR.SampleRate;
 Nchn=size(HDR.InChanSelect,1);
 
+[ StatusChn,TrigPos ] = ScouseTom_geteegtrig(HDR);
+TrigPos = TrigPos/Fs ;
+
+Trig_gaps = [ round( diff(TrigPos))];
+
+if isempty(BaselineWindow)
+    %if not specified use the first big gap in the triggers
+    BaselineWindow(1) = TrigPos(find (Trig_gaps > 1, 1));
+    BaselineWindow(2) = TrigPos(find (Trig_gaps > 1, 1)+1);
+end
+
+if isempty(SignalWindow)
+    %if not specified use the first big gap in the triggers
+    SignalWindow(1) = TrigPos(find (Trig_gaps > 1, 1,'last'));
+    SignalWindow(2) = TrigPos(find (Trig_gaps > 1, 1,'last')+1);
+end
+
+
+
 StartSec=max([min([BaselineWindow SignalWindow])-1 0]);
 StopSec=max([BaselineWindow SignalWindow])+1;
 
+disp('loading data');
 V=sread(HDR,StopSec-StartSec,StartSec);
+
+Vmax= max(V);
 
 if plotflag
     figure
-    bar(mean(V))
+    bar(Vmax)
     xlabel('channel')
     ylabel('uV')
-    title('mean voltage - USE THIS TO SEE WHAT ELECS YOU WANT TO REMOVE!!!');
+    title('max voltage - USE THIS TO SEE WHAT ELECS YOU WANT TO REMOVE!!!');
     ylim(max(ylim) * [-1 1]);
     drawnow
 end
