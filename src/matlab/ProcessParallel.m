@@ -4,6 +4,9 @@ function [dV_signal, t_signal,V_signal,V_baseline,P_signal ,P_baseline,Vmax] = P
 
 %%
 
+%removed refs to this, but need output for some old files lurking around
+P_signal =0;
+P_baseline =0;
 
 if exist('plotflag','var') == 0
     plotflag = 1;
@@ -24,12 +27,16 @@ if isempty(BaselineWindow)
     %if not specified use the first big gap in the triggers
     BaselineWindow(1) = TrigPos(find (Trig_gaps > 1, 1));
     BaselineWindow(2) = TrigPos(find (Trig_gaps > 1, 1)+1);
+    
+    fprintf('Taking baseline between %.1f and %.1f s\n',BaselineWindow(1),BaselineWindow(2));
+    
 end
 
 if isempty(SignalWindow)
     %if not specified use the first big gap in the triggers
     SignalWindow(1) = TrigPos(find (Trig_gaps > 1, 1,'last'));
     SignalWindow(2) = TrigPos(find (Trig_gaps > 1, 1,'last')+1);
+    fprintf('Taking signal between %.1f and %.1f s\n',SignalWindow(1),SignalWindow(2));
 end
 
 
@@ -39,6 +46,9 @@ StopSec=max([BaselineWindow SignalWindow])+1;
 
 disp('loading data');
 V=sread(HDR,StopSec-StartSec,StartSec);
+
+ChnNum=size(V,2);
+
 
 Vmax= max(V);
 
@@ -83,7 +93,7 @@ nFreq=length(F);
 
 %% Demodulate each channel after notch filtering out the other frequencies
 Vfull=zeros(size(V,1),size(V,2)*nFreq);
-Pfull=zeros(size(Vfull));
+% Pfull=zeros(size(Vfull));
 
 for iFreq=1:length(F);
     fprintf('Processing Freq : %d of %d\n',iFreq,length(F));
@@ -97,18 +107,30 @@ for iFreq=1:length(F);
     for inotfreq =1:nFreq-1;
         
         [Bn,An] = butter(2,(otherfreqs(inotfreq)+[-5,5])./(Fs/2),'stop');
-        Vf=filtfilt(Bn,An,Vf);
+        
+        for iChn = 1:ChnNum
+            Vf(:,iChn)=filtfilt(Bn,An,Vf(:,iChn));
+        end
     end
+    
+    
     %notch filter out carriers of other freqs
     
     %band pass filter for demodulation
     [Bdemod,Ademod] = butter(3,(cFreq+[-BW,BW])./(Fs/2));
-    [Vdemod,Pdemod]=ScouseTom_data_DemodHilbert(Vf,Bdemod,Ademod);
+    
+    
+    for iChn = 1:ChnNum
+        
+        [Vdemod(:,iChn),Pdemod(:,iChn)]=ScouseTom_data_DemodHilbert(Vf(:,iChn),Bdemod,Ademod);
+        [Vdemod(:,iChn)]=ScouseTom_data_DemodHilbert(Vf(:,iChn),Bdemod,Ademod);
+    end
+    
     
     vidx=(iFreq-1)*Nchn + 1:(iFreq)*Nchn;
     
     Vfull(:,vidx)=Vdemod;
-    Pfull(:,vidx)=Pdemod;
+%     Pfull(:,vidx)=Pdemod;
 end
 
 %put into volts
@@ -138,13 +160,13 @@ tbins=0:Fs*(TimeStep):length(Vfull)-1;
 binind(binind ==0)=max(binind+1);
 
 Vbin=zeros(size(tbins,2),size(Vfull,2));
-Pbin= zeros(size(Vbin));
+% Pbin= zeros(size(Vbin));
 
 for ichn=1:size(Vfull,2)
     tmp=accumarray(binind',Vfull(:,ichn),[],@mean);
     Vbin(:,ichn)=tmp(1:size(tbins,2));
-    tmp=accumarray(binind',Pfull(:,ichn),[],@mean);
-    Pbin(:,ichn)=tmp(1:size(tbins,2));
+%     tmp=accumarray(binind',Pfull(:,ichn),[],@mean);
+%     Pbin(:,ichn)=tmp(1:size(tbins,2));
 end
 
 tbin=(0:length(tbins)-1).*TimeStep;
@@ -172,12 +194,12 @@ end
 %% take chunks
 
 V_baseline=mean(Vbin(tbin > baseline_wind(1) & tbin < baseline_wind(2),:));
-P_baseline=mean(Pbin(tbin > baseline_wind(1) & tbin < baseline_wind(2),:));
+% P_baseline=mean(Pbin(tbin > baseline_wind(1) & tbin < baseline_wind(2),:));
 
 signal_idx=tbin > signal_wind(1) & tbin < signal_wind(2);
 
 V_signal=Vbin(signal_idx,:);
-P_signal=Pbin(signal_idx,:);
+% P_signal=Pbin(signal_idx,:);
 
 t_signal=(0:size(signal_idx)-1)/Fs;
 
