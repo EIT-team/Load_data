@@ -1,4 +1,4 @@
-function [ Trigger ] = ScouseTom_TrigReadChn( HDR,SkipIDCodes )
+function [ Trigger ] = ScouseTom_TrigReadChn( HDR,SkipIDCodes,TimeToIgnore)
 %SCOUSETOM_READTRIGCHN Identifies events on trigger channels, and identify
 %which is which according to the ID codes at the start of the file
 %   Detailed explanation goes here
@@ -74,6 +74,24 @@ ID_Codes.DefaultName(end+1:trignum)={''};
 %arduino. and Kirills physchotool box stuff will also go here
 
 %% CHECK HDR IS OK here
+
+
+
+%% DELETE ONES WE DONT WANT
+
+
+if exist('TimeToIgnore','var')
+
+rem_idx = (TrigPos/Fs) < TimeToIgnore;
+
+TrigPos(rem_idx) =[];
+StatusChns(rem_idx,:) =[];
+
+    
+    
+    
+end
+
 
 
 
@@ -160,6 +178,13 @@ for iChn=1:trignum
     Trigger.FallingEdges(iChn)={curFalling(GoodPulses)};
     
 end
+
+
+
+
+    
+    
+
 
 
 %% NEXT IDENTIFY CHANNELS BY READING THE LITTLE COMMAND ONES TO START WITH
