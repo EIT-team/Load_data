@@ -1,4 +1,4 @@
-function [ PhaseAngle, PhaseAngleSTD ] = ScouseTom_data_PhaseEst( PhaseIn,Protocol,StartInj)
+function [ PhaseAngle ] = ScouseTom_data_PhaseEst( PhaseIn,Protocol,StartInj)
 %ScouseTom_data_PhaseEst Estimate the phase angle through comparison to the
 %injection channels
 %   Detailed explanation goes here
@@ -30,7 +30,6 @@ Prt_vecfull(Prt_vecfull ==0)=N_prt;
 Prt_vec=Prt_vecfull;
 
 PhaseAngleTmp=nan(size(PhaseIn));
-STDtmp=PhaseAngleTmp;
 
 % loop through each injection
 %and each repeat
@@ -48,11 +47,16 @@ for iInj=1:N_inj
     PhaseAngleTmp(iInj,:)=curPA;
      
 end
-%% Do some extra stuff...?
+%% Ensure between [-pi pi]
 
-%unwrap results now its in the correct format - this isnt needed?
-PhaseAngle=unwrap(PhaseAngleTmp);
+a = mod(PhaseAngleTmp,2*pi); % [0 2pi)
+% shift
+j = a > pi;
+a(j) = a(j) - 2*pi;
+j = a <- pi;
+a(j) = a(j) + 2*pi;
 
+PhaseAngle =a;
 
 
 end
