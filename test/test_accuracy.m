@@ -317,6 +317,73 @@ catch err
      fprintf(2, '%s\n', getReport(err, 'extended'));
 end
 
+%% test 5
+
+clear Amp_error_tot Phase_error_tot
+
+%changing freq - fixed cycles of 32
+disp('Test 6 - fixed cycles of 3');
+
+Fc = 5:20:2000;
+FreqNum = size(Fc,2);
+
+Cycles = 3;
+T=(1./Fc); %Period in s
+InjTime=ceil(T.*Cycles);
+
+
+Amp_Inj = 500;
+Amp_Meas = 150;
+InjPhase=0;
+MeasPhaseDiff=-30;
+
+for iFreq = 1:FreqNum
+    
+    evalc('[Amp_error, Phase_error] = check_acc( Fc(iFreq),InjTime(iFreq),Amp_Inj,Amp_Meas,InjPhase,MeasPhaseDiff);');
+    Amp_error_tot(iFreq) = mean(Amp_error);
+    Phase_error_tot(iFreq) = mean(Phase_error);
+    
+end
+
+%%
+if plotflag
+    figure
+    
+    subplot(2,1,1)
+    plot(Fc,Amp_error_tot)
+    ylabel('Error');
+    xlabel('Frequency');
+    title('T6: Amp error 3 cycles');
+    
+    subplot(2,1,2)
+    plot(Fc,Phase_error_tot)
+    ylabel('Error');
+    xlabel('Frequency');
+    title('T6: Phase error 3 cycles');
+    
+end
+
+Test6_AmpError=max(max(abs(Amp_error_tot)));
+Test6_PhaseError=max(max(abs(Phase_error_tot)));
+
+try
+    assert( Test6_AmpError < Amp_tolerance, 'Test6 Amp error failed')
+catch err
+    Failed = 1;
+    fprintf(2, '%s\n', getReport(err, 'extended'));
+end
+
+try
+    assert( Test6_PhaseError < Phase_tolerance, 'Test6 Phase error failed')
+catch err
+    Failed = 1;
+     fprintf(2, '%s\n', getReport(err, 'extended'));
+end
+
+
+
+
+
 
 
 
