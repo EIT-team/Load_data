@@ -29,7 +29,6 @@ Nord=3;
 %exploding due to narrow bandwidth
 AddSecondFilter=0;
 
-
 %the filter takes some time in seconds to decay to ~zero for IIR butterworth filters.
 %This is independent of sampling rate, so we need to have a different max
 %number of samples for different sampling rates
@@ -37,7 +36,8 @@ AddSecondFilter=0;
 decay_seconds=0.08;
 threshold_samples = floor(decay_seconds*Fs);
 
-
+% create time vector for investigating the impulse response of the filter,
+% preventing it from being huge for long data sets
 if Nsamples > 5*Fs
     tdec=ceil(5*Fs);
 else
@@ -73,7 +73,7 @@ try
             [B,A] = butter(Nord,(Fc+[-maxBWhalf,maxBWhalf])./(Fs/2));
         end
         
-        AddSecondFilter=1;
+%         AddSecondFilter=1;
         
     end
     
@@ -132,7 +132,6 @@ if (trim_max <Samples_needed) || IIRfailed
     
     filter_size = min([trim_max threshold_samples]);
     
-    
     if (Fc - BW/2) > 0
         [B,A]=fir1(filter_size,(Fc+[-BW/2,BW/2])./(Fs/2),'bandpass',window(@blackmanharris,filter_size+1));
     else
@@ -168,7 +167,7 @@ end
 if AddSecondFilter
     B={B};
     A={A};
-    [B{2},A{2}] = butter(Nord,(Fc+[-maxBWhalf])./(Fs/2),'high');
+    [B{2},A{2}] = butter(1,(Fc+[-maxBWhalf])./(Fs/2),'high');
 end
 
 
