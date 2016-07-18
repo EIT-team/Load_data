@@ -1,4 +1,4 @@
-Fc = 25;
+Fc = 500;
 
 Cycles = 3;
 T=(1./Fc); %Period in s
