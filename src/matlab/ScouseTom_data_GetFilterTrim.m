@@ -10,7 +10,7 @@ Fc=ScouseTom_data_GetCarrier(Vseg,Fs);
 Nsamples=length(Vseg);
 
 %trim max is 25% of signal - to give 50% for the average
-trim_max=ceil(0.25*Nsamples);
+trim_max=ceil(0.4*Nsamples);
 %round up to nearest 10 samples - this is so that data with window size 1
 %sample different (as can happen) produces the same filter, and thus the
 %same result.
@@ -63,39 +63,21 @@ try
         % try third order low pass filter
         [B,A] = butter(Nord,(Fc+[BW/2])./(Fs/2));
         
-        % if max occurs in the second half of the impulse response, the filter
-        % is unstable
-        [h,t]=impz(B,A,tdec);
-        [mm, midx]=max(abs(h));
         
-        if midx > length(h)/2
+        if ~isstable(B,A)
             Nord=2;
             [B,A] = butter(Nord,(Fc+[-maxBWhalf,maxBWhalf])./(Fs/2));
         end
         
-%         AddSecondFilter=1;
+        AddSecondFilter=1;
+        [B2, A2]= butter(1,(Fc+[-maxBWhalf])./(Fs/2),'high');
         
     end
     
-    %% check decay of the low pass filter
-    %get filter response and estimate when to chop data
-    [H, T]= impz(B,A,tdec);
-    [maxh, ih]=max(abs(H));
-    
-    %linear fit of the exponetial decay - when it reaches certain percentage of max
-    Htofit=log(abs(H(ih:end)./maxh));
-    
-    minh=Htofit(end);
-    
-    iminh=find( Htofit < 0.95*minh,1);
-    
-    % figure;plot(T(ih:end),Htofit)
-    P=polyfit(T(ih:iminh+ih-1),Htofit(1:iminh),1);
-    %sample where decay reaches the desired value
-    Decay_samples=ceil(log(Decay_coef)/P(1));
+    %% check decay of the band pass filter
     
     %total amount to trim is decay time plus time to max
-    Samples_needed=Decay_samples+ih;
+    Samples_needed=max([impzlength(B,A,Decay_coef),impzlength(B2,A2,Decay_coef)]);
     
     if plotflag ==1;
         figure;
@@ -117,6 +99,17 @@ catch
     IIRfailed =1 ;
 end
 
+if ~isstable(B,A)
+    IIRfailed =1;
+end
+
+if AddSecondFilter
+    if ~isstable(B2,A2)
+        IIRfailed =1;
+    end
+end
+
+
 
 %% choose filter
 
@@ -137,7 +130,7 @@ if (trim_max <Samples_needed) || IIRfailed
     else
         % maximum bandwidth with 3Hz clearance for slower rolloff
         maxBWhalf = floor(Fc)-3;
-        [B,A]=fir1(filter_size,(Fc+[BW/2])./(Fs/2),'lowpass',window(@blackmanharris,filter_size+1));
+        [B,A]=fir1(filter_size,(Fc+[BW/2])./(Fs/2),'low',window(@blackmanharris,filter_size+1));
         fprintf(2,'WARNING! CHOSEN BANDWIDTH TOO LARGE FOR CARRIER FREQUENCY! USING TWO FILTERS\n');
     end
     

@@ -266,7 +266,7 @@ FreqNum = size(Fc,2);
 
 Cycles = 32;
 T=(1./Fc); %Period in s
-InjTime=ceil(T.*Cycles);
+InjTime=(T.*Cycles);
 
 
 Amp_Inj = 500;
@@ -321,7 +321,7 @@ end
 
 clear Amp_error_tot Phase_error_tot
 
-%changing freq - fixed cycles of 32
+%changing freq - fixed cycles of 3
 disp('Test 6 - fixed cycles of 3');
 
 Fc = 5:20:2000;
@@ -329,7 +329,7 @@ FreqNum = size(Fc,2);
 
 Cycles = 3;
 T=(1./Fc); %Period in s
-InjTime=ceil(T.*Cycles);
+InjTime=(T.*Cycles);
 
 
 Amp_Inj = 500;
