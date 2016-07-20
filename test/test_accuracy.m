@@ -142,7 +142,7 @@ disp('Test 3  - large fixed injection time 10s');
 
 InjTime=10;
 
-Fc = 5:20:2000;
+Fc = [5:5:150 200:200:2000];
 FreqNum = size(Fc,2);
 
 Amp_Inj = 500;
@@ -203,7 +203,7 @@ disp('Test 4 - small fixed injection time 0.5s');
 
 InjTime=.5;
 
-Fc = 5:20:2000;
+Fc = [5:5:150 200:200:2000];
 FreqNum = size(Fc,2);
 
 Amp_Inj = 500;
@@ -261,7 +261,7 @@ clear Amp_error_tot Phase_error_tot
 %changing freq - fixed cycles of 32
 disp('Test 5 - fixed cycles of 32');
 
-Fc = 5:20:2000;
+Fc = [5:5:150 200:200:2000];
 FreqNum = size(Fc,2);
 
 Cycles = 32;
@@ -317,14 +317,14 @@ catch err
      fprintf(2, '%s\n', getReport(err, 'extended'));
 end
 
-%% test 5
+%% test 6
 
 clear Amp_error_tot Phase_error_tot
 
 %changing freq - fixed cycles of 3
 disp('Test 6 - fixed cycles of 3');
 
-Fc = 5:20:2000;
+Fc = [5:5:150 200:200:2000];
 FreqNum = size(Fc,2);
 
 Cycles = 3;
@@ -381,12 +381,143 @@ catch err
 end
 
 
+%% test 7
+
+clear Amp_error_tot Phase_error_tot
+
+%changing freq - fixed cycles of 64
+disp('Test 7 - fixed cycles of 64');
+
+Fc = [5:5:150 200:200:2000];
+FreqNum = size(Fc,2);
+
+Cycles = 64;
+T=(1./Fc); %Period in s
+InjTime=(T.*Cycles);
+
+
+Amp_Inj = 500;
+Amp_Meas = 150;
+InjPhase=0;
+MeasPhaseDiff=-30;
+
+for iFreq = 1:FreqNum
+    
+    evalc('[Amp_error, Phase_error] = check_acc( Fc(iFreq),InjTime(iFreq),Amp_Inj,Amp_Meas,InjPhase,MeasPhaseDiff);');
+    Amp_error_tot(iFreq) = mean(Amp_error);
+    Phase_error_tot(iFreq) = mean(Phase_error);
+    
+end
+
+%%
+if plotflag
+    figure
+    
+    subplot(2,1,1)
+    plot(Fc,Amp_error_tot)
+    ylabel('Error');
+    xlabel('Frequency');
+    title('T7: Amp error 64 cycles');
+    
+    subplot(2,1,2)
+    plot(Fc,Phase_error_tot)
+    ylabel('Error');
+    xlabel('Frequency');
+    title('T7: Phase error 64 cycles');
+    
+end
+
+Test7_AmpError=max(max(abs(Amp_error_tot)));
+Test7_PhaseError=max(max(abs(Phase_error_tot)));
+
+try
+    assert( Test7_AmpError < Amp_tolerance, 'Test7 Amp error failed')
+catch err
+    Failed = 1;
+    fprintf(2, '%s\n', getReport(err, 'extended'));
+end
+
+try
+    assert( Test7_PhaseError < Phase_tolerance, 'Test7 Phase error failed')
+catch err
+    Failed = 1;
+     fprintf(2, '%s\n', getReport(err, 'extended'));
+end
+
+%% test 8
+
+clear Amp_error_tot Phase_error_tot
+
+%changing freq - fixed cycles of 128
+disp('Test 8 - fixed cycles of 129');
+
+Fc = [5:5:150 200:200:2000];
+FreqNum = size(Fc,2);
+
+Cycles = 128;
+T=(1./Fc); %Period in s
+InjTime=(T.*Cycles);
+
+
+Amp_Inj = 500;
+Amp_Meas = 150;
+InjPhase=0;
+MeasPhaseDiff=-30;
+
+for iFreq = 1:FreqNum
+    
+    evalc('[Amp_error, Phase_error] = check_acc( Fc(iFreq),InjTime(iFreq),Amp_Inj,Amp_Meas,InjPhase,MeasPhaseDiff);');
+    Amp_error_tot(iFreq) = mean(Amp_error);
+    Phase_error_tot(iFreq) = mean(Phase_error);
+    
+end
+
+%%
+if plotflag
+    figure
+    
+    subplot(2,1,1)
+    plot(Fc,Amp_error_tot)
+    ylabel('Error');
+    xlabel('Frequency');
+    title('T8: Amp error 128 cycles');
+    
+    subplot(2,1,2)
+    plot(Fc,Phase_error_tot)
+    ylabel('Error');
+    xlabel('Frequency');
+    title('T8: Phase error 128 cycles');
+    
+end
+
+Test8_AmpError=max(max(abs(Amp_error_tot)));
+Test8_PhaseError=max(max(abs(Phase_error_tot)));
+
+try
+    assert( Test8_AmpError < Amp_tolerance, 'Test8 Amp error failed')
+catch err
+    Failed = 1;
+    fprintf(2, '%s\n', getReport(err, 'extended'));
+end
+
+try
+    assert( Test8_PhaseError < Phase_tolerance, 'Test8 Phase error failed')
+catch err
+    Failed = 1;
+     fprintf(2, '%s\n', getReport(err, 'extended'));
+end
 
 
 
 
 
 
+
+%% 
+
+% DC OFFSET TEST
+
+% SNR TEST
 
 
 

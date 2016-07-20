@@ -1,6 +1,7 @@
 %%
 
-Fs=16384;
+% Fs=16384;
+Fs=100000;
 
 Fc_all = 5:100:550;
 FreqNum = length(Fc_all);
@@ -8,7 +9,7 @@ FreqNum = length(Fc_all);
 BWtarget =100;
 
 Fstopomin=0.5;
-Fcomin = 15;
+Fcomin = 1.5;
 
 
 for iFreq = 1: FreqNum
@@ -48,8 +49,8 @@ for iFreq = 1: FreqNum
     
     Fpass1bp = Fc-BWbp/2;
     
-    Astop1 = 30;
-    Astop2= 30;
+    Astop1 = 60;
+    Astop2= 60;
     Apass  = 0.5;
     
     

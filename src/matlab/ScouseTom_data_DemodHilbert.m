@@ -1,4 +1,4 @@
-function [ Vdata_demod,Pdata_demod ] = ScouseTom_data_DemodHilbert( data,B,A)
+function [ Vdata_demod,Pdata_demod ] = ScouseTom_data_DemodHilbert( data,Filt)
 %demod_hilbert - filters and demodulates data using hilbert transform
 %method. Slight modification of G-Dragons code get_BV2
 %   Inputs:
@@ -14,14 +14,14 @@ if any(isnan(data))
 end
 
 
-if ~iscell(A)
+if ~iscell(Filt)
     
     %filter data using coefs
-    data = filtfilt(B,A,data);
+    data = filtfilt(Filt,data);
     
 else
-    for iFilter = 1 : length(A)
-        data = filtfilt(B{iFilter},A{iFilter},data);
+    for iFilter = 1 : length(Filt)
+        data = filtfilt(Filt{iFilter},data);
     end
     
 end

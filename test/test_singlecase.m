@@ -1,11 +1,9 @@
-Fc = 25;
+Fc = 7;
 FreqNum = size(Fc,2);
 
 Cycles = 32;
 T=(1./Fc); %Period in s
 InjTime=(T.*Cycles);
-
-
 
 Amp_Inj = 500;
 Amp_Meas = 150;

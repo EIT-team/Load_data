@@ -3,13 +3,14 @@ function [ Amp_error, Phase_error] = check_acc( Fc,InjTime,Amp_Inj,Amp_Meas,InjP
 %   Detailed explanation goes here
 
 %%
-num_inj = 1;
-
 inj = [ 2 4];
 
 Fs=16384;
-BW=50;
+BW=100;
 chn=5;
+
+
+pad_s =2;
 
 %% Create ideal values, and voltages
 
@@ -36,7 +37,9 @@ PhaseActual= repmat(MeasPhaseDiff_corr,chn,1);
 PhaseActual(inj)=0;
 
 
-Totaltime=InjTime*num_inj;
+Totaltime=InjTime + 2*pad_s;
+
+
 t=(0:Totaltime*Fs)/Fs;
 %make sin wave
 
@@ -54,13 +57,21 @@ V(inj(2),:) = v_i;
 
 V=V';
 
-InjectionWindows =[1 (length(V)-10)];
+
+%pad with a second of data either side, so the hilbert is more realistic
+datastart = Fs;
+dataend = length(V) - Fs;
+
+V(1:datastart,:)=V(1:datastart,:)*0.1;
+V(dataend:end,:)=V(dataend:end,:)*0.1;
+
+InjectionWindows =[datastart dataend];
 
 %%
 %find the corresponding filter settings
-[trim_demod,B,A,Fc_found]=ScouseTom_data_GetFilterTrim(V(:,inj(1)),Fs,BW,0 );
+[trim_demod,Filt,Fc_found]=ScouseTom_data_GetFilterTrim(V(datastart:dataend,inj(1)),Fs);
 
-[ Vdata_demod,Pdata_demod ] = ScouseTom_data_DemodHilbert( V,B,A);
+[ Vdata_demod,Pdata_demod ] = ScouseTom_data_DemodHilbert( V,Filt);
 
 
 %%
