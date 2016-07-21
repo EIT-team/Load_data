@@ -1,4 +1,4 @@
-Fc = 7;
+Fc = 55;
 FreqNum = size(Fc,2);
 
 Cycles = 32;

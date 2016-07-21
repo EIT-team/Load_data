@@ -1,16 +1,26 @@
-function [ Amp_error, Phase_error] = check_acc( Fc,InjTime,Amp_Inj,Amp_Meas,InjPhase,MeasPhaseDiff )
+function [ Amp_error, Phase_error] = check_acc( Fc,InjTime,Amp_Inj,Amp_Meas,InjPhase,MeasPhaseDiff,DCoffset,DCoffsetInj )
 %UNTITLED Summary of this function goes here
 %   Detailed explanation goes here
 
 %%
 inj = [ 2 4];
 
+
+if exist('DCoffset','var') == 0 || isempty(DCoffset)
+    DCoffset=0;
+end
+
+if exist('DCoffsetInj','var') == 0 || isempty(DCoffsetInj)
+    DCoffsetInj=0;
+end
+
+
 Fs=16384;
 BW=100;
 chn=5;
 
 
-pad_s =2;
+pad_s =4;
 
 %% Create ideal values, and voltages
 
@@ -43,10 +53,10 @@ Totaltime=InjTime + 2*pad_s;
 t=(0:Totaltime*Fs)/Fs;
 %make sin wave
 
-v_m= Amp_Meas*sin(2*pi*Fc*t+(pi*MeasPhase/180));
+v_m= Amp_Meas*sin(2*pi*Fc*t+(pi*MeasPhase/180))+DCoffset;
 
 % change amplitude
-v_i=Amp_Inj*sin(2*pi*Fc*t+(pi*InjPhase/180));
+v_i=Amp_Inj*sin(2*pi*Fc*t+(pi*InjPhase/180))+DCoffsetInj;
 
 
 %%
@@ -59,8 +69,8 @@ V=V';
 
 
 %pad with a second of data either side, so the hilbert is more realistic
-datastart = Fs;
-dataend = length(V) - Fs;
+datastart = pad_s*Fs;
+dataend = length(V) - pad_s*Fs;
 
 V(1:datastart,:)=V(1:datastart,:)*0.1;
 V(dataend:end,:)=V(dataend:end,:)*0.1;
