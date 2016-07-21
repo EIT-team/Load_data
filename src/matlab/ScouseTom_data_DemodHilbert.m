@@ -1,4 +1,4 @@
-function [ Vdata_demod,Pdata_demod ] = ScouseTom_data_DemodHilbert( data,Filt)
+function [ Vdata_demod,Pdata_demod,data ] = ScouseTom_data_DemodHilbert( data,Filt)
 %demod_hilbert - filters and demodulates data using hilbert transform
 %method. Slight modification of G-Dragons code get_BV2
 %   Inputs:
@@ -9,7 +9,7 @@ if any(isnan(data))
     Vdata_demod = nan;
     Pdata_demod=nan;
     
-    fprintf(2,'Nans in data!');
+    fprintf(2,'Nans in data!\n');
     return
 end
 

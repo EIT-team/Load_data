@@ -36,7 +36,7 @@ Decay_coef=0.001;
 
 
 Fstopomin=0.5;
-Fcomin = 1.5;
+Fcomin = 10;
 Astop = 60;
 StopBandDiffMax = 350;
 StopBandDiffMin = 50;
@@ -51,8 +51,8 @@ IIRLowPassCutoff = 10;
 %This is independent of sampling rate, so we need to have a different max
 %number of samples for different sampling rates. This is the max for FIR
 
-decay_seconds=0.08;
-threshold_samples = floor(decay_seconds*Fs);
+Mindecay_seconds=0.2;
+MaxFirOrder = floor(Mindecay_seconds*Fs);
 
 
 %% Find best IIR filter
@@ -137,7 +137,7 @@ end
 
 BWFIR = BWtarget;
 
-N = min([MaxImpSamples threshold_samples]);
+N = min([MaxImpSamples MaxFirOrder]);
 
 if Fc > FIRLowPassCutoff
     [dfir,gainok]=BandPassFIR(BWFIR,N,Fc,Fcomin,Fs);
@@ -199,7 +199,13 @@ if plotflag ==1;
     drawnow
 end
 
-%%
+%% final gain check
+
+[gainok,GainFc]=CheckGainFc(Fc,Fs,FilterOut,1e-2);
+
+if ~gainok
+    fprintf(2,'WARNING! GAIN NOT OK AT CARRIER FREQ! Gain : %.6f\n',GainFc);
+end
 
 
 
@@ -223,7 +229,7 @@ while gainok ==0 && iterations < 10
     Astop1 = Astop;
     Astop2= Astop;
     
-    if ~(Fpass1bp > 0)
+    if ~(Fpass1bp > Fcomin)
         Fpass1bp = max([Fc/2 Fcomin]);
         Astop1 = 15;
     end
@@ -253,9 +259,6 @@ while gainok ==0 && iterations < 10
         'SampleRate',Fs)     ;          % Sample rate
     
     
-    
-    
-    
     st = isstable(d);
     implen=impzlength(d,Decay_coef);
     
@@ -266,6 +269,8 @@ while gainok ==0 && iterations < 10
         if GainFcprev > GainFc
             d = dprev;
             gainok=1;
+            fprintf(2,'warning, gain going wrong way!\n');
+            
         else
             GainFcprev=GainFc;
             dprev =d;
@@ -308,9 +313,6 @@ while gainok ==0 && iterations < 10
         'SampleRate',Fs)     ;          % Sample rate
     
     
-    
-    
-    
     st = isstable(d);
     implen=impzlength(d,Decay_coef);
     
@@ -349,8 +351,8 @@ while gainok ==0 && iterations < 10
     F6dB1 = Fc-curBW/2;
     
     
-    if ~(F6dB1 > 0)
-        F6dB1 = max([Fc/2 Fcomin]);
+    if ~(F6dB1 > Fcomin)
+%         F6dB1 = max([Fc/2 Fcomin]);
         F6dB1 = max([Fcomin]);
     end
     
