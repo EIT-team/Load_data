@@ -1,6 +1,6 @@
 function [ Fc ] = ScouseTom_data_GetCarrier( data,Fs )
 %get carrier frequency of data
-% Assumes only one carrier frequency 
+% Assumes only one carrier frequency
 %   finds the largest frequency bin in a data set. Zero pads the result to
 %   give smaller frequency bins for short signals for a more accurate
 %   result.
@@ -11,18 +11,27 @@ function [ Fc ] = ScouseTom_data_GetCarrier( data,Fs )
 % matches the *expected* freq
 
 
+V=detrend(data);
+N = length(V);
 
 
-%find spectrum of signal with no overlaps or windowing
-    [Pxx,w] = pwelch(detrend(data),[],0,2^16,Fs);
-    % we only want frequencies above 3 Hz 
-    w_ind = find(w>3);
-    %find the biggest one
-    [~,maxw] = max(Pxx(w_ind));
-    %find carrier one
-    Fc = w(w_ind(maxw));
-    %display message to user
-   fprintf('Carrier frequency detected: Fc = %.2f Hz\r',Fc);    
-    
+NFFT = max([2^16 2^nextpow2(length(V))]); % Next power of 2 from length of y
+Y = fft(V,NFFT)/N;
+F = Fs/2*linspace(0,1,NFFT/2+1);
+Ymag=2*abs(Y(1:NFFT/2+1));
+
+
+[~,maxw] = max(Ymag);
+%find carrier one
+Fc = F(maxw);
+%display message to user
+
+
+
+
+
+
+fprintf('Carrier frequency detected: Fc = %.2f Hz\r',Fc);
+
 end
 
