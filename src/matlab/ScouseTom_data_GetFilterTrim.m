@@ -16,12 +16,20 @@ end
 
 if  exist('MaxImpSamples','var') ==0 || isempty(MaxImpSamples)
     %trim max is 25% of signal - to give 50% for the average
-    MaxImpSamples=ceil(0.3*Nsamples);
+    MaxImpSamples=ceil(0.4*Nsamples);
     %round up to nearest 10 samples - this is so that data with window size 1
     %sample different (as can happen) produces the same filter, and thus the
     %same result.
     rndnum=10;
     MaxImpSamples=round(MaxImpSamples/rndnum)*rndnum;
+    
+    %dont use this corrected version if the data is very small
+    if MaxImpSamples > ceil(0.5*Nsamples)
+        
+        MaxImpSamples=ceil(0.4*Nsamples);
+        
+    end 
+    
 end
 
 
@@ -32,7 +40,7 @@ end
 %amount filter ripple must decay by before using data%this is based on
 %number of samples in chapter 3 in y thesis. although it could be more
 %rigourously chosen
-Decay_coef=0.001;
+Decay_coef=0.0001;
 
 
 Fstopomin=0.5;
@@ -41,7 +49,7 @@ Astop = 60;
 StopBandDiffMax = 350;
 StopBandDiffMin = 50;
 
-FcominFIR =10;
+FcominFIR =8;
 
 
 % Low pass only cutoff

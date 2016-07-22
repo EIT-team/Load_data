@@ -1,7 +1,7 @@
-Fcur = 400;
+Fcur = 1400;
 FreqNum = size(Fcur,2);
 
-Cycles = 32;
+Cycles = 3;
 T=(1./Fcur); %Period in s
 InjTime=(T.*Cycles);
 
@@ -20,10 +20,10 @@ Fs=16384;
 
 %%
 
-Fcur = 600;
+Fcur = 1200;
 FreqNum = size(Fcur,2);
 
-Cycles = 32;
+Cycles = 3;
 T=(1./Fcur); %Period in s
 InjTime=(T.*Cycles);
 
@@ -55,40 +55,12 @@ hold off
 
 figure
 hold on
-plot(Vd1(tr1:end-tr2))
-plot(Vd2(tr2:end-tr2))
+% plot(Vd1(tr1:end-tr1))
+plot(Vd1)
+% plot(Vd2(tr2:end-tr2))
 % plot(Vd8)
 hold off
-% ylim(500 + [-5 +5])
-%
-% lpFilt = designfilt('lowpassfir','PassbandFrequency',0.25, ...
-%          'StopbandFrequency',0.35,'PassbandRipple',0.5, ...
-%          'StopbandAttenuation',65,'DesignMethod','kaiserwin');
-
-
-%      lpFilt = designfilt('lowpassiir', ...        % Response type
-%        'PassbandFrequency',50, ...     % Frequency constraints
-%        'StopbandFrequency',100, ...
-%        'DesignMethod','butter', ...         % Design method
-%        'PassbandRipple',0.5, ...          % Design method options
-%        'StopbandAttenuation',65, ...
-%        'SampleRate',Fs) ;              % Sample rate
-
-
-%%
-[B,A]= fir1(100,5/(Fs/2));
-
-
-Vs=abs(hilbert(V1));
-
-figure;
-hold on
-plot(Vd1)
-
-plot(filtfilt(B,A,Vd1));
-hold off
-
-
+ylim(Amp_Inj + [-1 +1])
 
 
 %%
