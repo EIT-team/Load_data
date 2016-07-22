@@ -36,15 +36,17 @@ Decay_coef=0.001;
 
 
 Fstopomin=0.5;
-Fcomin = 10;
+FcominIIR = 15;
 Astop = 60;
 StopBandDiffMax = 350;
 StopBandDiffMin = 50;
 
+FcominFIR =10;
+
 
 % Low pass only cutoff
 FIRLowPassCutoff = 20;
-IIRLowPassCutoff = 10;
+IIRLowPassCutoff = 16;
 
 
 %the filter takes some time in seconds to decay to ~zero for IIR butterworth filters.
@@ -75,7 +77,7 @@ try
         
         
         if Fc > IIRLowPassCutoff
-            [dcur,st,gainok,implen]=BandPassIIR(BWIIR,curStopBandDiff,Astop,Fc,Fcomin,Fstopomin,Fs,Decay_coef);
+            [dcur,st,gainok,implen]=BandPassIIR(BWIIR,curStopBandDiff,Astop,Fc,FcominIIR,Fstopomin,Fs,Decay_coef);
         else
             [dcur,st,gainok,implen]=LowPassIIR(BWIIR,curStopBandDiff,Astop,Fc,Fs,Decay_coef);
         end
@@ -85,7 +87,7 @@ try
             curStopBandDiff = curStopBandDiff - 50;
             dprev = dcur;
             
-            if curStopBandDiff < StopBandDiffMin
+            if curStopBandDiff < StopBandDiffMin || ~gainok
                 IIRfound =1;
             end
             
@@ -98,14 +100,15 @@ try
         
     end
     
-    diir = dprev;
+    dIIR = dprev;
     
-    if isempty(diir)
+    if isempty(dIIR)
         IIRfailed =1;
         Samples_needed = inf;
+        IIRgainok =0;
     else
         
-        Samples_needed = impzlength(diir,Decay_coef);
+        Samples_needed = impzlength(dIIR,Decay_coef);
         
     end
     
@@ -114,7 +117,7 @@ try
         figure;
         hold on
         
-        [H,T]=impz(diir,max([MaxImpSamples, implen]));
+        [H,T]=impz(dIIR,max([MaxImpSamples, implen]));
         
         plot(T,H)
         %line([0 length(T)],[maxh*Decay_coef maxh*Decay_coef],'color','r');
@@ -140,9 +143,9 @@ BWFIR = BWtarget;
 N = min([MaxImpSamples MaxFirOrder]);
 
 if Fc > FIRLowPassCutoff
-    [dfir,gainok]=BandPassFIR(BWFIR,N,Fc,Fcomin,Fs);
+    [dFIR,FIRgainok]=BandPassFIR(BWFIR,N,Fc,FcominFIR,Fs);
 else
-    [dfir,gainok]=LowPassFIR(BWFIR,N,Fc,Fs);
+    [dFIR,FIRgainok]=LowPassFIR(BWFIR,N,Fc,Fs);
 end
 
 
@@ -165,7 +168,7 @@ if (MaxImpSamples <Samples_needed) || IIRfailed || ForceFIR
     %chosen as it gives the best trade off between stopband ripple and
     %rolloff
     
-    FilterOut = dfir;
+    FilterOut = dFIR;
     
     
     trim_demod=N;
@@ -173,19 +176,21 @@ if (MaxImpSamples <Samples_needed) || IIRfailed || ForceFIR
     disp('FIR with Blackman-Harris Window used');
 else
     
-    FilterOut = diir;
+    FilterOut = dIIR;
     
     %if we have more samples than we need, still use the max as we want the
     %filter to decay as much as possible (I think)
     
-    if impzlength(FilterOut) < MaxImpSamples
-        trim_demod = impzlength(FilterOut);
-    else
-        
-        
-        trim_demod=MaxImpSamples;
-        
-    end
+    trim_demod=MaxImpSamples;
+    
+%     if impzlength(FilterOut) < MaxImpSamples
+%         trim_demod = impzlength(FilterOut);
+%     else
+%         
+%         
+%         trim_demod=MaxImpSamples;
+%         
+%     end
     disp('Min Order Butterworth Filter Used');
     
 end
@@ -201,7 +206,7 @@ end
 
 %% final gain check
 
-[gainok,GainFc]=CheckGainFc(Fc,Fs,FilterOut,1e-2);
+[gainok,GainFc]=CheckGainFc(Fc,Fs,FilterOut,1e-3);
 
 if ~gainok
     fprintf(2,'WARNING! GAIN NOT OK AT CARRIER FREQ! Gain : %.6f\n',GainFc);
@@ -222,14 +227,17 @@ curBW = BWin;
 iterations =0;
 BWincrement = 25;
 GainFcprev =0;
-while gainok ==0 && iterations < 10
+
+maxiterations =10;
+
+while gainok ==0 && iterations < maxiterations
     
     Fpass1bp = Fc-curBW/2;
     
     Astop1 = Astop;
     Astop2= Astop;
     
-    if ~(Fpass1bp > Fcomin)
+    if (Fpass1bp <= Fcomin)
         Fpass1bp = max([Fc/2 Fcomin]);
         Astop1 = 15;
     end
@@ -268,8 +276,9 @@ while gainok ==0 && iterations < 10
         curBW = curBW + BWincrement;
         if GainFcprev > GainFc
             d = dprev;
-            gainok=1;
+            gainok=0;
             fprintf(2,'warning, gain going wrong way!\n');
+            iterations = maxiterations+1;
             
         else
             GainFcprev=GainFc;
@@ -339,7 +348,7 @@ end
 
 
 
-function [d,gainok]=BandPassFIR(BWin,N,Fc,Fcomin,Fs)
+function [d,gainok]=BandPassFIR(BWin,N,Fc,FcominFIR,Fs)
 
 gainok =0;
 curBW = BWin;
@@ -351,9 +360,9 @@ while gainok ==0 && iterations < 10
     F6dB1 = Fc-curBW/2;
     
     
-    if ~(F6dB1 > Fcomin)
+    if ~(F6dB1 > FcominFIR)
 %         F6dB1 = max([Fc/2 Fcomin]);
-        F6dB1 = max([Fcomin]);
+        F6dB1 = max([FcominFIR]);
     end
     
     

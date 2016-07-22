@@ -1,11 +1,11 @@
-Fcur = 50;
+Fcur = 400;
 FreqNum = size(Fcur,2);
 
 Cycles = 32;
 T=(1./Fcur); %Period in s
 InjTime=(T.*Cycles);
 
-InjTime=10;
+% InjTime=10;
 
 
 Amp_Inj = 500;
@@ -13,21 +13,21 @@ Amp_Meas = 150;
 InjPhase=0;
 MeasPhaseDiff=-30;
 
-[Amp_error1, Phase_error1,V1,Vd1,Filt1] = check_acc( Fcur,InjTime,Amp_Inj,Amp_Meas,InjPhase,MeasPhaseDiff,[],[],1);
+[Amp_error1, Phase_error1,V1,Vd1,Filt1,tr1] = check_acc( Fcur,InjTime,Amp_Inj,Amp_Meas,InjPhase,MeasPhaseDiff,[],[],[]);
 
 trim_demod=200;
 Fs=16384;
 
 %%
 
-Fcur = 55;
+Fcur = 600;
 FreqNum = size(Fcur,2);
 
 Cycles = 32;
 T=(1./Fcur); %Period in s
 InjTime=(T.*Cycles);
 
-InjTime=10;
+% InjTime=10;
 
 
 Amp_Inj = 500;
@@ -35,7 +35,7 @@ Amp_Meas = 150;
 InjPhase=0;
 MeasPhaseDiff=-30;
 
-[Amp_error2, Phase_error2,V2,Vd2,Filt2] = check_acc( Fcur,InjTime,Amp_Inj,Amp_Meas,InjPhase,MeasPhaseDiff,[],[],1);
+[Amp_error2, Phase_error2,V2,Vd2,Filt2,tr2] = check_acc( Fcur,InjTime,Amp_Inj,Amp_Meas,InjPhase,MeasPhaseDiff,[],[],[]);
 
 
 
@@ -48,18 +48,18 @@ fvtool(Filt1,Filt2)
 figure
 hold on
 plot(V1)
-% plot(V4)
+plot(V2)
 % plot(V8)
 hold off
 
 
 figure
 hold on
-plot(Vd1)
-% plot(Vd4)
+plot(Vd1(tr1:end-tr2))
+plot(Vd2(tr2:end-tr2))
 % plot(Vd8)
 hold off
-
+% ylim(500 + [-5 +5])
 %
 % lpFilt = designfilt('lowpassfir','PassbandFrequency',0.25, ...
 %          'StopbandFrequency',0.35,'PassbandRipple',0.5, ...

@@ -1,4 +1,4 @@
-function [ Amp_error, Phase_error,Vsig,Vsigdemod,Filt] = check_acc( Fc,InjTime,Amp_Inj,Amp_Meas,InjPhase,MeasPhaseDiff,DCoffset,DCoffsetInj, Padsec )
+function [ Amp_error, Phase_error,Vsig,Vsigdemod,Filt,trim_demod] = check_acc( Fc,InjTime,Amp_Inj,Amp_Meas,InjPhase,MeasPhaseDiff,DCoffset,DCoffsetInj, Padsec )
 %UNTITLED Summary of this function goes here
 %   Detailed explanation goes here
 
