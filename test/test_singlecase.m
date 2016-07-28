@@ -1,7 +1,7 @@
-Fcur = 1400;
+Fcur = 15;
 FreqNum = size(Fcur,2);
 
-Cycles = 3;
+Cycles = 128;
 T=(1./Fcur); %Period in s
 InjTime=(T.*Cycles);
 
@@ -12,18 +12,21 @@ Amp_Inj = 500;
 Amp_Meas = 150;
 InjPhase=0;
 MeasPhaseDiff=-30;
+DCoffset = 0;
+DCoffsetinj = 0;
 
-[Amp_error1, Phase_error1,V1,Vd1,Filt1,tr1] = check_acc( Fcur,InjTime,Amp_Inj,Amp_Meas,InjPhase,MeasPhaseDiff,[],[],[]);
+
+[Amp_error1, Phase_error1,V1,Vd1,Filt1,tr1] = check_acc( Fcur,InjTime,Amp_Inj,Amp_Meas,InjPhase,MeasPhaseDiff,DCoffset,DCoffsetinj,[]);
 
 trim_demod=200;
 Fs=16384;
 
 %%
 
-Fcur = 1200;
+Fcur = 15;
 FreqNum = size(Fcur,2);
 
-Cycles = 3;
+Cycles = 128;
 T=(1./Fcur); %Period in s
 InjTime=(T.*Cycles);
 
@@ -34,8 +37,11 @@ Amp_Inj = 500;
 Amp_Meas = 150;
 InjPhase=0;
 MeasPhaseDiff=-30;
+DCoffset = 100;
+DCoffsetinj = 400;
 
-[Amp_error2, Phase_error2,V2,Vd2,Filt2,tr2] = check_acc( Fcur,InjTime,Amp_Inj,Amp_Meas,InjPhase,MeasPhaseDiff,[],[],[]);
+
+[Amp_error2, Phase_error2,V2,Vd2,Filt2,tr2] = check_acc( Fcur,InjTime,Amp_Inj,Amp_Meas,InjPhase,MeasPhaseDiff,DCoffset,DCoffsetinj,[]);
 
 
 
@@ -57,10 +63,11 @@ figure
 hold on
 % plot(Vd1(tr1:end-tr1))
 plot(Vd1)
+plot(Vd2)
 % plot(Vd2(tr2:end-tr2))
 % plot(Vd8)
 hold off
-ylim(Amp_Inj + [-1 +1])
+% ylim(Amp_Inj + [-1 +1])
 
 
 %%
