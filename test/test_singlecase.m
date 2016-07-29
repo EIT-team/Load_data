@@ -1,4 +1,4 @@
-Fcur = 15;
+Fcur = 1400;
 FreqNum = size(Fcur,2);
 
 Cycles = 128;
@@ -15,15 +15,17 @@ MeasPhaseDiff=-30;
 DCoffset = 0;
 DCoffsetinj = 0;
 
+Fs=16384;
 
-[Amp_error1, Phase_error1,V1,Vd1,Filt1,tr1] = check_acc( Fcur,InjTime,Amp_Inj,Amp_Meas,InjPhase,MeasPhaseDiff,DCoffset,DCoffsetinj,[]);
+
+[Amp_error1, Phase_error1,V1,Vd1,Filt1,tr1] = check_acc( Fcur,InjTime,Amp_Inj,Amp_Meas,InjPhase,MeasPhaseDiff,DCoffset,DCoffsetinj,[],Fs);
 
 trim_demod=200;
-Fs=16384;
+
 
 %%
 
-Fcur = 15;
+Fcur = 1400;
 FreqNum = size(Fcur,2);
 
 Cycles = 128;
@@ -37,11 +39,13 @@ Amp_Inj = 500;
 Amp_Meas = 150;
 InjPhase=0;
 MeasPhaseDiff=-30;
-DCoffset = 100;
-DCoffsetinj = 400;
+DCoffset = 0;
+DCoffsetinj = 0;
+
+Fs=100000;
 
 
-[Amp_error2, Phase_error2,V2,Vd2,Filt2,tr2] = check_acc( Fcur,InjTime,Amp_Inj,Amp_Meas,InjPhase,MeasPhaseDiff,DCoffset,DCoffsetinj,[]);
+[Amp_error2, Phase_error2,V2,Vd2,Filt2,tr2] = check_acc( Fcur,InjTime,Amp_Inj,Amp_Meas,InjPhase,MeasPhaseDiff,DCoffset,DCoffsetinj,[],Fs);
 
 
 
