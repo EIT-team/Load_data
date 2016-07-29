@@ -56,10 +56,10 @@ bigmat=matfile(mfilename,'Writable',true);
 [StartInj] = ScouseTom_data_checkfirstinj(HDR,TT.InjectionSwitches(1,:),ExpSetup.Protocol );
 
 %find the corresponding filter settings
-[B,A,FilterTrim,Fc]=ScouseTom_FindFilterSettings(HDR,TT.InjectionSwitches(1,:),ExpSetup.Protocol(StartInj,1),BW);
+[Filt,FilterTrim,Fc]=ScouseTom_FindFilterSettings(HDR,TT.InjectionSwitches(1,:),ExpSetup.Protocol(StartInj,1),BW);
 
 %process the data to get the magnitude and phase
-[BV,PA,BVSTD,PASTD] = ScouseTom_ReadandDemodChn( HDR,B,A,FilterTrim,TT.InjectionSwitches(1,:),ExpSetup.Protocol,StartInj);
+[BV,PA,BVSTD,PASTD] = ScouseTom_ReadandDemodChn( HDR,Filt,FilterTrim,TT.InjectionSwitches(1,:),ExpSetup.Protocol,StartInj);
 
 %estimate the contact impedances on the injection electrodes
 [Z,Zstd] = ScouseTom_data_estZ( BV,Elec_inj,ZSF);
@@ -76,8 +76,7 @@ bigmat.rem_idx=rem_idx;
 bigmat.prt_full=prt_full;
 
 %save filter stuff
-info.B=B;
-info.A=A;
+info.Filt=Filt;
 info.trim_demod=FilterTrim;
 info.Fc=Fc;
 info.ZSF=ZSF;

@@ -103,10 +103,10 @@ for iZ = 1:Z_checks_num
     %determine the Carrier Frequency, Filter coeffs, and amount of signal
     %to trim from the electrode on the *second* injection
     %find the corresponding filter settings
-    [B,A,FilterTrim,Fc]=ScouseTom_FindFilterSettings(HDR,TT.Contact.InjectionSwitches(iZ,:),Contact_Protocol(swidx,1));
+    [Filt,FilterTrim,Fc]=ScouseTom_FindFilterSettings(HDR,TT.Contact.InjectionSwitches(iZ,:),Contact_Protocol(swidx,1));
     
     %demodulate each segment in turn using hilber transfrom
-    [ Vdata_demod,Pdata_demod ] = ScouseTom_data_DemodHilbert( V,B{1},A{1}); % filter and demodulate channel
+    [ Vdata_demod,Pdata_demod ] = ScouseTom_data_DemodHilbert( V,Filt{1}); % filter and demodulate channel
     
     [Vmag,PhaseRaw]=ScouseTom_data_getBV(Vdata_demod,Pdata_demod,FilterTrim{1},TT.Contact.InjectionSwitches{iZ}-Data_start_s); %process each injection window, adjusting for new start time
     
@@ -226,8 +226,7 @@ for iZ = 1:Z_checks_num
     Zout.Z=Zave;
     Zout.dZ=dZ;
     Zout.ExpSetup=ExpSetup;
-    Zout.info.B=B;
-    Zout.info.A=A;
+    Zout.info.Filt=Filt;
     Zout.info.Fc=Fc;
     Zout.info.FilterTrim=FilterTrim;
     Zout.info.bdf_filename=HDR.FILE.Name;
