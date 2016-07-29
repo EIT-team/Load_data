@@ -1,4 +1,4 @@
-function [ Amp_error, Phase_error,Vsig,Vsigdemod,Filt,trim_demod] = check_acc( Fc,InjTime,Amp_Inj,Amp_Meas,InjPhase,MeasPhaseDiff,DCoffset,DCoffsetInj, Padsec )
+function [ Amp_error, Phase_error,Vsig,Vsigdemod,Filt,trim_demod] = check_acc( Fc,InjTime,Amp_Inj,Amp_Meas,InjPhase,MeasPhaseDiff,DCoffset,DCoffsetInj, Padsec, Fs)
 %UNTITLED Summary of this function goes here
 %   Detailed explanation goes here
 
@@ -13,13 +13,18 @@ if exist('DCoffsetInj','var') == 0 || isempty(DCoffsetInj)
     DCoffsetInj=0;
 end
 
-Fs=16384;
+
 BW=100;
 chn=5;
 
 if exist('Padsec','var') == 0 || isempty(Padsec)
     Padsec=4;
 end
+
+if exist('Fs','var') == 0 || isempty(Fs)
+    Fs=16384;
+end
+
 
 %% Create ideal values, and voltages
 
@@ -73,10 +78,10 @@ InjectionWindows =[datastart dataend];
 %find the corresponding filter settings
 [trim_demod,Filt,Fc_found]=ScouseTom_data_GetFilterTrim(V(datastart:dataend,inj(1)),Fs);
 
-Vsig = V(datastart:dataend,inj(1)); 
+Vsig = V(datastart:dataend,inj(1));
 
 [ Vdata_demod,Pdata_demod ] = ScouseTom_data_DemodHilbert( V,Filt);
-Vsigdemod = Vdata_demod(datastart:dataend,inj(1)); 
+Vsigdemod = Vdata_demod(datastart:dataend,inj(1));
 
 %%
 [Vmag,PhaseRaw,VmagSTD,PhaseRawSTD]=ScouseTom_data_getBV(Vdata_demod,Pdata_demod,trim_demod,InjectionWindows);
