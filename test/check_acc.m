@@ -76,7 +76,7 @@ InjectionWindows =[datastart dataend];
 
 %%
 %find the corresponding filter settings
-[trim_demod,Filt,Fc_found]=ScouseTom_data_GetFilterTrim(V(datastart:dataend,inj(1)),Fs);
+[trim_demod,Filt,Fc_found]=ScouseTom_data_GetFilterTrim(V(datastart:dataend,inj(1)),Fs,[],[],[]);
 
 Vsig = V(datastart:dataend,inj(1));
 

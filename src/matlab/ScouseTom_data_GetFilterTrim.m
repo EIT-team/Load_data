@@ -1,10 +1,17 @@
-function [ trim_demod,FilterOut,Fc,CorrectionNeededFlag] = ScouseTom_data_GetFilterTrim( Vseg,Fs,BWtarget,MaxImpSamples,plotflag )
+function [ trim_demod,FilterOut,Fc,CorrectionNeededFlag] = ScouseTom_data_GetFilterTrim( Vseg,Fs,BWtarget,MaxImpSamples,Fc,plotflag )
 %ScouseTom_GetFilterTrim Gets optimal filter parameters and samples to trim
 %   based on SNR tests for different windows
 % from the dexterous exploratory hands of jimmy
 
-%get carrier frequency
-Fc=ScouseTom_data_GetCarrier(Vseg,Fs);
+
+
+
+if  exist('Fc','var') == 0 || isempty(Fc)
+    %get carrier frequency
+    Fc=ScouseTom_data_GetCarrier(Vseg,Fs);
+end
+
+
 
 %get number of samples in segment
 Nsamples=length(Vseg);

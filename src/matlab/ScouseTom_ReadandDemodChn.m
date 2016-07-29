@@ -1,4 +1,4 @@
-function [ VmagOut,PhaseOut,VmagOutSTD,PhaseOutSTD,Vmag ] = ScouseTom_ReadandDemodChn( HDRin,Filt,Trim_demod,InjectionWindows,Protocol,StartInj )
+function [ VmagOut,PhaseOut,VmagOutSTD,PhaseOutSTD,Vmag ] = ScouseTom_ReadandDemodChn( HDRin,Filt,Trim_demod,BaselineCorrection,InjectionWindows,Protocol,StartInj )
 %UNTITLED5 Summary of this function goes here
 %   Detailed explanation goes here
 
@@ -138,7 +138,7 @@ for iBlk=1:BlocksNum
             fprintf('%d',iFreq);
         end
          % filter and demodulate channel
-        [ Vdata_demod,Pdata_demod ] = ScouseTom_data_DemodHilbert( V,Filt{iFreq});
+        [ Vdata_demod,Pdata_demod ] = ScouseTom_data_DemodHilbert( V,Filt{iFreq},InjectionWindows{iFreq}-Start_Sample,BaselineCorrection{iFreq});
         %process each injection window, adjusting for new start time
         [Vmag{iFreq}(:,curChn),PhaseRaw{iFreq}(:,curChn),VmagSTD{iFreq}(:,curChn),PhaseRawSTD{iFreq}(:,curChn)]=ScouseTom_data_getBV(Vdata_demod,Pdata_demod,Trim_demod{iFreq},InjectionWindows{iFreq}-Start_Sample); 
     end

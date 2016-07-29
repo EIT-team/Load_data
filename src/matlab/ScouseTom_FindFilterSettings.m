@@ -1,4 +1,4 @@
-function [ Filt,TrimDemod,Fc ] = ScouseTom_FindFilterSettings( HDRin,curInjectionSwitches,InjElec,BandWidth )
+function [ Filt,TrimDemod,Fc,BaselineCorrection ] = ScouseTom_FindFilterSettings( HDRin,curInjectionSwitches,InjElec,BandWidth )
 %SCOUSETOM_FINDFILTERSETTINGS Summary of this function goes here
 %   Detailed explanation goes here
 
@@ -63,12 +63,13 @@ for iFreq=1:Nfreq
     
     %find carrier frequency and get filter coefficients as well as
     %the amount of data to remove each segment
-    [cur_trim_demod,cur_Filt,cur_Fc]=ScouseTom_data_GetFilterTrim(V(tmpidx),Fs,BandWidth );
+    [cur_trim_demod,cur_Filt,cur_Fc,cur_BaselineCorrection]=ScouseTom_data_GetFilterTrim(V(tmpidx),Fs,BandWidth );
     
-    %make it consistent with multifreq bits, whic are all cells
+    %make it consistent with multifreq bits, which are all cells
     Filt{iFreq}=cur_Filt;
     TrimDemod{iFreq}=cur_trim_demod;
     Fc{iFreq}=cur_Fc;
+    BaselineCorrection{iFreq}=cur_BaselineCorrection;
 end
 
 
