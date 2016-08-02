@@ -1,4 +1,4 @@
-function [ trim_demod,FilterOut,Fc,CorrectionNeededFlag] = ScouseTom_data_GetFilterTrim( Vseg,Fs,BWtarget,MaxImpSamples,Fc,plotflag )
+function [ trim_demod,FilterOut,Fc] = ScouseTom_data_GetFilterTrim( Vseg,Fs,BWtarget,MaxImpSamples,Fc,plotflag )
 %ScouseTom_GetFilterTrim Gets optimal filter parameters and samples to trim
 %   based on SNR tests for different windows
 % from the dexterous exploratory hands of jimmy
@@ -65,8 +65,6 @@ IIRLowPassCutoff = 16;
 UseLowPassIIR=0;
 UseLowPassFIR=0;
 
-
-CorrectionNeededFlag=0;
 
 %the filter takes some time in seconds to decay to ~zero for IIR butterworth filters.
 %This is independent of sampling rate, so we need to have a different max
@@ -197,7 +195,6 @@ if (MaxImpSamples <Samples_needed) || IIRfailed || ForceFIR
     if UseLowPassFIR
         
         disp('Low Pass FIR with Blackman-Harris Window used');
-        CorrectionNeededFlag=1;
     else
         disp('FIR with Blackman-Harris Window used');
         
@@ -215,7 +212,6 @@ else
     
     if UseLowPassIIR
         disp('Low Pass Min Order Butterworth Filter Used');
-        CorrectionNeededFlag=1;
     else
         disp('Min Order Butterworth Filter Used');
     end
@@ -238,6 +234,14 @@ end
 
 if ~gainok
     fprintf(2,'WARNING! GAIN NOT OK AT CARRIER FREQ! Gain : %.6f\n',GainFc);
+end
+
+if UseLowPassFIR || UseLowPassIIR
+    disp('High Pass Min Order Butterworth Filter Used');
+    
+    FilterOut={FilterOut};
+    FilterOut{2}=HighPassIIR(Fc,Fs);
+    
 end
 
 
@@ -371,7 +375,23 @@ end
 
 end
 
+function [d]=HighPassIIR(Fc,Fs)
 
+Fpass = max([(Fc -2.5) 1]);
+Fstop = max([(Fpass -1.5) 0.5]);
+Apass = 0.5;
+Astop =5;
+
+d = designfilt('highpassiir', ...       % Response type
+    'PassbandFrequency',Fpass, ...
+    'StopbandFrequency',Fstop, ...
+    'StopbandAttenuation',Astop, ...   % Magnitude constraints
+    'PassbandRipple',Apass, ...
+    'DesignMethod','butter', ...      % Design method
+    'MatchExactly','passband', ...   % Design method options
+    'SampleRate',Fs)     ;
+
+end
 
 
 

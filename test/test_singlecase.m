@@ -87,18 +87,3 @@ plot(t2,Vd2)
 % plot(Vd8)
 hold off
 % ylim(Amp_Inj + [-1 +1])
-
-
-%%
-% 
-% 
-% HDR=ScouseTom_getHDR('E:\testperchn\bignir\MF_run1.bdf');
-% Trigger= ScouseTom_TrigReadChn(HDR);
-% TT=ScouseTom_TrigProcess(Trigger,HDR);
-% Veeg=sread(HDR,15,0);
-% %%
-% vsig=Veeg(TT.InjectionSwitches{1}(1,1):TT.InjectionSwitches{1}(1,2),:);
-% [ trim_demod,FilterOut,Fc ] = ScouseTom_data_GetFilterTrim( vsig,Fs);
-% 
-% 
-% [ Vdata_demod,Pdata_demod ] = ScouseTom_data_DemodHilbert( vsig,FilterOut);
