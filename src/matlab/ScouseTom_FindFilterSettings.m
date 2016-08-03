@@ -53,9 +53,9 @@ for iFreq=1:Nfreq
     %take either the first injection or the first second
     
     tmp=curInjectionSwitches{iFreq}(1,2)-curInjectionSwitches{iFreq}(1,1);
-%     if tmp > Fs
-%         tmp=Fs; %if the first switch is longer than a second, only take a second
-%     end
+    %     if tmp > Fs
+    %         tmp=Fs; %if the first switch is longer than a second, only take a second
+    %     end
     
     tmpstart=curInjectionSwitches{iFreq}(1,1)-StartSample;
     tmpidx=tmpstart:tmpstart+tmp;

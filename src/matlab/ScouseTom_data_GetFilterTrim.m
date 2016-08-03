@@ -377,8 +377,8 @@ end
 
 function [d]=HighPassIIR(Fc,Fs)
 
-Fpass = max([(Fc -2.5) 1]);
-Fstop = max([(Fpass -1.5) 0.5]);
+Fpass = max([(Fc -10) 1.5]);
+Fstop = max([(Fpass -1.5) 1]);
 Apass = 0.5;
 Astop =5;
 
