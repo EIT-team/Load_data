@@ -22,7 +22,7 @@ end
 Nchn=size(HDR.InChanSelect,1);
 Fs=HDR.SampleRate;
 
-%% Check inputs 
+%% Check inputs
 
 Nfreq=size(InjectionWindows,2);
 Nprt=size(Protocol,1);
@@ -84,7 +84,7 @@ Phase=Vmag;
 
 %% Based on file size, determine how to load data
 MaxMemoryUsage=8e9; %maximum memory usage for larger variables stored during demodulation
-% MaxMemoryUsage=.1e9; %maximum memory usage for V variable in bytes
+% MaxMemoryUsage=.000001e9; %maximum memory usage for V variable in bytes
 
 ChnSize=(Fsize*2.4)/Nchn; %file size in bytes is ~double when stored in matlab as double
 
@@ -94,17 +94,30 @@ MaxChnNum=floor(MaxMemoryUsage/ChnSize); %maximum number of channels this length
 
 %force us to use at least one channel at once, this could still mean you
 %run out of memory later!
-if MaxChnNum < 1
+if MaxChnNum <= 1
     MaxChnNum =1;
+    
 end
-
 BlocksNum=ceil(Nchn/MaxChnNum); %how many blocks do we have to split channels into
 
-Blocks=((1:BlocksNum)+(((1:BlocksNum)-1).*MaxChnNum))'; %starting channel for each block
+Blocks=((1:BlocksNum)).*MaxChnNum; %ending channel for each block
 
-Blocks=[Blocks Blocks+MaxChnNum]; %ending channel is starting plus maxchnnum
+if MaxChnNum == 1
+    
+    
+     Blocks=[Blocks; Blocks]';
+     
+     
+else
+    
+    
+    
+    Blocks=[Blocks-(MaxChnNum-1); Blocks]'; %starting channel is ending minus maxchnnum then adjusted for 1 indexing
+    
+    Blocks(Blocks > Nchn)=Nchn; %to prevent loading channels that dont exist
+end
 
-Blocks(Blocks > Nchn)=Nchn; %to prevent loading channels that dont exist 
+
 
 %% Read and Demod each channel
 
@@ -137,10 +150,10 @@ for iBlk=1:BlocksNum
         else
             fprintf('%d',iFreq);
         end
-         % filter and demodulate channel
+        % filter and demodulate channel
         [ Vdata_demod,Pdata_demod ] = ScouseTom_data_DemodHilbert( V,Filt{iFreq});
         %process each injection window, adjusting for new start time
-        [Vmag{iFreq}(:,curChn),PhaseRaw{iFreq}(:,curChn),VmagSTD{iFreq}(:,curChn),PhaseRawSTD{iFreq}(:,curChn)]=ScouseTom_data_getBV(Vdata_demod,Pdata_demod,Trim_demod{iFreq},InjectionWindows{iFreq}-Start_Sample); 
+        [Vmag{iFreq}(:,curChn),PhaseRaw{iFreq}(:,curChn),VmagSTD{iFreq}(:,curChn),PhaseRawSTD{iFreq}(:,curChn)]=ScouseTom_data_getBV(Vdata_demod,Pdata_demod,Trim_demod{iFreq},InjectionWindows{iFreq}-Start_Sample);
     end
     
     t_el=toc(tstart);
@@ -181,7 +194,7 @@ for iFreq=1:Nfreq
     PhaseOutTmp(:,StartInj(iFreq):(StartInj(iFreq)-1)+Ninj)=Phase{iFreq}';
     VmagOutSTDTmp(:,StartInj(iFreq):(StartInj(iFreq)-1)+Ninj)=VmagSTD{iFreq}';
     PhaseOutSTDTmp(:,StartInj(iFreq):(StartInj(iFreq)-1)+Ninj)=PhaseRawSTD{iFreq}';
-
+    
     %% reshape into correct format
     VmagOut{iFreq}=reshape(VmagOutTmp,Nchn*Nprt,Nrep);
     PhaseOut{iFreq}=reshape(PhaseOutTmp,Nchn*Nprt,Nrep);
