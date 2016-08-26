@@ -92,11 +92,16 @@ ChnSize=ChnSize*4; %this is because we have to store the demod V and Phase for e
 
 MaxChnNum=floor(MaxMemoryUsage/ChnSize); %maximum number of channels this length which could be put into memory
 
+
+LoadSegmentsFlag = 0; %flag to see whether we need to load channel by segment or not
+
 %force us to use at least one channel at once, this could still mean you
 %run out of memory later!
 if MaxChnNum <= 1
     MaxChnNum =1; %need this to be 1 so we actually load a channel
-    LoadSegmentsFlag = 1;
+    LoadSegmentsFlag = 1; %
+    NumSeg = 4; % might need to calc this separately later...
+    fprintf('Loading Single Channel. Processing in %d segments to avoid memory issues.\n', NumSeg);
     
 end
 BlocksNum=ceil(Nchn/MaxChnNum); %how many blocks do we have to split channels into
@@ -106,9 +111,9 @@ Blocks=((1:BlocksNum)).*MaxChnNum; %ending channel for each block
 if MaxChnNum == 1
     
     
-     Blocks=[Blocks; Blocks]';
-     
-     
+    Blocks=[Blocks; Blocks]';
+    
+    
 else
     
     
@@ -143,6 +148,7 @@ for iBlk=1:BlocksNum
     
     V=sread(HDR,StopSec-StartSec,StartSec); %read whole channel
     
+    %%
     %demodulate for each frequency
     for iFreq=1:Nfreq
         %display which freq we are doing
@@ -151,8 +157,44 @@ for iBlk=1:BlocksNum
         else
             fprintf('%d',iFreq);
         end
-        % filter and demodulate channel
-        [ Vdata_demod,Pdata_demod ] = ScouseTom_data_DemodHilbert( V,Filt{iFreq});
+        
+        if LoadSegmentsFlag
+            %split single channel into segments
+            Vdata_demod = nan(size(V));
+            Pdata_demod = nan(size(V));
+            
+            % where we are going to split channel
+            Seg_Samples = [ ceil(1:length(V)/NumSeg:length(V)), length(V)];
+            
+            % we need to add buffers to avoid edge effects from the
+            % filtering
+            
+            BufferSamples = 10*Fs;
+            Seg_Start = [Seg_Samples(1), Seg_Samples(2:end-1) - BufferSamples];
+            Seg_End= [Seg_Samples(2:end-1) + BufferSamples, length(V)];
+            
+            %filter and demodulate per segment
+            for iSeg=1:NumSeg
+                
+                %get filtered hibs from this data segment
+                [Vtmp,Ptmp] = ScouseTom_data_DemodHilbert( V(Seg_Start(iSeg):Seg_End(iSeg)),Filt{iFreq});
+                
+                %find the bit within this segment we want
+                cur_idx_start = max([Seg_Samples(iSeg) - Seg_Start(iSeg)+1, 1]);
+                cur_idx_stop = min([length(Vtmp),cur_idx_start+(Seg_Samples(iSeg+1)-Seg_Samples(iSeg))]);
+                %stick it in the full dataset
+                Vdata_demod(Seg_Samples(iSeg):Seg_Samples(iSeg+1)) = Vtmp(cur_idx_start:cur_idx_stop);
+                Pdata_demod(Seg_Samples(iSeg):Seg_Samples(iSeg+1))  = Ptmp(cur_idx_start:cur_idx_stop);
+            end
+            
+            
+            
+        else
+            
+            % filter and demodulate channels all at once
+            [ Vdata_demod,Pdata_demod ] = ScouseTom_data_DemodHilbert( V,Filt{iFreq});
+            
+        end
         %process each injection window, adjusting for new start time
         [Vmag{iFreq}(:,curChn),PhaseRaw{iFreq}(:,curChn),VmagSTD{iFreq}(:,curChn),PhaseRawSTD{iFreq}(:,curChn)]=ScouseTom_data_getBV(Vdata_demod,Pdata_demod,Trim_demod{iFreq},InjectionWindows{iFreq}-Start_Sample);
     end
