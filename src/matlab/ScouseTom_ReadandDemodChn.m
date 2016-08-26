@@ -95,7 +95,8 @@ MaxChnNum=floor(MaxMemoryUsage/ChnSize); %maximum number of channels this length
 %force us to use at least one channel at once, this could still mean you
 %run out of memory later!
 if MaxChnNum <= 1
-    MaxChnNum =1;
+    MaxChnNum =1; %need this to be 1 so we actually load a channel
+    LoadSegmentsFlag = 1;
     
 end
 BlocksNum=ceil(Nchn/MaxChnNum); %how many blocks do we have to split channels into
