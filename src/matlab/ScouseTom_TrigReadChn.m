@@ -32,8 +32,9 @@ trignum=8; % 8 for BioSemi and ActiChamp
 thres=0.5; % can be so high as data *MUST* be logical 1 and 0
 
 %define min width of pulses - to reject spurious noisey ones
-minpulsemicros=150; % anything less than 150 does not count
-minwidth = floor(((minpulsemicros*10^-6)*Fs)); %rounded to nearest sample
+% minpulsemicros=150; % anything less than 150 does not count
+minpulsemicros = 1; % Set this to one as for some reason some actichamp ID codes are only 1 sometimes!
+minwidth = max([floor(((minpulsemicros*10^-6)*Fs)) 1]); %rounded to nearest sample at least 1
 
 %define max period of INDENTIFICATION pulses at start of file, these are
 %1000us apart
@@ -81,12 +82,12 @@ ID_Codes.DefaultName(end+1:trignum)={''};
 
 
 if exist('TimeToIgnore','var')
-
-rem_idx = (TrigPos/Fs) < TimeToIgnore;
-
-TrigPos(rem_idx) =[];
-StatusChns(rem_idx,:) =[];
-
+    
+    rem_idx = (TrigPos/Fs) < TimeToIgnore;
+    
+    TrigPos(rem_idx) =[];
+    StatusChns(rem_idx,:) =[];
+    
     
     
     
@@ -182,8 +183,8 @@ end
 
 
 
-    
-    
+
+
 
 
 
@@ -292,7 +293,7 @@ end
 
 %% Check if ok and output
 
-%at the moment, if we dont find switch, start and stop *at leas* then
+%at the moment, if we dont find switch, start and stop *at least* then
 if (any(Trigger.ID_Code == ID_Codes.Num(2)) ...
         && any(Trigger.ID_Code == ID_Codes.Num(3)) ...
         && any(Trigger.ID_Code == ID_Codes.Num(4)))
