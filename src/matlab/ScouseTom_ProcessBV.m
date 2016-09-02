@@ -13,7 +13,7 @@ function [BVstruc] = ScouseTom_ProcessBV( HDR,TT,ExpSetup,BW )
 %% Defaults
 
 if exist('BW','var') == 0  || isempty(BW)
-    BW=50; %bandwidth of bandpass filter in demod
+    BW=100; %bandwidth of bandpass filter in demod
 end
 
 %% get some variables from inputs Structures
