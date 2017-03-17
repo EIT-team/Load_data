@@ -1,6 +1,6 @@
 
-% datadir='C:\Users\James\Documents\Test Data\';
-datadir='E:\Load_data_testing\';
+datadir='C:\Users\James\Documents\Test Data\';
+% datadir='E:\Load_data_testing\';
 
 %% load bdfs
 
@@ -118,7 +118,7 @@ end
 try
     BVs=ScouseTom_LoadBV([datadir 'rptest2.eeg']);
 catch err
-    fprintf(2,'error on Multifreq missing both test\n');
+    fprintf(2,'error on Actichamp test 1\n');
     somethingwentwrong=1;
 end
 
@@ -129,7 +129,7 @@ disp('=================================================');
 try
     BVs=ScouseTom_LoadBV([datadir 'rptest3.eeg']);
 catch err
-    fprintf(2,'error on Multifreq missing both test\n');
+    fprintf(2,'error on Actichamp test 2\n');
     somethingwentwrong=1;
 end
 

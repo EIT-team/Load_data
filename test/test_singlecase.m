@@ -1,7 +1,7 @@
-Fcur = 15;
+Fcur = 6000;
 FreqNum = size(Fcur,2);
 
-Cycles = 64;
+Cycles = 2*6000;
 T=(1./Fcur); %Period in s
 InjTime=(T.*Cycles);
 
