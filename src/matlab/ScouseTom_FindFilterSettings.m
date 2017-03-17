@@ -1,4 +1,4 @@
-function [ Filt,TrimDemod,Fc,BaselineCorrection ] = ScouseTom_FindFilterSettings( HDRin,curInjectionSwitches,InjElec,BandWidth )
+function [ Filt,TrimDemod,Fc ] = ScouseTom_FindFilterSettings( HDRin,curInjectionSwitches,InjElec,BandWidth )
 %SCOUSETOM_FINDFILTERSETTINGS Summary of this function goes here
 %   Detailed explanation goes here
 
