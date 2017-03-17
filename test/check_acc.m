@@ -1,4 +1,4 @@
-function [ Amp_error, Phase_error,Vsig,Vsigdemod,Filt,trim_demod] = check_acc( Fc,InjTime,Amp_Inj,Amp_Meas,InjPhase,MeasPhaseDiff,DCoffset,DCoffsetInj, Padsec, Fs)
+function [ Amp_error, Phase_error,Vsig,Vsigdemod,Filt,trim_demod] = check_acc( Fc,InjTime,Amp_Inj,Amp_Meas,InjPhase,MeasPhaseDiff,DCoffset,DCoffsetInj, Padsec, Fs,decimate_factor)
 %UNTITLED Summary of this function goes here
 %   Detailed explanation goes here
 
@@ -23,6 +23,10 @@ end
 
 if exist('Fs','var') == 0 || isempty(Fs)
     Fs=16384;
+end
+
+if exist('decimate_factor','var') == 0 || isempty(decimate_factor)
+    decimate_factor=0;
 end
 
 
@@ -57,6 +61,7 @@ v_m= Amp_Meas*sin(2*pi*Fc*t+(pi*MeasPhase/180))+DCoffset;
 % change amplitude
 v_i=Amp_Inj*sin(2*pi*Fc*t+(pi*InjPhase/180))+DCoffsetInj;
 
+
 %%
 V=repmat(v_m,chn,1);
 
@@ -64,6 +69,19 @@ V(inj(1),:) = v_i;
 V(inj(2),:) = v_i;
 
 V=V';
+
+%% decimate now if we want to
+
+if decimate_factor
+    for iChn = 1 :size(V,2)
+        Vtmp(:,iChn) = decimate(V(:,iChn),decimate_factor);
+    end
+    Fs=Fs/decimate_factor;
+    V=Vtmp;
+end
+
+%%
+
 
 %pad with a second of data either side, so the hilbert is more realistic
 datastart = round(Padsec*Fs);
@@ -73,6 +91,7 @@ V(1:datastart,:)=V(1:datastart,:)*0.1;
 V(dataend:end,:)=V(dataend:end,:)*0.1;
 
 InjectionWindows =[datastart dataend];
+
 
 %%
 %find the corresponding filter settings
