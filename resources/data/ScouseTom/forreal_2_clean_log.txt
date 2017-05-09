@@ -1,0 +1,96 @@
+##################################
+Log file for EIT with ScouseTom system
+Date and time this file was created : 25-Sep-2015 15:51:17
+Description of this ExpSetup file : Test on resistor phantom
+ExpSetup created : 25-Sep-2015 15:08:58
+The EEG system file stored was : C:\Users\Administrator\Desktop\TestData\forreal_2_clean.bdf
+The PC name was : PC-
+The Username was : Administrator
+--------------
+System in "SingleFreqMode" - single amp and freq, running continuously
+Amplitude: 141 uA
+Frequency: 1000 Hz
+Protocol loaded was DE16_protocol_NirCH3.txt with 34 lines 
+Sources	Sinks
+6	1
+7	2
+11	6
+11	7
+10	6
+7	3
+7	1
+6	2
+14	1
+10	5
+14	2
+5	1
+8	3
+8	2
+8	4
+9	4
+9	5
+10	4
+14	10
+14	11
+9	3
+8	5
+15	3
+16	4
+12	9
+15	11
+16	12
+15	12
+16	13
+15	13
+12	7
+13	1
+13	10
+16	6
+--------------
+Number of repeats : 20 
+Injection time per protocol line : 74 ms or 0.07 s
+Estimated time to complete measurements : 50.32 sec 
+--------------
+##################################
+Codes for info from arduino: 
+R	Current Repeat
+P	Current Protocol Line
+O	frequency order (multifreqmode)
+D	phases (stim mode)
+Codes for commmands sent to arduino: 
+S	Start
+H	Stop
+I	Initialise
+##
+Time	Arduino Message	PC Message
+6.02s		Starting Injection
+6.02s	S	
+6.23s	+OK	
+6.23s		Comm ok, everything ready to go
+6.23s	+OK	
+6.23s		EIT STARTING
+6.36s	R1	
+8.70s	R2	
+8.73s	C3,0,0,0,0,0,0,0	
+11.20s	R3	
+13.74s	R4	
+16.25s	R5	
+18.76s	R6	
+21.27s	R7	
+23.80s	R8	
+26.31s	R9	
+28.83s	R10	
+31.34s	R11	
+33.87s	R12	
+36.38s	R13	
+38.89s	R14	
+41.42s	R15	
+43.93s	R16	
+46.44s	R17	
+48.96s	R18	
+51.47s	R19	
+54.00s	R20	
+56.51s	+Fin	
+56.51s		Finished! :)
+56.52s		H
+56.52s		Injection Finished!
