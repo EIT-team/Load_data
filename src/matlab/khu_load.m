@@ -1,5 +1,5 @@
-function [BV,KHU]=KHU_load(clean_flag,plot_flag)
-%Imports data collected from KHU EIT mk2.5
+function [BV,KHU]=KHU_load(dirname,clean_flag,plot_flag)
+%[BV,KHU]=KHU_load(clean_flag,plot_flag) Imports data collected from KHU EIT mk2.5
 %User points to the folder which contains the 1Scan.txt etc. files. Info
 %regarding the injection channels, gain, frequency, current etc. is read
 %from ProjectionTableSendLog.txt and EITScanSettings.txt if they exist. If
@@ -29,28 +29,36 @@ function [BV,KHU]=KHU_load(clean_flag,plot_flag)
 % Hopefully the last version (ha! at least until someone does something non pairwise inject)
 %
 % Copes with Mixed injections properly now
-% 
+%
 % by the pulchritudinous Jimmy 2013/14/15
 
+%% user chooses directory
 
-if exist('clean_flag','var') ==0
+if exist('dirname','var') ==0 || isempty(dirname)
+    
+    dirname=uigetdir(pwd,'Pick the directory where the data is located');
+    if isempty(dirname)
+        error('User Pressed Cancel');
+    end
+    
+end
+
+%% Check flags
+
+if exist('clean_flag','var') ==0 || isempty(clean_flag)
     disp('no cleaning flag given. cleaning anyway');
     clean_flag=1;
 end
 
-if exist('plot_flag','var') ==0
+if exist('plot_flag','var') ==0 || isempty(plot_flag)
     disp('no plot flag given. plotting anyway');
     plot_flag=1;
 end
 
-%% user chooses directory
-dirname=uigetdir('D:\KHUDATA','Pick the directory where the data is located');
-if isempty(dirname)
-    error('User Pressed Cancel');
-end
-
-
 %% find the scans in the folder
+
+disp(['Loading KHU data in ', fullfile(dirname)])
+
 
 files=dir([dirname filesep '*Scan.txt']);
 
@@ -298,7 +306,7 @@ for iScan=1:numfile
     %Voltages
     X(:,iScan)=X_raw(:,iScan).*sf;
     R(:,iScan)=R_raw(:,iScan).*sf;
-    Z(:,iScan)=sqrt(R(:,iScan).^2+X(:,iScan).^2); 
+    Z(:,iScan)=sqrt(R(:,iScan).^2+X(:,iScan).^2);
 end
 %% process all that stuff
 

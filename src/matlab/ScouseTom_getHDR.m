@@ -2,7 +2,7 @@ function [ HDR ] = ScouseTom_getHDR( varargin )
 %SCOUSETOM_GETBDFHDR Summary of this function goes here
 %   Detailed explanation goes here
 
-MinFileSize=10e6; %Minimum file size in bytes
+MinFileSize=1e6; %Minimum file size in bytes
 
 %% Ask user for file if not given
 %prompt user if no inputs
