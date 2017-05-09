@@ -2,8 +2,8 @@
 Software to load EIT data from the three systems into Matlab
 
 -   [ScouseTom](https://github.com/EIT-team/ScouseTom) - Developed in UCL lab, and the focus of this repository. Based around a Keithley 6221 current source and EEG recording system. This system is open source and further details are given in [this repo](https://github.com/EIT-team/ScouseTom)
--   [KHU Mk 2.5](http://www.iirc.khu.kr) - Multi-Frequency EIT system. Helpful software for using this system can be found [here](https://github.com/Jimbles/KHU-UCL-EIT)
--   [SwissTom](http://www.swisstom.ag) - Specifically the Pioneer set
+-   [KHU Mk 2.5](http://iirc.khu.ac.kr/) - Multi-Frequency EIT system. Helpful software for using this system can be found [here](https://github.com/Jimbles/KHU-UCL-EIT)
+-   [SwissTom](http://www.swisstom.com/) - Specifically the Pioneer set
 
 # Using this repository
 
