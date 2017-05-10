@@ -11,11 +11,8 @@ cd(homedir);
 
 addpath(genpath([pwd filesep 'src' filesep 'matlab']));
 
-%  addpath(Load_data_dir);
-
-
 %% 
 
-savepath
+%savepath
 
 disp('Load data path set ok');
