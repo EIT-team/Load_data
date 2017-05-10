@@ -25,4 +25,4 @@ system may require some extra input from the user if they are some information m
 
 # Example Datasets
 
-Small datasets for all three systems can be found [here](./resources/data) which example processing code found [here](./examples)
+Small datasets for all three systems can be found [here](./resources/data) which example processing code found [here](./example)
