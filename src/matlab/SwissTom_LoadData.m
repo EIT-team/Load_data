@@ -1,4 +1,4 @@
-function [ V, STout,SwissTom_raw] = SwissTom_LoadData( fname,rem_flag,sat_flag,plot_flag )
+function [ STout,SwissTom_raw] = SwissTom_LoadData( fname,rem_flag,sat_flag,plot_flag )
 %loads data from swisstom .eit file into UCL/view_data format. Extra output
 %is the raw output of the swisstom loader. you know, for safe keeping
 %   loads eit data set from swisstom system, saves in .mat
@@ -15,7 +15,6 @@ function [ V, STout,SwissTom_raw] = SwissTom_LoadData( fname,rem_flag,sat_flag,p
 % Clean flag - 1 to remove injection channels otherwise 0
 % Plot flag - 1 to plot data after loading otherwise 0
 % outputs: -
-% UCL  -structure with all of the variables needed for the UCL  reconstruction
 % STout - the converted values in V R X Z Theta
 % SwissTom_raw - raw output from swisstom loader
 % Voltages - this is just the matrix containing the voltages magnitudes - THIS
@@ -23,8 +22,7 @@ function [ V, STout,SwissTom_raw] = SwissTom_LoadData( fname,rem_flag,sat_flag,p
 %
 %files stored:
 % fname-protocol.prt - protocol file generated from settings in eit file
-% fname-UCL.mat - data in archacic UCL format
-% fname-ZZ.mat - averaged boundary voltages only for Zhou Zhous gui
+% fname-SWISSTOMDATA - Structure with all the data in it
 %
 % June 2014 version - with separate input flags and updated conversion to
 % volts
@@ -45,8 +43,7 @@ else
 end
 
 
-if load_flag ==1;
-    
+if load_flag ==1
     
     [filename, pathname] = uigetfile('*.eit', 'Choose which SwissTom file to load');
     if isequal(filename,0) || isequal(pathname,0)
@@ -57,10 +54,6 @@ if load_flag ==1;
     
     fname =fullfile(pathname,filename);
 end
-
-
-
-
 
 disp('Loading SwissTom file');
 %read data using swisstom matlab function
@@ -79,17 +72,10 @@ fprintf('Number of frames/repeats/scans : %d which took %.2f seconds\r',N_frames
 fprintf('Number of electrodes: %d IF THIS ISNT 32 THEN SOMETHINGS WRONG \r',N_elec);
 disp('---------------------------------');
 
-
 disp('Now lets crack on...');
-
-
 
 %get just the filename and path from this
 [pathstr, namestr]=fileparts(fname);
-
-
-
-
 
 %% voltage measurments - "frames"
 
@@ -108,7 +94,6 @@ if exist('rem_flag','var') ==0
     if strcmp(rem_ans,'Yes, that seems entirely sensible') == 1
         disp('Getting rid of the voltages recorded on injection channels');
         rem_flag=1;
-        
         
         disp('Writing new protocol file with injection measurements removed');
         
@@ -185,25 +170,12 @@ STout.BV_full=(STout.raw.v);
 STout.BV=(STout.raw.v(keep_idx,:));
 STout.prt_full=SwissTomProtocol;
 STout.prt=SwissTomProtocol(keep_idx,:);
-
-
-% save(fullfile(pathstr,[namestr,'-UCL.mat']),'data','freq_list','experiment','uncaldata','correction_factors','STout');
 disp('All done!');
 
 
 %% save dat shit
 save(fullfile(pathstr,[namestr,'-SWISSTOMDATA.mat']),'-struct','STout');
 
-
-
-
-%% save only BV mean for Zhous HUI GUI
-
-%save the voltages in the format for Zhous gui
-Voltages=STout.BV;
-
-V=mean(Voltages,2);
-save(fullfile(pathstr,[namestr,'-ZZ.mat']),'V');
 %% Plot data
 
 if exist('plot_flag','var') ==0
@@ -216,13 +188,13 @@ if exist('plot_flag','var') ==0
         plot_flag =0;
     end
     
-    
 end
 
 
 if plot_flag == 1
     
     disp('Rendering data and outputting to pixel buffer for human fuzzy logic occular assessment');
+    Voltages=STout.BV;
     
     figure;
     plot(mean(abs(Voltages),2))
@@ -264,8 +236,7 @@ end
 
 function [out]=IQtoVZ(SwissTom_raw)
 % this is the new conversion to voltage and ohms based on the pseudocode
-% from peter krammer. not sure where these values come from but lets just
-% assume they are correct...
+% from peter krammer. 
 
 %pga gains
 pga0gains = [1 2 5 10];
@@ -319,7 +290,6 @@ if any(sat,2)
     disp(['Warning! ' num2str(nnz(sat)) ' saturated channels found :(']);
 end
 
-
 %get the phase of the voltage
 theta=atan(IQ.Q./IQ.I)*phasefactor;
 
@@ -328,8 +298,6 @@ R=v.*cos(theta);
 X=v.*sin(theta);
 
 %calculate contact impedance
-
-
 z = sqrt(IQ.IZ.^2 + IQ.QZ.^2)*impedancefactor;
 
 out.raw.v=v';
@@ -345,97 +313,6 @@ out.raw.factors.IQtoRawV=ad_factor;
 out.raw.factors.RawVtoActualV=amplitudefactor;
 
 end
-
-
-
-
-
-%
-% function [out]=IQtoVZold(SwissTom_raw)
-%
-% %THIS FUNCTION IS FOR THE OLD SWISSTOM SYSTEM
-%
-% %this is the function to convert I and Q demodulated values into
-% %voltages and contact impedance. this is the code written by
-% %andreas waldmann of swisstom as I left it to him to decipher how
-% %to convert it. notice however, that half of these variables arent
-% %even stored in the eit file. so how are you to know how to convert
-% %the data? are we the first to ask for it in volts? AM I TAKING
-% %CRAZY PILLS?
-%
-% %
-% %variables that mostly are not stored in the eit file nor mentioned
-% %in the technical manual but buried deep in the java code
-% %
-%
-% data from STEM
-% ADC_REV_VOLTAGE = 2.048;
-% floatpointBitPos = 28;
-% dac0NumberOfSamples = SwissTom_raw.sbc.nsmp;
-% MEASUREMENT_AGAINST_GND = 2;
-% DAC1_ANALOG_GAIN = 0.2;
-% PEAK_TO_PEAK = 2;
-% RESISTOR_R53 = 390;
-% DAC_REF_Voltage = 4.1 ;
-% DAC_MAX_GAIN = 256;
-% CURRENT_CORRECTION = 1.08;
-% dac1NumberOfSamples = SwissTom_raw.sbc.nsmp;
-% % Gain described in List of Parameters (SBC Communication Protocol)
-% GAIN0 = [1 2 5 10];
-% GAIN1 = [1, 10, 20, 30, 40, 60, 80, 120, 157, 0.2];
-% % calculate over all gain / add one because matlab index do not start at
-% % zero
-% dac0AnalogGain = GAIN0(SwissTom_raw.sbc.pga0_g+1)*GAIN1(SwissTom_raw.sbc.pga1_g+1);
-%
-% %
-% % multiplication factors based on the above values
-% %
-%
-% % Voltage amplitude factor - Analogous to the java code
-% amplitudeFactor = ADC_REV_VOLTAGE/((2^floatpointBitPos)*dac0NumberOfSamples*dac0AnalogGain);
-% iq_factor = dac0NumberOfSamples /  4^(floor(log(dac0NumberOfSamples)/log(4)));
-% ampFactor = 1000*amplitudeFactor/iq_factor; %added the 1000 as ST was converting to volts instead
-%
-% % Impedance factor - Analog to the java code
-% current = SwissTom_raw.sbc.dac_gain*DAC_REF_Voltage/(DAC_MAX_GAIN*RESISTOR_R53*CURRENT_CORRECTION);
-% impedanceFactor = ADC_REV_VOLTAGE*MEASUREMENT_AGAINST_GND/((2^floatpointBitPos)*DAC1_ANALOG_GAIN*current/PEAK_TO_PEAK);
-% impFactor = impedanceFactor/iq_factor;
-% phasefactor=180/pi;
-
-% %
-% %load data from frames and then convert into V and Z
-%
-% for ii = 1:length(SwissTom_raw.frames)
-%     IQ.I(ii,:) = SwissTom_raw.frames(ii).iqPayload(1:2:end);
-%     IQ.Q(ii,:) = SwissTom_raw.frames(ii).iqPayload(2:2:end);
-%     IQ.IZ(ii,:) = SwissTom_raw.frames(ii).voltageInjectionPayload(1:2:end);
-%     IQ.QZ(ii,:) = SwissTom_raw.frames(ii).voltageInjectionPayload(2:2:end);
-% end
-%
-% %get the magintude of the voltage
-% v =  sqrt(IQ.I.^2 + IQ.Q.^2)*ampFactor;
-%
-% %get the phase of the voltage
-% theta=atan(IQ.Q./IQ.I)*phasefactor;
-%
-% %convert into real and imaginary components
-% R=v.*cos(theta);
-% X=v.*sin(theta);
-%
-% %calculate contact impedance
-%
-%
-% z = sqrt(IQ.IZ.^2 + IQ.QZ.^2)*impFactor;
-%
-% out.v=v;
-% out.z=z;
-% out.R=R;
-% out.X=X;
-% out.theta=theta;
-%
-%
-%
-% end
 
 
 function [ SwissTomProtocolFull, rem_idx,keep_idx ] = SwissTom_MakeProtocol( offsetvalue,removeflag,varargin )
@@ -486,8 +363,6 @@ else
     fname=varargin{1};
 end
 
-
-
 %% make dat protocol motherfucker!!!
 
 %injection pairs
@@ -533,9 +408,6 @@ else
     
 end
 
-
-
-
 %% write data protocol!!!
 
 %write them to a file with header
@@ -550,16 +422,6 @@ end
 fclose(fid);
 
 
-
-
-
-
-
 end
-
-
-
-
-
 
 

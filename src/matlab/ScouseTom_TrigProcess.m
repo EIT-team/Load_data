@@ -17,7 +17,26 @@ function [ TT  ] = ScouseTom_TrigProcess( Trigger,HDR )
 %sample rate
 Fs=HDR.SampleRate;
 %number of samples in file
-N_samples=HDR.NRec*Fs;
+
+
+% AboveThres=[ AboveThres(1,:); AboveThres; AboveThres(end,:);]; % pad array (for diff below)
+switch HDR.TYPE
+    case 'BDF' % biosemi file
+        
+        N_samples=HDR.NRec*Fs;
+        
+        
+    case 'BrainVision'
+        N_samples=HDR.SPR;
+        
+    otherwise
+        error('Bad HDR');
+end
+
+
+
+
+
 
 %look for events only on the current channel - chn 0
 
