@@ -8,10 +8,12 @@ function [dV_signal, t_signal,V_signal,V_baseline,P_signal ,P_baseline,Vmax] = P
 P_signal =0;
 P_baseline =0;
 
+InjsSim=sort(InjsSim,2);
+Ninj=size(InjsSim,1);
+
 if exist('plotflag','var') == 0
     plotflag = 1;
 end
-
 
 HDR=ScouseTom_getHDR(fname);
 
@@ -25,8 +27,8 @@ Trig_gaps = [ round( diff(TrigPos))];
 
 if isempty(BaselineWindow)
     %if not specified use the first big gap in the triggers
-    BaselineWindow(1) = TrigPos(find (Trig_gaps > 1, 1));
-    BaselineWindow(2) = TrigPos(find (Trig_gaps > 1, 1)+1);
+    BaselineWindow(1) = floor(TrigPos(find (Trig_gaps > 1, 1)));
+    BaselineWindow(2) = ceil(TrigPos(find (Trig_gaps > 1, 1)+1));
     
     fprintf('Taking baseline between %.1f and %.1f s\n',BaselineWindow(1),BaselineWindow(2));
     
@@ -34,8 +36,8 @@ end
 
 if isempty(SignalWindow)
     %if not specified use the first big gap in the triggers
-    SignalWindow(1) = TrigPos(find (Trig_gaps > 1, 1,'last'));
-    SignalWindow(2) = TrigPos(find (Trig_gaps > 1, 1,'last')+1);
+    SignalWindow(1) = floor(TrigPos(find (Trig_gaps > 1, 1,'last')));
+    SignalWindow(2) = ceil(TrigPos(find (Trig_gaps > 1, 1,'last')+1));
     fprintf('Taking signal between %.1f and %.1f s\n',SignalWindow(1),SignalWindow(2));
 end
 
@@ -44,11 +46,85 @@ end
 StartSec=max([min([BaselineWindow SignalWindow])-1 0]);
 StopSec=max([BaselineWindow SignalWindow])+1;
 
+
+
+%% EIT Filter Bandwidth and Decimation factors
+
+% sample rate we want out based on time steps
+Fs_target=1/TimeStep;
+
+% filter bandwidth this corresponds to during demodulation
+BW = 2 * Fs_target;
+
+decimation_factor =Fs/Fs_target;
+
+% find the decimation factors
+if decimation_factor > 13
+        
+    facs= factor(decimation_factor);
+    
+    if any(facs > 13)
+        error('Too large prime factor! Adjust so all are smaller than 13');
+    end
+    
+    % find some way of reducing these
+   %% 
+    next_div=inf;
+    
+    decimation_factor_vec=[1];
+    
+    vec_cnt=1;
+    
+    while next_div > 1
+        cur_divisors=divisors(decimation_factor/(prod([decimation_factor_vec])));
+        
+        next_div=cur_divisors(find(cur_divisors < 12,1,'last'));
+        
+        if next_div > 1
+            decimation_factor_vec(vec_cnt)=next_div;
+            vec_cnt=vec_cnt+1;
+        end
+        
+        
+    end
+ %%   
+    
+    
+%     decimation_factor_vec = facs;
+    
+    
+else
+    
+    decimation_factor_vec = decimation_factor;
+end
+
+
+
+%% EEG filters
+
+lpFilt = designfilt('lowpassiir', ...       % Response type
+    'PassbandFrequency',35, ...
+    'StopbandFrequency',100, ...
+    'StopbandAttenuation',120, ...   % Magnitude constraints
+    'PassbandRipple',0.1, ...
+    'DesignMethod','butter', ...      % Design method
+    'MatchExactly','passband', ...   % Design method options
+    'SampleRate',Fs)     ;          % Sample rate
+
+hpFilt = designfilt('highpassiir', ...
+    'PassbandFrequency',2, ...
+    'PassbandRipple',1, ...
+    'StopbandFrequency',0.1, ...
+    'StopbandAttenuation',30, ...   % Magnitude constraints
+    'DesignMethod','butter', ...      % Design method
+    'MatchExactly','stopband', ...   % Design method options
+    'SampleRate',Fs);
+
+
+
+%% Load the data
 disp('loading data');
 V=sread(HDR,StopSec-StartSec,StartSec);
-
-ChnNum=size(V,2);
-
 
 Vmax= max(V);
 
@@ -62,22 +138,27 @@ if plotflag
     drawnow
 end
 
-t=(0:length(V)-1)/Fs;
+%t=(0:length(V)-1)/Fs;
+Nsamples=size(V,1);
 
 %% Time chunks
 baseline_wind=BaselineWindow-StartSec;
 signal_wind=SignalWindow-StartSec;
 
+%%
+Fs_dec=Fs/decimation_factor;
+EEG_data=zeros(Nsamples/decimation_factor,Nchn);
 
-%% Filter Bandwidth
 
-BW=1/TimeStep;
+EIT_data_V=zeros(Nsamples/decimation_factor,Nchn*Ninj);
+EIT_data_P=zeros(Nsamples/decimation_factor,Nchn*Ninj);
+
 
 %% Find injection electrodes and freqs
 
 if exist('F','var') == 0
     
-    [InjsExp, Freqs] = Find_Injection_Freqs_And_Elecs(V(t<1,:),Fs);
+    [InjsExp, Freqs] = Find_Injection_Freqs_And_Elecs(V(1:Fs,:),Fs);
     
     %make sure they are in the same order
     InjsExp=sort(InjsExp,2);
@@ -91,56 +172,103 @@ end
 
 nFreq=length(F);
 
-%% Demodulate each channel after notch filtering out the other frequencies
-Vfull=zeros(size(V,1),size(V,2)*nFreq);
-% Pfull=zeros(size(Vfull));
+%% Filtering Settings
 
-for iFreq=1:length(F);
-    fprintf('Processing Freq : %d of %d\n',iFreq,length(F));
-    cFreq=F(iFreq);
+% find carrier frequencies and then find filter settings for this
+
+for iInj = 1:Ninj
     
-    otherfreqs=F;
-    otherfreqs(iFreq)=[];
+    %     HDR=sopen(fname,'r',[Inj_chn_corrected(iInj)],['OVERFLOWDETECTION:OFF']);
+    %     fprintf('Loading data for chn %d...',iInj);
+    %     V=sread(HDR,2,EIT_start_time+5);
     
-    Vf=V;
+    %     [ Fc ] = ScouseTom_data_GetCarrier( V,Fs );
     
-    for inotfreq =1:nFreq-1;
-        
-        [Bn,An] = butter(2,(otherfreqs(inotfreq)+[-5,5])./(Fs/2),'stop');
-        
-        for iChn = 1:ChnNum
-            Vf(:,iChn)=filtfilt(Bn,An,Vf(:,iChn));
+    [cur_trim_demod,cur_Filt,cur_Fc]=ScouseTom_data_GetFilterTrim(V(1:Fs,InjsSim(iInj,1)),Fs,BW,0.03*length(V));
+    
+    %make it consistent with multifreq bits, which are all cells
+    Filt{iInj}=cur_Filt;
+    TrimDemod{iInj}=cur_trim_demod;
+    Fc{iInj}=cur_Fc;
+    
+end
+
+%% do EEG Stuff
+
+fprintf('Doing EEG processing...');
+Data_eeg_filt = filtfilt(hpFilt,V);
+Data_eeg_filt = filtfilt(lpFilt,Data_eeg_filt);
+
+fprintf('Decimating...');
+for iChn = 1:Nchn
+    Vtmp=Data_eeg_filt(:,iChn);
+    for iDec = 1:length(decimation_factor_vec)
+        Vtmp=decimate(Vtmp,decimation_factor_vec(iDec));
+    end
+    EEG_data(:,iChn)=Vtmp;
+end
+fprintf('done\n');
+
+
+% clear Data_eeg_filt
+%% Do EIT stuff
+
+fprintf('Doing EIT processing...');
+
+for iFreq = 1:Ninj
+    fprintf('%d,',iFreq);
+    
+    % do the actual demodulation
+    [Vdemod,Pdemod]=ScouseTom_data_DemodHilbert(V,Filt{iFreq},TrimDemod{iFreq});
+    
+    % decimate the voltage and phase signals
+
+    for iChn = 1:Nchn
+        Vtmp=Vdemod(:,iChn);
+        Ptmp=Pdemod(:,iChn);
+        for iDec = 1:length(decimation_factor_vec)
+            Vtmp=decimate(Vtmp,decimation_factor_vec(iDec),100,'fir');
+            Ptmp=decimate(Ptmp,decimation_factor_vec(iDec),100,'fir');
         end
-    end
-    
-    
-    %notch filter out carriers of other freqs
-    
-    %band pass filter for demodulation
-    [Bdemod,Ademod] = butter(3,(cFreq+[-BW,BW])./(Fs/2));
-    
-    
-    for iChn = 1:ChnNum
         
-        [Vdemod(:,iChn),Pdemod(:,iChn)]=ScouseTom_data_DemodHilbert(Vf(:,iChn),Bdemod,Ademod);
-        [Vdemod(:,iChn)]=ScouseTom_data_DemodHilbert(Vf(:,iChn),Bdemod,Ademod);
+        % put this channel at this freq in the correct order
+        vidx=(iFreq-1)*Nchn + iChn;
+        EIT_data_V(:,vidx)=Vtmp;
+        EIT_data_P(:,vidx)=Ptmp;
     end
     
+end
+
+fprintf('done\n');
+
+t=(0:length(V)-1)/Fs;
+t_1=(0:(length(V))/decimation_factor-1)/Fs_dec;
+
+
+%% Correct for ActiChamp Gain
+
+% AC gain
+AC=load('Freq_AC.mat');
+ff=20:20000;
+BVdiffFine=spline(AC.F,AC.BVdiff_per_mean,ff); %interpolate data to more freqs
+AC_correction=((100-BVdiffFine)/100);
+
+
+for iFreq = 1:Ninj
+    G1=AC_correction(round(Fc{iFreq}));
     
     vidx=(iFreq-1)*Nchn + 1:(iFreq)*Nchn;
     
-    Vfull(:,vidx)=Vdemod;
-%     Pfull(:,vidx)=Pdemod;
+    EIT_data_V(:,vidx)=EIT_data_V(:,vidx)*G1;
+    
 end
 
-%put into volts
-Vfull=Vfull*1e-6;
 
 %% plot data here
 if plotflag
     figure;
     hold on
-    h1=plot(StartSec+t,Vfull);
+    h1=plot(StartSec+t_1,EIT_data_V);
     h2=plot(StartSec+[baseline_wind(1) baseline_wind(1)],ylim,'k--','DisplayName','BaselineWindow');
     h3=plot(StartSec+[baseline_wind(2) baseline_wind(2)],ylim,'k--');
     h4=plot(StartSec+[signal_wind(1) signal_wind(1)],ylim,'r:','DisplayName','SignalWindow');
@@ -151,90 +279,31 @@ if plotflag
     drawnow
 end
 
-%% bin data into timesteps to reduce file size
-
-tbins=0:Fs*(TimeStep):length(Vfull)-1;
-
-%put data into bins
-[binc,binind]=histc(0:length(Vfull)-1,tbins);
-binind(binind ==0)=max(binind+1);
-
-Vbin=zeros(size(tbins,2),size(Vfull,2));
-% Pbin= zeros(size(Vbin));
-
-for ichn=1:size(Vfull,2)
-    tmp=accumarray(binind',Vfull(:,ichn),[],@mean);
-    Vbin(:,ichn)=tmp(1:size(tbins,2));
-%     tmp=accumarray(binind',Pfull(:,ichn),[],@mean);
-%     Pbin(:,ichn)=tmp(1:size(tbins,2));
-end
-
-tbin=(0:length(tbins)-1).*TimeStep;
-
-%change to volts
-% Vbin=Vbin*1.e-6;
-%take lazy way of finding sign
-Vbin=Vbin.*repmat(sign(BV0'),size(Vbin,1),1);
-
-%%
-if plotflag
-    figure;
-    hold on
-    h1=plot(StartSec+tbin,Vbin);
-    h2=plot(StartSec+[baseline_wind(1) baseline_wind(1)],ylim,'k--','DisplayName','BaselineWindow');
-    h3=plot(StartSec+[baseline_wind(2) baseline_wind(2)],ylim,'k--');
-    h4=plot(StartSec+[signal_wind(1) signal_wind(1)],ylim,'r:','DisplayName','SignalWindow');
-    h5=plot(StartSec+[signal_wind(2) signal_wind(2)],ylim,'r:');
-    hold off
-    legend([h2 h4])
-    title('Binned and signed signal')
-    drawnow
-end
 
 %% take chunks
 
-V_baseline=mean(Vbin(tbin > baseline_wind(1) & tbin < baseline_wind(2),:));
+V_baseline=mean(EIT_data_V(t_1 > baseline_wind(1) & t_1 < baseline_wind(2),:));
 % P_baseline=mean(Pbin(tbin > baseline_wind(1) & tbin < baseline_wind(2),:));
 
-signal_idx=tbin > signal_wind(1) & tbin < signal_wind(2);
+signal_idx=t_1 > signal_wind(1) & t_1 < signal_wind(2);
 
-V_signal=Vbin(signal_idx,:);
-% P_signal=Pbin(signal_idx,:);
+V_signal=EIT_data_V(signal_idx,:);
+P_signal=EIT_data_P(signal_idx,:);
 
 t_signal=(0:size(signal_idx)-1)/Fs;
 
 %% change in voltage
 
-dV_full=(Vbin-repmat(V_baseline,size(Vbin,1),1));
+dV_full=(EIT_data_V) - V_baseline;
 dV_signal=dV_full(signal_idx,:);
-
-%% filtering comparison
-
-[maxval, maxchn]=max(max(dV_signal));
-
-if plotflag
-    figure;
-    hold on
-    h1=plot(StartSec+tbin,abs(Vbin(:,maxchn)));
-    h2=plot(StartSec+t,abs(Vfull(:,maxchn)));
-    % h2=plot([baseline_wind(1) baseline_wind(1)],ylim,'k--','DisplayName','BaselineWindow');
-    % h3=plot([baseline_wind(2) baseline_wind(2)],ylim,'k--');
-    % h4=plot([signal_wind(1) signal_wind(1)],ylim,'r:','DisplayName','SignalWindow');
-    % h5=plot([signal_wind(2) signal_wind(2)],ylim,'r:');
-    hold off
-    % legend([h2 h4])
-    title('signal comparison on chn with max dV')
-    ylim((maxval*[-1 1])+abs(V_baseline(maxchn)))
-    drawnow
-end
 
 
 %% plot final dV
 if plotflag
     figure
     hold on
-    h1=plot(StartSec+tbin,dV_full);
-    ylim(maxval*[-1 1])
+    h1=plot(StartSec+t_1,dV_full);
+%     ylim(maxval*[-1 1])
     h2=plot(StartSec+[baseline_wind(1) baseline_wind(1)],ylim,'k--','DisplayName','BaselineWindow');
     h3=plot(StartSec+[baseline_wind(2) baseline_wind(2)],ylim,'k--');
     h4=plot(StartSec+[signal_wind(1) signal_wind(1)],ylim,'r:','DisplayName','SignalWindow');
