@@ -16,10 +16,8 @@ function [ TT  ] = ScouseTom_TrigProcess( Trigger,HDR )
 
 %sample rate
 Fs=HDR.SampleRate;
-%number of samples in file
 
 
-% AboveThres=[ AboveThres(1,:); AboveThres; AboveThres(end,:);]; % pad array (for diff below)
 switch HDR.TYPE
     case 'BDF' % biosemi file
         
@@ -32,13 +30,6 @@ switch HDR.TYPE
     otherwise
         error('Bad HDR');
 end
-
-
-
-
-
-
-%look for events only on the current channel - chn 0
 
 %%
 %define max period of INDENTIFICATION pulses at start of file, these are
@@ -128,7 +119,6 @@ TotInj=length(InjectionStarts);
 
 fprintf('%d Injection starts and %d Contact starts found\n',NumInj,NumContact);
 
-
 %% Process Each Injection
 
 %for now treat each injection the same
@@ -145,7 +135,7 @@ FreqStops=InjectionSwitchesIN;
 %% loop through each injection start and process the switches inside
 for iInj=1:TotInj
     curStart=InjectionStarts(iInj); %current start
-    curEnd= InjectionStops(find(InjectionStops > InjectionStarts,1,'First')); %find first stop after current start
+    curEnd= InjectionStops(find(InjectionStops > InjectionStarts(iInj),1,'First')); %find first stop after current start
     
     if isempty(curEnd) %if we didnt find any then fake one at end of file
         curEnd=N_samples -1;
@@ -181,7 +171,7 @@ for iInj=1:TotInj
     
     if isempty(FreqChanges{iInj})
         %if single frequency, then the windows come directly from
-        %INjectionSwitches
+        %InjectionSwitches
         InjectionSwitches{iInj}=[InjectionSwitchesIN{iInj}, [InjectionSwitchesIN{iInj}(2:end); InjectionStops(iInj)]];
         
     else
