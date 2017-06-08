@@ -393,12 +393,12 @@ if (any(Trigger.ID_Code == ID_Codes.Num(2)) ...
     
 else
     
-    if ~SkipIDCodes
+    if ~SkipIDCodes && ~IdentifyChannels
         fprintf(2,'STARTING CODES WERE FUCKED! Trying again but assuming start of file missing, and forcing default channels\n');
         
         Trigger=ScouseTom_TrigReadChn(HDR,1);
     else
-        fprintf(2,'TRIGGERS ARE MESSED UP! Giving up \n');
+        fprintf(2,'TRIGGERS ARE MESSED UP! Deal with it \n');
     end
     
     

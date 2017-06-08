@@ -1,13 +1,8 @@
-function [dV_signal, t_signal,V_signal,V_baseline,P_signal ,P_baseline,Vmax] = ProcessParallel( fname,BaselineWindow,SignalWindow,TimeStep,InjsSim,BV0,F,plotflag)
+function [EEG_dV_signal,EIT_dV_signal, t_signal,EIT_signal_V,EIT_baseline_V,EEG_data,Vmax] = ProcessParallel( fname,BaselineWindow,SignalWindow,TimeStep,BWeit,InjsSim,BV0,F,plotflag)
 %PROCESSPARALLEL Summary of this function goes here
 %   Detailed explanation goes here
 
 %%
-
-%removed refs to this, but need output for some old files lurking around
-P_signal =0;
-P_baseline =0;
-
 InjsSim=sort(InjsSim,2);
 Ninj=size(InjsSim,1);
 
@@ -18,7 +13,8 @@ end
 HDR=ScouseTom_getHDR(fname);
 
 Fs=HDR.SampleRate;
-Nchn=size(HDR.InChanSelect,1);
+% Nchn=size(HDR.InChanSelect,1);
+Nchn = size(cell2mat(regexp(strtrim(HDR.Label),'Ch')),1); %this is different if its recorded by pycorder to activew...
 
 [ StatusChn,TrigPos ] = ScouseTom_geteegtrig(HDR);
 TrigPos = TrigPos/Fs ;
@@ -27,8 +23,8 @@ Trig_gaps = [ round( diff(TrigPos))];
 
 if isempty(BaselineWindow)
     %if not specified use the first big gap in the triggers
-    BaselineWindow(1) = floor(TrigPos(find (Trig_gaps > 1, 1)));
-    BaselineWindow(2) = ceil(TrigPos(find (Trig_gaps > 1, 1)+1));
+    BaselineWindow(1) = (TrigPos(find (Trig_gaps > 1, 1)));
+    BaselineWindow(2) = (TrigPos(find (Trig_gaps > 1, 1)+1));
     
     fprintf('Taking baseline between %.1f and %.1f s\n',BaselineWindow(1),BaselineWindow(2));
     
@@ -36,15 +32,24 @@ end
 
 if isempty(SignalWindow)
     %if not specified use the first big gap in the triggers
-    SignalWindow(1) = floor(TrigPos(find (Trig_gaps > 1, 1,'last')));
-    SignalWindow(2) = ceil(TrigPos(find (Trig_gaps > 1, 1,'last')+1));
+    SignalWindow(1) = (TrigPos(find (Trig_gaps > 1, 1,'last')));
+    SignalWindow(2) = (TrigPos(find (Trig_gaps > 1, 1,'last')+1));
     fprintf('Taking signal between %.1f and %.1f s\n',SignalWindow(1),SignalWindow(2));
 end
 
 
+StartSec=max([min([floor(BaselineWindow) floor(SignalWindow)])-4 0]);
+StopSec=max([ceil(BaselineWindow) ceil(SignalWindow)])+4;
 
-StartSec=max([min([BaselineWindow SignalWindow])-1 0]);
-StopSec=max([BaselineWindow SignalWindow])+1;
+
+%%
+
+% NEED TO CORRECT BASELINE - TAKE SECONDS FOR RECORDING BUT SAMPLES FOR
+% AVERAGING ETC.
+
+
+
+
 
 
 
@@ -55,12 +60,12 @@ Fs_target=1/TimeStep;
 
 % filter bandwidth this corresponds to during demodulation
 BW = 2 * Fs_target;
-
+BW= BWeit;  % use the one given by user instead as we have to have more time steps in order to capture the EEG signal, this would give a too wide BW for the EIT
 decimation_factor =Fs/Fs_target;
 
 % find the decimation factors
 if decimation_factor > 13
-        
+    
     facs= factor(decimation_factor);
     
     if any(facs > 13)
@@ -68,7 +73,7 @@ if decimation_factor > 13
     end
     
     % find some way of reducing these
-   %% 
+    %%
     next_div=inf;
     
     decimation_factor_vec=[1];
@@ -87,10 +92,10 @@ if decimation_factor > 13
         
         
     end
- %%   
+    %%
     
     
-%     decimation_factor_vec = facs;
+    %     decimation_factor_vec = facs;
     
     
 else
@@ -184,7 +189,7 @@ for iInj = 1:Ninj
     
     %     [ Fc ] = ScouseTom_data_GetCarrier( V,Fs );
     
-    [cur_trim_demod,cur_Filt,cur_Fc]=ScouseTom_data_GetFilterTrim(V(1:Fs,InjsSim(iInj,1)),Fs,BW,0.03*length(V));
+    [cur_trim_demod,cur_Filt,cur_Fc]=ScouseTom_data_GetFilterTrim(V(1:Fs,InjsSim(iInj,1)),Fs,BW,3*Fs);
     
     %make it consistent with multifreq bits, which are all cells
     Filt{iInj}=cur_Filt;
@@ -222,7 +227,7 @@ for iFreq = 1:Ninj
     [Vdemod,Pdemod]=ScouseTom_data_DemodHilbert(V,Filt{iFreq},TrimDemod{iFreq});
     
     % decimate the voltage and phase signals
-
+    
     for iChn = 1:Nchn
         Vtmp=Vdemod(:,iChn);
         Ptmp=Pdemod(:,iChn);
@@ -241,7 +246,7 @@ end
 
 fprintf('done\n');
 
-t=(0:length(V)-1)/Fs;
+% t=(0:length(V)-1)/Fs;
 t_1=(0:(length(V))/decimation_factor-1)/Fs_dec;
 
 
@@ -263,6 +268,14 @@ for iFreq = 1:Ninj
     
 end
 
+%% Correct units 
+
+EIT_data_V=1e-6*EIT_data_V.*(sign(BV0'));
+
+
+EEG_data_V=1e-6*EEG_data;
+
+
 
 %% plot data here
 if plotflag
@@ -282,28 +295,41 @@ end
 
 %% take chunks
 
-V_baseline=mean(EIT_data_V(t_1 > baseline_wind(1) & t_1 < baseline_wind(2),:));
+EIT_baseline_V=mean(EIT_data_V(t_1 > baseline_wind(1) & t_1 < baseline_wind(2),:));
+EIT_baseline_P=mean(EIT_data_P(t_1 > baseline_wind(1) & t_1 < baseline_wind(2),:));
+EEG_baseline=mean(EEG_data(t_1 > baseline_wind(1) & t_1 < baseline_wind(2),:));
 % P_baseline=mean(Pbin(tbin > baseline_wind(1) & tbin < baseline_wind(2),:));
 
 signal_idx=t_1 > signal_wind(1) & t_1 < signal_wind(2);
 
-V_signal=EIT_data_V(signal_idx,:);
-P_signal=EIT_data_P(signal_idx,:);
+EIT_signal_V=EIT_data_V(signal_idx,:);
+EIT_signal_P=EIT_data_P(signal_idx,:);
+
+
+EEG_signal=EEG_data_V(signal_idx,:);
+
+
+
 
 t_signal=(0:size(signal_idx)-1)/Fs;
 
 %% change in voltage
 
-dV_full=(EIT_data_V) - V_baseline;
-dV_signal=dV_full(signal_idx,:);
+EIT_dV_full=(EIT_data_V) - EIT_baseline_V;
+EIT_dV_signal=EIT_dV_full(signal_idx,:);
+
+EEG_dV_full=(EEG_data) - EEG_baseline;
+EEG_dV_signal=EEG_dV_full(signal_idx,:);
 
 
 %% plot final dV
 if plotflag
+    [maxval, maxchn]=max(max(EIT_dV_signal));
+    
     figure
     hold on
-    h1=plot(StartSec+t_1,dV_full);
-%     ylim(maxval*[-1 1])
+    h1=plot(StartSec+t_1,EIT_dV_full);
+    ylim(maxval*[-1 1])
     h2=plot(StartSec+[baseline_wind(1) baseline_wind(1)],ylim,'k--','DisplayName','BaselineWindow');
     h3=plot(StartSec+[baseline_wind(2) baseline_wind(2)],ylim,'k--');
     h4=plot(StartSec+[signal_wind(1) signal_wind(1)],ylim,'r:','DisplayName','SignalWindow');
@@ -312,6 +338,26 @@ if plotflag
     legend([h2 h4])
     title('Voltage Change whole data set')
     drawnow
+    
+    [maxval, maxchn]=max(max(EEG_dV_signal));
+    
+    figure
+    hold on
+    h1=plot(StartSec+t_1,EEG_dV_full);
+    ylim(maxval*[-1 1])
+    h2=plot(StartSec+[baseline_wind(1) baseline_wind(1)],ylim,'k--','DisplayName','BaselineWindow');
+    h3=plot(StartSec+[baseline_wind(2) baseline_wind(2)],ylim,'k--');
+    h4=plot(StartSec+[signal_wind(1) signal_wind(1)],ylim,'r:','DisplayName','SignalWindow');
+    h5=plot(StartSec+[signal_wind(2) signal_wind(2)],ylim,'r:');
+    hold off
+    legend([h2 h4])
+    title('Voltage Change whole data set')
+    drawnow
+    
+    
+    
+    
+    
 end
 
 end

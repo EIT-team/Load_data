@@ -52,7 +52,7 @@ Decay_coef=0.0001;
 
 Fstopomin=0.5;
 FcominIIR = 15;
-Astop = 60;
+Astop = 120;
 StopBandDiffMax = 350;
 StopBandDiffMin = 50;
 

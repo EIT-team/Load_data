@@ -28,16 +28,17 @@ else
 end
 
 %get envelope of signal using hilbert transform
-data = (hilbert(data(TrimDemod:end-TrimDemod-1,:)));
+% data = (hilbert(data(TrimDemod:end-TrimDemod-1,:)));
+data = hilbert(data);
 
 Vdata_demod=abs(data); %amplitude is abs of hilbert
 Pdata_demod=angle(data); % phase is the imaginary part
 
 
-% pad data
-Vdata_demod = [zeros(TrimDemod,size(Vdata_demod,2)); Vdata_demod;  zeros(TrimDemod,size(Vdata_demod,2)) ];
-
-Pdata_demod = [zeros(TrimDemod,size(Pdata_demod,2)); Pdata_demod;  zeros(TrimDemod,size(Pdata_demod,2)) ];
+% % pad data
+% Vdata_demod = [zeros(TrimDemod,size(Vdata_demod,2)); Vdata_demod;  zeros(TrimDemod,size(Vdata_demod,2)) ];
+% 
+% Pdata_demod = [zeros(TrimDemod,size(Pdata_demod,2)); Pdata_demod;  zeros(TrimDemod,size(Pdata_demod,2)) ];
 
 
 end
