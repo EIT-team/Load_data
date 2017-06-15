@@ -41,18 +41,6 @@ end
 StartSec=max([min([floor(BaselineWindow) floor(SignalWindow)])-4 0]);
 StopSec=max([ceil(BaselineWindow) ceil(SignalWindow)])+4;
 
-
-%%
-
-% NEED TO CORRECT BASELINE - TAKE SECONDS FOR RECORDING BUT SAMPLES FOR
-% AVERAGING ETC.
-
-
-
-
-
-
-
 %% EIT Filter Bandwidth and Decimation factors
 
 % sample rate we want out based on time steps
@@ -92,11 +80,7 @@ if decimation_factor > 13
         
         
     end
-    %%
-    
-    
-    %     decimation_factor_vec = facs;
-    
+
     
 else
     
@@ -143,7 +127,6 @@ if plotflag
     drawnow
 end
 
-%t=(0:length(V)-1)/Fs;
 Nsamples=size(V,1);
 
 %% Time chunks
@@ -182,13 +165,7 @@ nFreq=length(F);
 % find carrier frequencies and then find filter settings for this
 
 for iInj = 1:Ninj
-    
-    %     HDR=sopen(fname,'r',[Inj_chn_corrected(iInj)],['OVERFLOWDETECTION:OFF']);
-    %     fprintf('Loading data for chn %d...',iInj);
-    %     V=sread(HDR,2,EIT_start_time+5);
-    
-    %     [ Fc ] = ScouseTom_data_GetCarrier( V,Fs );
-    
+       
     [cur_trim_demod,cur_Filt,cur_Fc]=ScouseTom_data_GetFilterTrim(V(1:Fs,InjsSim(iInj,1)),Fs,BW,3*Fs);
     
     %make it consistent with multifreq bits, which are all cells
@@ -271,7 +248,6 @@ end
 %% Correct units 
 
 EIT_data_V=1e-6*EIT_data_V.*(sign(BV0'));
-
 
 EEG_data_V=1e-6*EEG_data;
 
