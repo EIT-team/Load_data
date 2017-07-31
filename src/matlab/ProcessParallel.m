@@ -38,8 +38,10 @@ if isempty(SignalWindow)
 end
 
 
-StartSec=max([min([floor(BaselineWindow) floor(SignalWindow)])-4 0]);
+% StartSec=max([min([floor(BaselineWindow) floor(SignalWindow)])-4 0]);
+StartSec=0;
 StopSec=max([ceil(BaselineWindow) ceil(SignalWindow)])+4;
+StopSec =min([StopSec ( floor(HDR.SPR/HDR.SampleRate)-1)]);
 
 %% EIT Filter Bandwidth and Decimation factors
 
@@ -80,7 +82,7 @@ if decimation_factor > 13
         
         
     end
-
+    
     
 else
     
@@ -92,8 +94,8 @@ end
 %% EEG filters
 
 lpFilt = designfilt('lowpassiir', ...       % Response type
-    'PassbandFrequency',35, ...
-    'StopbandFrequency',100, ...
+    'PassbandFrequency',500, ...
+    'StopbandFrequency',800, ...
     'StopbandAttenuation',120, ...   % Magnitude constraints
     'PassbandRipple',0.1, ...
     'DesignMethod','butter', ...      % Design method
@@ -164,88 +166,99 @@ nFreq=length(F);
 
 % find carrier frequencies and then find filter settings for this
 
-for iInj = 1:Ninj
-       
-    [cur_trim_demod,cur_Filt,cur_Fc]=ScouseTom_data_GetFilterTrim(V(1:Fs,InjsSim(iInj,1)),Fs,BW,3*Fs);
+if ~(BWeit==0)
     
-    %make it consistent with multifreq bits, which are all cells
-    Filt{iInj}=cur_Filt;
-    TrimDemod{iInj}=cur_trim_demod;
-    Fc{iInj}=cur_Fc;
+    
+    for iInj = 1:Ninj
+        
+        [cur_trim_demod,cur_Filt,cur_Fc]=ScouseTom_data_GetFilterTrim(V(1:Fs,InjsSim(iInj,1)),Fs,BW,3*Fs);
+        
+        %make it consistent with multifreq bits, which are all cells
+        Filt{iInj}=cur_Filt;
+        TrimDemod{iInj}=cur_trim_demod;
+        Fc{iInj}=cur_Fc;
+        
+    end
     
 end
 
 %% do EEG Stuff
 
 fprintf('Doing EEG processing...');
-Data_eeg_filt = filtfilt(hpFilt,V);
-Data_eeg_filt = filtfilt(lpFilt,Data_eeg_filt);
-
-fprintf('Decimating...');
-for iChn = 1:Nchn
-    Vtmp=Data_eeg_filt(:,iChn);
-    for iDec = 1:length(decimation_factor_vec)
-        Vtmp=decimate(Vtmp,decimation_factor_vec(iDec));
-    end
-    EEG_data(:,iChn)=Vtmp;
-end
+% Data_eeg_filt = filtfilt(hpFilt,V);
+% Data_eeg_filt = filtfilt(lpFilt,Data_eeg_filt);
+% %%
+% fprintf('Decimating...');
+% for iChn = 1:Nchn
+%     Vtmp=Data_eeg_filt(:,iChn);
+%     for iDec = 1:length(decimation_factor_vec)
+%         Vtmp=decimate(Vtmp,decimation_factor_vec(iDec));
+%     end
+%     EEG_data(:,iChn)=Vtmp;
+% end
 fprintf('done\n');
 
 
 % clear Data_eeg_filt
 %% Do EIT stuff
-
-fprintf('Doing EIT processing...');
-
-for iFreq = 1:Ninj
-    fprintf('%d,',iFreq);
+if ~(BWeit==0)
     
-    % do the actual demodulation
-    [Vdemod,Pdemod]=ScouseTom_data_DemodHilbert(V,Filt{iFreq},TrimDemod{iFreq});
+    fprintf('Doing EIT processing...');
     
-    % decimate the voltage and phase signals
-    
-    for iChn = 1:Nchn
-        Vtmp=Vdemod(:,iChn);
-        Ptmp=Pdemod(:,iChn);
-        for iDec = 1:length(decimation_factor_vec)
-            Vtmp=decimate(Vtmp,decimation_factor_vec(iDec),100,'fir');
-            Ptmp=decimate(Ptmp,decimation_factor_vec(iDec),100,'fir');
+    for iFreq = 1:Ninj
+        fprintf('%d,',iFreq);
+        
+        % do the actual demodulation
+        [Vdemod,Pdemod]=ScouseTom_data_DemodHilbert(V,Filt{iFreq},TrimDemod{iFreq});
+        
+        % decimate the voltage and phase signals
+        
+        for iChn = 1:Nchn
+            Vtmp=Vdemod(:,iChn);
+            Ptmp=Pdemod(:,iChn);
+            for iDec = 1:length(decimation_factor_vec)
+                Vtmp=decimate(Vtmp,decimation_factor_vec(iDec),100,'fir');
+                Ptmp=decimate(Ptmp,decimation_factor_vec(iDec),100,'fir');
+            end
+            
+            % put this channel at this freq in the correct order
+            vidx=(iFreq-1)*Nchn + iChn;
+            EIT_data_V(:,vidx)=Vtmp;
+            EIT_data_P(:,vidx)=Ptmp;
         end
         
-        % put this channel at this freq in the correct order
-        vidx=(iFreq-1)*Nchn + iChn;
-        EIT_data_V(:,vidx)=Vtmp;
-        EIT_data_P(:,vidx)=Ptmp;
     end
     
+    fprintf('done\n');
+    
+    %% Correct for ActiChamp Gain
+    
+    % AC gain
+    AC=load('Freq_AC.mat');
+    ff=20:20000;
+    BVdiffFine=spline(AC.F,AC.BVdiff_per_mean,ff); %interpolate data to more freqs
+    AC_correction=((100-BVdiffFine)/100);
+    
+    
+    for iFreq = 1:Ninj
+        G1=AC_correction(round(Fc{iFreq}));
+        
+        vidx=(iFreq-1)*Nchn + 1:(iFreq)*Nchn;
+        
+        EIT_data_V(:,vidx)=EIT_data_V(:,vidx)*G1;
+        
+    end
+    
+    
+    
 end
-
-fprintf('done\n');
-
 % t=(0:length(V)-1)/Fs;
 t_1=(0:(length(V))/decimation_factor-1)/Fs_dec;
 
 
-%% Correct for ActiChamp Gain
-
-% AC gain
-AC=load('Freq_AC.mat');
-ff=20:20000;
-BVdiffFine=spline(AC.F,AC.BVdiff_per_mean,ff); %interpolate data to more freqs
-AC_correction=((100-BVdiffFine)/100);
 
 
-for iFreq = 1:Ninj
-    G1=AC_correction(round(Fc{iFreq}));
-    
-    vidx=(iFreq-1)*Nchn + 1:(iFreq)*Nchn;
-    
-    EIT_data_V(:,vidx)=EIT_data_V(:,vidx)*G1;
-    
-end
-
-%% Correct units 
+%% Correct units
 
 EIT_data_V=1e-6*EIT_data_V.*(sign(BV0'));
 
@@ -301,6 +314,7 @@ EEG_dV_signal=EEG_dV_full(signal_idx,:);
 %% plot final dV
 if plotflag
     [maxval, maxchn]=max(max(EIT_dV_signal));
+    maxval = max([ 1 maxval]);
     
     figure
     hold on
@@ -312,7 +326,7 @@ if plotflag
     h5=plot(StartSec+[signal_wind(2) signal_wind(2)],ylim,'r:');
     hold off
     legend([h2 h4])
-    title('Voltage Change whole data set')
+    title('EIT Voltage Change whole data set')
     drawnow
     
     [maxval, maxchn]=max(max(EEG_dV_signal));
@@ -320,14 +334,14 @@ if plotflag
     figure
     hold on
     h1=plot(StartSec+t_1,EEG_dV_full);
-    ylim(maxval*[-1 1])
+%     ylim(maxval*[-1 1])
     h2=plot(StartSec+[baseline_wind(1) baseline_wind(1)],ylim,'k--','DisplayName','BaselineWindow');
     h3=plot(StartSec+[baseline_wind(2) baseline_wind(2)],ylim,'k--');
     h4=plot(StartSec+[signal_wind(1) signal_wind(1)],ylim,'r:','DisplayName','SignalWindow');
     h5=plot(StartSec+[signal_wind(2) signal_wind(2)],ylim,'r:');
     hold off
     legend([h2 h4])
-    title('Voltage Change whole data set')
+    title(' EEEG Voltage Change whole data set')
     drawnow
     
     
