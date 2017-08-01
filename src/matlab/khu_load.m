@@ -1,21 +1,22 @@
-function [BV,KHU]=KHU_load(dirname,clean_flag,plot_flag)
-%[BV,KHU]=KHU_load(clean_flag,plot_flag) Imports data collected from KHU EIT mk2.5
-%User points to the folder which contains the 1Scan.txt etc. files. Info
-%regarding the injection channels, gain, frequency, current etc. is read
-%from ProjectionTableSendLog.txt and EITScanSettings.txt if they exist. If
-%these files are missing then the user can either point to the
-%KHU_script_info***.mat made using khu_makepairwise.m OR point to a prt
-%file and enter the rest manually. The data is then read and processed, all
-%data is saved in raw format (unscaled, uncleaned) and scaled (corrected for
-%gain) in the KHU structure. The output BV is dependent upon the clean
-%flag, either case the data is also stored in BV_full. With the
-%corresponding prt and prt_full.
+function [BV,KHU]=KHU_Load(dirname,clean_flag,plot_flag)
+%[BV,KHU]=KHU_Load(clean_flag,plot_flag) Imports data collected from KHU EIT mk2.5
+% User points to the folder which contains the 1Scan.txt etc. files. Info
+% regarding the injection channels, gain, frequency, current etc. is read
+% from ProjectionTableSendLog.txt and EITScanSettings.txt if they exist. If
+% these files are missing then the user can either point to the
+% KHU_script_info***.mat made using khu_makepairwise.m OR point to a prt
+% file and enter the rest manually. The data is then read and processed, all
+% data is saved in raw format (unscaled, uncleaned) and scaled (corrected for
+% gain) in the KHU structure. The output BV is dependent upon the clean
+% flag, either case the data is also stored in BV_full. With the
+% corresponding prt and prt_full.
 
 % Inputs:
 % clean flag - 1 for removing the data from the injection channels in the
 % final BV and prt output (BV_full and prt_full are stored anyway)
 % plot flag - 1 for plotting the data after collection, inlcuding across
 % channel and across time, and some noise plots too
+
 % Outputs:
 % BV - the boundary voltages in Volts Comb x Scan, corrected for gain and
 % cleaned if user asked
@@ -26,7 +27,7 @@ function [BV,KHU]=KHU_load(dirname,clean_flag,plot_flag)
 % Foldername-KHU.mat - has ALL the info stored in it read from the text
 % files or inputted by the user along with all the data
 %
-% Hopefully the last version (ha! at least until someone does something non pairwise inject)
+% Hopefully the last version (at least until someone does something non pairwise inject)
 %
 % Copes with Mixed injections properly now
 %
@@ -37,8 +38,11 @@ function [BV,KHU]=KHU_load(dirname,clean_flag,plot_flag)
 if exist('dirname','var') ==0 || isempty(dirname)
     
     dirname=uigetdir(pwd,'Pick the directory where the data is located');
-    if isempty(dirname)
+    if isequal(dirname,0)
         error('User Pressed Cancel');
+    else
+        disp(['User selected ', dirname])
+
     end
     
 end
@@ -258,7 +262,7 @@ current_pp=khu_amp_setting2uA(amplitude_setting,current_level);
 current=current_pp/2;
 
 %set keep_idx and rem_idx based on cleaning flag
-if clean_flag==0;
+if clean_flag==0
     keep_idx=1:length(prt_full);
     rem_idx=[];
 end
@@ -337,7 +341,7 @@ KHU.rem_idx=rem_idx;
 BV_full=Z;
 
 %if user wants data cleaned then remove injetion channels in BV
-if clean_flag==1;
+if clean_flag==1
     BV=BV_full(keep_idx,:);
 else
     BV=BV_full;
@@ -390,27 +394,31 @@ if plot_flag ==1
     plot(BV')
     xlabel('Scan Number')
     ylabel('V')
+    title(['Voltages in ' newnamestr]); 
     
     figure
     plot(BV)
     xlabel('Combination')
     ylabel('V')
+    title(['Voltages in ' newnamestr]); 
     
     figure
     plot(tempnoise.abs)
     xlabel('Combination')
     ylabel('Standard deviation in V')
+    title(['Std Dev Noise in ' newnamestr]); 
     
     figure;hist((tempnoise.sc.abs*100),50)
-    % title('Histogram of St Dev. divided by mean for UCL data')
-    title('Histogram of St Dev. divided by mean for KHU data')
+    title(['Histogram of St Dev. divided by mean for ' newnamestr])
     xlabel('Standard Deviation/mean (%)')
-    %     xlim([0 5])
+%     %     xlim([0 5])
     
     figure
     plot(mean(BV,2),(tempnoise.abs),'o')
     xlabel('Mean V')
     ylabel('Standard deviation in channel V')
+    title(['Noise over mean in ' newnamestr]); 
+
     
 end
 disp('All done!');
