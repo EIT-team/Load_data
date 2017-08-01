@@ -1,33 +1,33 @@
-function [ STout,SwissTom_raw] = SwissTom_LoadData( fname,rem_flag,sat_flag,plot_flag )
-%loads data from swisstom .eit file into UCL/view_data format. Extra output
-%is the raw output of the swisstom loader. you know, for safe keeping
+function [ STout,SwissTom_raw] = SwissTom_Load( fname,rem_flag,sat_flag,plot_flag )
+% [ STout,SwissTom_raw] = SwissTom_Load( fname,rem_flag,sat_flag,plot_flag )
+%   loads data from swisstom .eit file into UCL/view_data format. Extra output
+%   is the raw output of the swisstom loader (you know, for safe keeping)
 %   loads eit data set from swisstom system, saves in .mat
-%   file the voltages across frames in the usual UCH format for use in
-%   view data and all that shit. Also makes the protocol for the given data
+%   file the voltages across frames format. Also makes the protocol for the given data
 %   set
 %
-%   Data is loaded and a protocol file created based on the offset value.
+%   Data is loaded and a protocol file created based on the offset 
+%   (i.e. the spacing between injection and measurement electrodes) value.
 %   User is then prompted if they want to remove the measurements from
 %   injection electrodes. A new protocol file is saved if this is the case
 
-% inputs - filename - uses the same filename to load and save .mat and
-% .prt file
-% Clean flag - 1 to remove injection channels otherwise 0
-% Plot flag - 1 to plot data after loading otherwise 0
-% outputs: -
-% STout - the converted values in V R X Z Theta
-% SwissTom_raw - raw output from swisstom loader
-% Voltages - this is just the matrix containing the voltages magnitudes - THIS
-% IS THE ONE FOR ZHOU ZHOU's GUI
+%   inputs - filename - uses the same filename to load and save .mat and
+%   .prt file
+%   Clean flag - 1 to remove injection channels otherwise 0
+%   Plot flag - 1 to plot data after loading otherwise 0
 %
-%files stored:
-% fname-protocol.prt - protocol file generated from settings in eit file
-% fname-SWISSTOMDATA - Structure with all the data in it
+%   outputs: -
+%   STout - the converted values in V R X Z Theta
+%   SwissTom_raw - raw output from swisstom loader
+%
+%   files stored:
+%   fname-protocol.prt - protocol file generated from settings in eit file
+%   fname-SWISSTOMDATA - Structure with all the data in it
 %
 % June 2014 version - with separate input flags and updated conversion to
 % volts
 %
-% From the velvet begloved hands of the bohemian Jimmy who should be doing
+% From the velvet begloved hands of the bohemian James who should be doing
 % something else
 
 
@@ -44,7 +44,7 @@ end
 
 
 if load_flag ==1
-    
+    % ask user for file path if we dont have one given
     [filename, pathname] = uigetfile('*.eit', 'Choose which SwissTom file to load');
     if isequal(filename,0) || isequal(pathname,0)
         error('User pressed cancel')
@@ -79,7 +79,7 @@ disp('Now lets crack on...');
 
 %% voltage measurments - "frames"
 
-disp('Getting data from frames and converting into mV (probably mV - this needs checking)');
+disp('Getting data from frames and converting into mV');
 
 %get the data from the .eit file and convert to mV and Ohms
 STout=IQtoVZ(SwissTom_raw);
@@ -152,15 +152,6 @@ disp('Sorting out which voltages are needed');
 STout.rem_idx=rem_idx;
 STout.keep_idx=keep_idx;
 STout.filename=fname;
-
-% ##have removed clean struct to save space
-% STout.clean.v=STout.raw.v(keep_idx,:);
-% STout.clean.z=STout.raw.z(:,:);
-% STout.clean.R=STout.raw.R(keep_idx,:);
-% STout.clean.X=STout.raw.X(keep_idx,:);
-% STout.clean.theta=STout.raw.theta(keep_idx,:);
-
-% STout.clean.prt=SwissTomProtocol(keep_idx,:);
 
 STout.raw.prt=SwissTomProtocol;
 STout.freq=(SwissTom_raw.tic.currentFreq)*1000;
@@ -316,9 +307,9 @@ end
 
 
 function [ SwissTomProtocolFull, rem_idx,keep_idx ] = SwissTom_MakeProtocol( offsetvalue,removeflag,varargin )
-%SwissTom_MakeProtocol makes .prt file for given swisstom "offset" value
+%   SwissTom_MakeProtocol makes .prt file for given swisstom "offset" value
 %
-%   currently swisstom system has a fixed measurement and injection offset.
+%   Swisstom system has a fixed measurement and injection offset.
 %   This means the number of electrodes between the source and sink
 %   - so an offset of 0 will inject between 1 and 2 and also measure
 %   between 1 and 2. an offset of 3 would injetion between 1 and 5 and also
@@ -332,7 +323,7 @@ function [ SwissTomProtocolFull, rem_idx,keep_idx ] = SwissTom_MakeProtocol( off
 %   outputs:
 %   SwissTomProtocol - matrix of protocol
 %
-%   made by the libidinous jimmy
+%   made by the libidinous James
 
 %% check inputs
 
