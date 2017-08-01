@@ -1,7 +1,35 @@
 function [ Trigger ] = ScouseTom_TrigReadChn( HDR,IdentifyChannels,SkipIDCodes,TimeToIgnore)
-%SCOUSETOM_READTRIGCHN Identifies events on trigger channels, and identify
-%which is which according to the ID codes at the start of the file
-%   Detailed explanation goes here
+% [ Trigger ] = ScouseTom_TrigReadChn( HDR,IdentifyChannels,SkipIDCodes,TimeToIgnore)
+% SCOUSETOM_READTRIGCHN Identifies events on trigger channels, and identify
+% which is which according to the ID codes at the start of the file
+%
+% This code has 3 jobs: ID trigger channels, remove too short pulses, sort
+% the pulses into the different channels for later processing. This is
+% necessary as the BioSemi and ActiChamp give different types of infomation
+% about the digital channel.
+%
+%
+% Inputs [default]:
+% HDR - HDR from ScouseTom_getHDR
+
+% Identify channels [def 0] -  The ScouseTom system writes ID codes at the
+% start of an injection to ID which channels are which.
+% This is because at the time they were still connected manually,
+% and the pins would get swapped. This is not needed if you are using the
+% proper shield, so this is just skipped by default.
+
+% SkipIDCodes [def 0] - Ignore checking for ID codes at all, and leave all
+% channels unlabelled. This is useful if you are not using the normal
+% triggers, like with the robot arm in the tank. 
+
+% TimeToIgnore[def 0] - Time in seconds which will be removed from
+% processing. Useful if you have some unusual triggers, or the arduino
+% reset during recording. 
+
+% Output:
+% Trigger - Structure used in subsequent processing steps
+% ScouseTom_TrigProcess. Containing Cells of each trigger type - Start Stop
+% Switch Stim etc.
 
 %% Get trigger channel input according to which file type it is
 switch HDR.TYPE
@@ -20,16 +48,17 @@ end
 Fs=HDR.SampleRate;
 
 %% Define Variables
-
+% by default we do not identify the channels, and assume the numbering was
+% correct
 if exist('IdentifyChannels','var') ==0  || isempty(IdentifyChannels)
     IdentifyChannels=0;
 end
-
+% by deafult we do not skip finding the ID code blocks, as they are
+% normally there in the recording. But we do want to remove them for later
+% stages, as they do not represent "useful" infomation
 if exist('SkipIDCodes','var') ==0
     SkipIDCodes=0;
 end
-
-
 
 %number of trigger channels
 trignum=8; % 8 for BioSemi and ActiChamp
@@ -76,15 +105,11 @@ ID_Codes.DefaultOrder(end+1:trignum)=nan;
 ID_Codes.DefaultID(end+1:trignum)=nan;
 ID_Codes.DefaultName(end+1:trignum)={''};
 
-%there may be others here - system has 3 spare channles EX_1 2 and 3 on
-%arduino. and Kirills physchotool box stuff will also go here
-
 %% CHECK HDR IS OK here
 
 
 
 %% DELETE ONES WE DONT WANT
-
 
 if exist('TimeToIgnore','var')
     
@@ -239,11 +264,6 @@ else
 end
 
 
-
-
-
-
-
 %% Identify blocks of ID Codes
 % The start of each injection creates an ID Code block. Search each of them
 % in turn in case there is multiple EIT injections in a single recording.
@@ -292,37 +312,10 @@ if ~SkipIDCodes
             
         end
         
-        
-        
-        
     end
     
-    
-    
-    
-    
-    %
-    %                %delete the references to the rising and falling edges for the ID codes
-    %             rem_idx=[true; S];
-    %             rem_idx=find(rem_idx ==1);
-    %
-    %             Trigger.ID_Rising(iChn)={Trigger.RisingEdges{iChn}(rem_idx)};
-    %             Trigger.ID_Falling(iChn)={Trigger.FallingEdges{iChn}(rem_idx)};
-    %
-    %             Trigger.FallingEdges{iChn}(rem_idx)=[];
-    %             Trigger.RisingEdges{iChn}(rem_idx)=[];
-    
-    
-    
-    
-    
-    
-    
-    
-    
 else
-    
-    
+    % the Trigger structure is not altered
 end
 
 
@@ -394,7 +387,7 @@ if (any(Trigger.ID_Code == ID_Codes.Num(2)) ...
 else
     
     if ~SkipIDCodes
-        fprintf(2,'STARTING CODES WERE FUCKED! Trying again but assuming start of file missing, and forcing default channels\n');
+        fprintf(2,'STARTING CODES WERE BROKEN! Trying again but assuming start of file missing, and forcing default channels\n');
         
         Trigger=ScouseTom_TrigReadChn(HDR,1);
     else

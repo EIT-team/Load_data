@@ -1,7 +1,13 @@
-function [] = ScouseTom_TrigView( HDR,XaxisSampleFlag,Trigger )
-%SCOUSETOM_TRIGVIEW Plot trigs in dataset
-%   Detailed explanation goes here
-
+function [] = ScouseTom_TrigView( HDR,XaxisSampleFlag,Trigger)
+% [] = ScouseTom_TrigView( HDR,XaxisSampleFlag,Trigger )
+% SCOUSETOM_TRIGVIEW Plots the triggers across all digital channels in
+% dataset, in something resembling strips. Useful in debugging processing
+% [] = ScouseTom_TrigView( HDR,XaxisSampleFlag,Trigger )
+% Inputs:
+% HDR - HDR from ScouseTom_getHDR
+% XaxisSampleFlag (optional) - Choose samples or seconds for X axis : 0 = sec [def], 1 = samples
+% Trigger (optional) - Provide output of ScouseTom_TrigReadChn to label
+% channels 
 
 
 %% Get trigger channel input according to which file type it is
@@ -39,8 +45,6 @@ if ~exist('XaxisSampleFlag','var')
     XaxisSampleFlag=0;
 end
 
-
-
 %% Process data
 
 %get time vector
@@ -59,10 +63,8 @@ else
     xlabel('Time (s)')
 end
 
-
-
 %plot each trigger channel from 0 to 1 with separation of sep. This is like
-%plotting using strips, but not shit
+%plotting using strips, but actually works 
 
 sep=0.5;
 hold all
