@@ -285,7 +285,12 @@ if ~SkipIDCodes
     %check groups are the correct size
     for iGroup = 1:NN
         if size(find (S == iGroup),1) ~= Trigger.ID_Code(StartChn)
-            error('Start ID not correct on Start channel!');
+%             error('Start ID not correct on Start channel!');
+            S(S==iGroup) =nan;
+            NN=NN-1;
+            S(S>iGroup) = S(S>iGroup)-1;
+            S(isnan(S))=[];
+            
         end
     end
     
