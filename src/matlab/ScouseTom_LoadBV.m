@@ -25,22 +25,18 @@ else
     
 end
 
-if nargin == 1
+if nargin >= 1
     fname= varargin{1};
 end
-
-if nargin == 2
-    
-    fname=varargin{1};
+if nargin >= 2
     HDR=varargin{2};
-    TT=varargin{3};
-    
 end
 
-if nargin == 3
-    fname=varargin{1};
-    HDR=varargin{2};
+if nargin >= 3
     TT=varargin{3};
+end
+
+if nargin >= 4
     ExpSetup=varargin{4};
 end
 
@@ -71,34 +67,47 @@ if exist('TT','var') == 0
     TT= ScouseTom_TrigProcess(Trigger, HDR);
 end
 
-%% Get ExpSetup - or find from file
+%% Do Normal injection stuff
 
-%if ExpSetup not given then load the one
-
-mfilename=fullfile(pathstr,[namestr '_log.mat']);
-
-if exist('ExpSetup','var') == 0
+if ~isempty(TT.InjectionStarts)
+    %% Get ExpSetup - or find from file
     
-    %check if _log file is with eeg file
-    if exist(mfilename,'file')
-        load(mfilename);
-    else
-        error('Cannot find ExpSetup');
+    %if ExpSetup not given then load the one
+    
+    mfilename=fullfile(pathstr,[namestr '_log.mat']);
+    
+    if exist('ExpSetup','var') == 0
+        
+        %check if _log file is with eeg file
+        if exist(mfilename,'file')
+            load(mfilename);
+        else
+            error('Cannot find ExpSetup');
+        end
+        
     end
+    
+    
+    %% Process Boundary Voltages
+    
+    %process the boundary voltages and only take the output structure
+    [BVstruc]=ScouseTom_ProcessBV(HDR,TT,ExpSetup);
+    
+    
+    
+    
     
 end
 
 
-%% Process Boundary Voltages
 
-%process the boundary voltages and only take the output structure
-[BVstruc]=ScouseTom_ProcessBV(HDR,TT,ExpSetup);
-
-
-
+if ~isempty(TT.Contact.InjectionStarts)
+    fprintf(2,'File contains Z check. Calling ScouseTom_LoadZ\n');
+    
+    [ BVstruc ] = ScouseTom_LoadZ(fname, HDR,TT );
 
 
-
+end
 
 
 

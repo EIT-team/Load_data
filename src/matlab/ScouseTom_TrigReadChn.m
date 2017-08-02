@@ -257,7 +257,7 @@ if  IdentifyChannels
     end
     
 else
-    fprintf(2,'SKIPPING ID CODE CHECK - ASSUMING EVERYTHING WIRED CORRECTLY!\n');
+    fprintf('SKIPPING CHANNEL IDENTIFICATION - ASSUMING EVERYTHING WIRED CORRECTLY!\n');
     Trigger.ID_Code=ID_Codes.DefaultID;
     Trigger.Type=ID_Codes.DefaultName;
     
@@ -285,7 +285,9 @@ if ~SkipIDCodes
     %check groups are the correct size
     for iGroup = 1:NN
         if size(find (S == iGroup),1) ~= Trigger.ID_Code(StartChn)
-%             error('Start ID not correct on Start channel!');
+
+            % clear groups that arent the correct size - these are either
+            % contact checks, or something is broken :)
             S(S==iGroup) =nan;
             NN=NN-1;
             S(S>iGroup) = S(S>iGroup)-1;
@@ -355,7 +357,7 @@ end
 
 if ~isempty(DummyChn)
     
-    
+    % clear everything in the dummy channel 
     Trigger.Type(DummyChn)={''};
     Trigger.ID_Code(DummyChn)=nan;
     Trigger.RisingEdges(DummyChn)={[]};

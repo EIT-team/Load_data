@@ -24,23 +24,19 @@ if isempty(varargin) == 1
 end
 
 
-if nargin == 1
+if nargin >= 1
     fname= varargin{1};
 end
-if nargin == 2
-    
-    fname=varargin{1};
+if nargin >= 2
     HDR=varargin{2};
-    TT=varargin{3};
-    
 end
 
-if nargin == 3
-    fname=varargin{1};
-    HDR=varargin{2};
+if nargin >= 3
     TT=varargin{3};
+end
+
+if nargin >= 4
     ExpSetup=varargin{4};
-    
 end
 
 %% Find the file type
@@ -80,7 +76,7 @@ if exist('ExpSetup','var') == 0
     if exist(mfilename,'file')
         load(mfilename);
     else
-        fprintf(2,'Cannot find ExpSetup, so assuming defaults.this is probably fine\n');
+        fprintf(2,'Cannot find ExpSetup, so assuming defaults\n');
         ExpSetup.Elec_num=HDR.NS-1; %number of electrodes
         ExpSetup.Bad_Elec=[]; %bad electrodes assume none
         ExpSetup.Desc='THIS IS A DUMMY EXPSETUP MADE DURING ZCHECK';
@@ -91,12 +87,6 @@ end
 %% Process Z
 
 Zall=ScouseTom_ProcessZ(HDR,TT,ExpSetup,1);
-
-
-
-
-
-
 
 
 

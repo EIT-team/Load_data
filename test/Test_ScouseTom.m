@@ -1,6 +1,6 @@
 
-datadir='C:\Users\James\Documents\Test Data\';
-% datadir='E:\Load_data_testing\';
+% datadir='C:\Users\James\Documents\Test Data\';
+datadir='E:\Load_data_testing\';
 
 %% load bdfs
 
