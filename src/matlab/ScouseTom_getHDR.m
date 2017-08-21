@@ -28,7 +28,7 @@ fprintf('Getting HDR for %s\n',fname);
 %% check if it exists
 if exist(fname,'file') ==0
     fprintf(2,'WHOA! FILE DOESNT EXIST!\n');
-    HDR=[];
+    HDR.TYPE='NULL';
     return
 end
 

@@ -1,5 +1,5 @@
-function [ OutStruc ] = ScouseTom_LoadBV( varargin )
-% [OutStruc] = ScouseTom_LoadBV( varargin )
+function [ OutStruc ] = ScouseTom_Load( varargin )
+% [OutStruc] = ScouseTom_Load( varargin )
 %ScouseTom_LoadBV Demodulate the boundary voltages in a EEG file created by
 %a ScouseTom system. This is essentially a wrapper for the other
 %TrigReadChn and TrigProcess and ProcessBV or ProcessZ functions.
@@ -9,11 +9,11 @@ function [ OutStruc ] = ScouseTom_LoadBV( varargin )
 %
 % Second the Trigger channels are processed to find if this is a "normal"
 % injection or a contact check - USer can give TT structure directly
-% 
+%
 % Demodulation is then performed on this dataset either by calling
 % ScouseTom_ProcessBV for conventional EIT recordings, or
 % ScouseTom_ProcessZ for contact checks, with the results graphed in this
-% case. 
+% case.
 %
 % Example uses
 % [] = ScouseTom_LoadBV() - prompts user to select file through GUI
@@ -39,12 +39,12 @@ function [ OutStruc ] = ScouseTom_LoadBV( varargin )
 
 if nargin >= 1
     if ischar(varargin{1})
-    
-    fname= varargin{1};
-    
+        
+        fname= varargin{1};
+        
     elseif isstruct(varargin{1})
         HDR = varargin{1};
-    end    
+    end
 else
     %if no inputs, then ask user to pick file with dialogue
     [filename, pathname] = uigetfile({'*.bdf;*.eeg'}, 'Choose which EEG file to load- BioSemi or BrainVision');
@@ -53,7 +53,7 @@ else
     else
         disp(['User selected ', fullfile(pathname, filename)])
     end
-    fname =fullfile(pathname,filename);    
+    fname =fullfile(pathname,filename);
 end
 
 if nargin >= 2
@@ -83,44 +83,52 @@ if exist('TT','var') == 0
     TT= ScouseTom_TrigProcess(Trigger, HDR);
 end
 
-%% Process normal injection stuff
+%% Find log file
 
 [pathstr,namestr,extstr] = fileparts(HDR.FileName);
+%if ExpSetup not given then load the one matching the filename (saved
+%by ScouseTom_Start
+mfilename=fullfile(pathstr,[namestr '_log.mat']);
 
+
+%% Process normal injection stuff
 % Starts of normal protocols should be saved in TT structure
 if ~isempty(TT.InjectionStarts)
-    %% Get ExpSetup - or find from file
-    
-    %if ExpSetup not given then load the one matching the filename (saved
-    %by ScouseTom_Start
-    mfilename=fullfile(pathstr,[namestr '_log.mat']);
-    
+    % Get ExpSetup - or find from file
     if exist('ExpSetup','var') == 0
-        
         %check if _log file is with eeg file
         if exist(mfilename,'file')
             load(mfilename);
         else
             error('Cannot find ExpSetup');
-        end
-        
-    end
-    
-    
-    %% Process Boundary Voltages
-    
+        end 
+    end    
     %process the boundary voltages and only take the output structure
     [OutStruc]=ScouseTom_ProcessBV(HDR,TT,ExpSetup);
 end
 
 %% Process contact impedance checks - if any found
 
-% Typically user calls ScouseTom_Loadz directly, but we want to handle
-% cases where other file is called.
 if ~isempty(TT.Contact.InjectionStarts)
-    fprintf(2,'File contains Z check. Calling ScouseTom_LoadZ\n');
     
-    [ OutStruc ] = ScouseTom_LoadZ(fname, HDR,TT );
+    fprintf(2,'File contains Z check. Calling ScouseTom_ProcessZ\n');
+    
+    if exist('ExpSetup','var') == 0
+        %check if _log file is with eeg file
+        if exist(mfilename,'file')
+            load(mfilename);
+        else % use defaults if not-this only pertains to skipped channels during contact check and number of electrodes
+            fprintf(2,'Cannot find ExpSetup, so assuming defaults\n');
+            ExpSetup.Elec_num=HDR.NS-1; %number of electrodes
+            ExpSetup.Bad_Elec=[]; %bad electrodes assume none
+            ExpSetup.Desc='THIS IS A DUMMY EXPSETUP MADE DURING ZCHECK';
+        end
+    end
+    
+    % Process Z check, outputing figures
+    OutStruc=ScouseTom_ProcessZ(HDR,TT,ExpSetup,1);
+    
+    
 end
 end
 

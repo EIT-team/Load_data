@@ -1,5 +1,5 @@
 
-% datadir='C:\Users\James\Documents\Test Data\';
+% % datadir='C:\Users\James\Documents\Test Data\';
 datadir='E:\Load_data_testing\';
 
 %% load bdfs
@@ -8,7 +8,7 @@ somethingwentwrong=0;
 
 
 try
-    BVs=ScouseTom_LoadBV([datadir 'Baseline1.bdf']);
+    BVs=ScouseTom_Load([datadir 'Baseline1.bdf']);
 catch err
     fprintf(2,'error on initial test\n');
     somethingwentwrong=1;
@@ -20,7 +20,7 @@ disp('=================================================');
 disp('=================================================');
 
 try
-    BVs=ScouseTom_LoadBV([datadir 'Baseline1_missingstart.bdf']);
+    BVs=ScouseTom_Load([datadir 'Baseline1_missingstart.bdf']);
 catch err
     fprintf(2,'error on missing start test\n');
     somethingwentwrong=1;
@@ -32,7 +32,7 @@ disp('=================================================');
 disp('=================================================');
 
 try
-    BVs=ScouseTom_LoadBV([datadir 'Baseline1_missingend.bdf']);
+    BVs=ScouseTom_Load([datadir 'Baseline1_missingend.bdf']);
 catch err
     fprintf(2,'error on missing end test\n');
     somethingwentwrong=1;
@@ -44,7 +44,7 @@ disp('=================================================');
 disp('=================================================');
 
 try
-    BVs=ScouseTom_LoadBV([datadir 'Baseline1_missingboth.bdf']);
+    BVs=ScouseTom_Load([datadir 'Baseline1_missingboth.bdf']);
 catch err
     fprintf(2,'error on missing both test\n');
     somethingwentwrong=1;
@@ -57,7 +57,7 @@ disp('=================================================');
 %% multifreq
 
 try
-    BVs=ScouseTom_LoadBV([datadir 'MultiFreq.bdf']);
+    BVs=ScouseTom_Load([datadir 'MultiFreq.bdf']);
 catch err
     fprintf(2,'error on Multifreq test\n');
     somethingwentwrong=1;
@@ -69,7 +69,7 @@ disp('=================================================');
 disp('=================================================');
 
 try
-    BVs=ScouseTom_LoadBV([datadir 'MultiFreq_missingstart.bdf']);
+    BVs=ScouseTom_Load([datadir 'MultiFreq_missingstart.bdf']);
 catch err
     fprintf(2,'error on Multifreq missing start test\n');
     somethingwentwrong=1;
@@ -81,7 +81,7 @@ disp('=================================================');
 disp('=================================================');
 
 try
-    BVs=ScouseTom_LoadBV([datadir 'MultiFreq_missingend.bdf']);
+    BVs=ScouseTom_Load([datadir 'MultiFreq_missingend.bdf']);
 catch err
     fprintf(2,'error on Multifreq missing end test\n');
     somethingwentwrong=1;
@@ -93,7 +93,7 @@ disp('=================================================');
 disp('=================================================');
 
 try
-    BVs=ScouseTom_LoadBV([datadir 'MultiFreq_missingboth.bdf']);
+    BVs=ScouseTom_Load([datadir 'MultiFreq_missingboth.bdf']);
 catch err
     fprintf(2,'error on Multifreq missing both test\n');
     somethingwentwrong=1;
@@ -116,7 +116,7 @@ end
 %% AC check
 
 try
-    BVs=ScouseTom_LoadBV([datadir 'rptest2.eeg']);
+    BVs=ScouseTom_Load([datadir 'rptest2.eeg']);
 catch err
     fprintf(2,'error on Actichamp test 1\n');
     somethingwentwrong=1;
@@ -127,7 +127,7 @@ disp('=================================================');
 disp('=================================================');
 
 try
-    BVs=ScouseTom_LoadBV([datadir 'rptest3.eeg']);
+    BVs=ScouseTom_Load([datadir 'rptest3.eeg']);
 catch err
     fprintf(2,'error on Actichamp test 2\n');
     somethingwentwrong=1;
@@ -141,7 +141,7 @@ disp('=================================================');
 %% Big file
 
 try
-    BVs=ScouseTom_LoadBV([datadir 'RealThing_NIRFACE_2.bdf']);
+    BVs=ScouseTom_Load([datadir 'RealThing_NIRFACE_2.bdf']);
 catch err
     fprintf(2,'error on Multifreq big file test\n');
     somethingwentwrong=1;

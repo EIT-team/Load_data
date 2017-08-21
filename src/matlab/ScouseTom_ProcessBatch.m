@@ -1,5 +1,6 @@
 function [ ] = ScouseTom_ProcessBatch( dirname )
-%SCOUSETOM_PROCESSBATCH Summary of this function goes here
+% [ ] = ScouseTom_ProcessBatch( dirname )
+%SCOUSETOM_PROCESSBATCH Processes all files in a given directory
 %   Detailed explanation goes here
 
 %% Check or get directory
@@ -56,7 +57,7 @@ if (nbdffiles > 0)
     for iFile =1:nbdffiles
         disp(['Processing bdf file ' num2str(iFile) ' of ' num2str(nbdffiles) ': ' bdffiles(iFile).name]);
         try
-            ScouseTom_LoadBV(fullfile(dirname,bdffiles(iFile).name));
+            ScouseTom_Load(fullfile(dirname,bdffiles(iFile).name));
         catch
             fprintf(2,'OH NO! Problem loading file! \n');
             brokenfiles=brokenfiles+1;
@@ -73,7 +74,7 @@ if (neegfiles > 0)
     for iFile =1:neegfiles
         disp(['Processing eeg file ' num2str(iFile) ' of ' num2str(neegfiles) ': ' eegfiles(iFile).name]);
         try
-            ScouseTom_LoadBV(fullfile(dirname,eegfiles(iFile).name));
+            ScouseTom_Load(fullfile(dirname,eegfiles(iFile).name));
         catch
             fprintf(2,'OH NO! Problem loading file! \n');
             brokenfiles=brokenfiles+1;

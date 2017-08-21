@@ -5,7 +5,18 @@ Further, the functions are categorised by the corresponding EIT system: `ScouseT
 
 ## ScouseTom
 
-1.  `ScouseTom_getHDR.m`
+-   `ScouseTom_Load.m` - The most important function! This reads the infomation stored in the metadata of the EEG file and reads the trigger channels, and then calls the relevant function to demodulate the data. The result is the demodulated magnitude and phase of each measurement across all frames in the dataset.
+      - **Conventional EIT recordings** This function calls `ScouseTom_ProcessBV` which
+      - **Contact Impedance Checks** This function calls `ScouseTom_ProcessZ` which, after demodulation, estimates the contact impedance of the electrodes based on the voltage on the injection channels. This produces graphs so the user can identify bad channels.
+      Example graph to follow soon.
+
+-   `ScouseTom_getHDR.m` - This reads (and corrects) the HDR structure created by the `biosig` library, which contains all the metadata in files saved by the EEG systems.
+
+-   `ScouseTom_TrigView.m`- Plots the changes in values on all trigger channels dataset, in something resembling the `strips` function in Matlab. Useful in debugging:
+
+![Trig view example](https://raw.githubusercontent.com/EIT-team/Load_data/master/resources/example_figures/ex_trigview.png)
+
+
 
 
 
