@@ -28,11 +28,6 @@ function [ OutStruc ] = ScouseTom_Load( varargin )
 % HDR = ScouseTom_getHDR('../../resources/data/ScouseTom/forreal_2_clean.bdf');
 % ScouseTom_LoadBV(HDR);
 %
-%
-%
-%
-%
-
 % Written by the avuncular yet bohemian Jimmy 2016
 
 %% Check inputs
@@ -90,7 +85,6 @@ end
 %by ScouseTom_Start
 mfilename=fullfile(pathstr,[namestr '_log.mat']);
 
-
 %% Process normal injection stuff
 % Starts of normal protocols should be saved in TT structure
 if ~isempty(TT.InjectionStarts)
@@ -101,8 +95,8 @@ if ~isempty(TT.InjectionStarts)
             load(mfilename);
         else
             error('Cannot find ExpSetup');
-        end 
-    end    
+        end
+    end
     %process the boundary voltages and only take the output structure
     [OutStruc]=ScouseTom_ProcessBV(HDR,TT,ExpSetup);
 end
@@ -127,8 +121,7 @@ if ~isempty(TT.Contact.InjectionStarts)
     
     % Process Z check, outputing figures
     OutStruc=ScouseTom_ProcessZ(HDR,TT,ExpSetup,1);
-    
-    
+      
 end
 end
 

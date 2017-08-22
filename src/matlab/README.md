@@ -10,6 +10,9 @@ Further, the functions are categorised by the corresponding EIT system: `ScouseT
       - **Contact Impedance Checks** This function calls `ScouseTom_ProcessZ` which, after demodulation, estimates the contact impedance of the electrodes based on the voltage on the injection channels. This produces graphs so the user can identify bad channels.
       Example graph to follow soon.
 
+
+-   `ScouseTom_ProcessBatch.m` - Processes all files within a directory  
+
 -   `ScouseTom_getHDR.m` - This reads (and corrects) the HDR structure created by the `biosig` library, which contains all the metadata in files saved by the EEG systems.
 
 -   `ScouseTom_TrigView.m`- Plots the changes in values on all trigger channels dataset, in something resembling the `strips` function in Matlab. Useful in debugging:
