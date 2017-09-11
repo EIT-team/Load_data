@@ -38,7 +38,8 @@ if isempty(varargin) == 1
     
     fname =fullfile(pathname,filename);
     
-else
+else 
+    % take input as fname if given
     fname = varargin{1};
     
 end
@@ -79,8 +80,9 @@ end
 
 %Check HDR is in either of expected formats
 if ~any(strcmp(HDR.TYPE,{'BDF','BrainVision'}))
-    HDR=[];
-    error('BAD HDR FILE');
+    HDR.TYPE='NULL';
+    fprintf(2,'BAD HDR FILE\n');
+    return
 end
 
 %check the file is not too small
@@ -100,6 +102,7 @@ switch HDR.TYPE
         error('Bad HDR');
 end
 
+% throw error if the file is too small -  
 if Fsize < MinFileSize
     fprintf(2,'WHOA! FILE IS WAY TOO SMALL! DID YOU FORGET TO START RECORDING?\n');
     HDR.TYPE='SMALL';

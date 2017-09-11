@@ -1,17 +1,29 @@
 function [ ] = ScouseTom_ProcessBatch( dirname )
 % [ ] = ScouseTom_ProcessBatch( dirname )
-%SCOUSETOM_PROCESSBATCH Processes all files in a given directory
-%   Detailed explanation goes here
+%SCOUSETOM_PROCESSBATCH Processes all ScouseTom files in a given directory
+%   User specifies a directory, or chooses one from GUI. ScouseTom_Load is
+%   then called for every file inside that directory, catching errors along
+%   the way.
+%   Input:
+%   Dirname - path to directory containing the ScouseTom files you wish to
+%   process.
 
 %% Check or get directory
 
-if exist('dirname','var') ==0
-    %user chooses directory where all the .bdfs are
-    dirname=uigetdir('','Pick the directory where the data is located');
-    if isempty(dirname)
+if exist('dirname','var') ==0 || isempty(dirname)
+    
+    dirname=uigetdir(pwd,'Pick the directory where the data is located');
+    if isequal(dirname,0)
         error('User Pressed Cancel');
+    else
+        disp(['User selected ', dirname])
     end
+    
 end
+
+disp(['Loading ScouseTom data in ', fullfile(dirname)])
+
+
 %% find all the eeg files in the directory
 
 bdffiles=dir([dirname filesep '*.bdf']);
@@ -28,7 +40,8 @@ neegfiles=length(eegfiles);
 disp(['Found ' num2str(nbdffiles) ' .bdf files in directory']);
 disp(['Found ' num2str(neegfiles) ' .eeg files in directory']);
 
-%ignore small files <1Mb as these are empty
+%ignore small files <1Mb as these are empty - this happens if you forget to
+%start recording! Happens more often that you would think.
 
 smallbdffile=cell2mat({bdffiles.bytes})/1e6;
 smallbdffile = smallbdffile < 1;
@@ -46,10 +59,11 @@ if any(smalleegfile)
     bdffiles(smalleegfile)=[];
 end
 
+% final number of bdf and eeg files to process
 nbdffiles=length(bdffiles);
 neegfiles=length(eegfiles);
 
-brokenfiles=0;
+brokenfiles=0; % counter for files with problems in them
 
 %% process each bdf!
 if (nbdffiles > 0)
@@ -59,7 +73,7 @@ if (nbdffiles > 0)
         try
             ScouseTom_Load(fullfile(dirname,bdffiles(iFile).name));
         catch
-            fprintf(2,'OH NO! Problem loading file! \n');
+            fprintf(2,'OH NO! Problem loading file %s \n',bdffiles(iFile).name);
             brokenfiles=brokenfiles+1;
         end
         
@@ -76,7 +90,7 @@ if (neegfiles > 0)
         try
             ScouseTom_Load(fullfile(dirname,eegfiles(iFile).name));
         catch
-            fprintf(2,'OH NO! Problem loading file! \n');
+            fprintf(2,'OH NO! Problem loading file %s \n',eegfiles(iFile).name);
             brokenfiles=brokenfiles+1;
         end
         
@@ -86,17 +100,13 @@ if (neegfiles > 0)
     fprintf('All .EEG Processing finished in : %.2f seconds\n',el);
 end
 
-%%
+%% Final output to user
 
 fprintf('ALL FILES DONE! AWW YISSSS\n');
 
 if brokenfiles
     fprintf(2,'THERE WERE ERRORS IN %d FILES\n',brokenfiles);
 end
-
-
-
-
 
 end
 
