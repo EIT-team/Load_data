@@ -11,7 +11,15 @@ Further, the functions are categorised by the corresponding EIT system: `ScouseT
       Example graph to follow soon.
 
 
--   `ScouseTom_ProcessBatch.m` - Processes all files within a directory  
+-   `ScouseTom_ProcessBatch.m` - Processes all files within a directory in sequence.  
+
+##### Demodulation
+These functions are used during demodulation of the voltages recorded in the EEG files.
+
+-   `ScouseTom_FindFilterSettings.m` - For a given recording, find the optimal filter for use before demodulation. This is based on the carrier frequency, and length of injection. Uses IIR filters where possible, but for short injections it will use FIR.
+
+
+##### Digital Trigger channels and meta data
 
 -   `ScouseTom_getHDR.m` - This reads (and corrects) the HDR structure created by the `biosig` library, which contains all the metadata in files saved by the EEG systems.
 
@@ -19,7 +27,15 @@ Further, the functions are categorised by the corresponding EIT system: `ScouseT
 
 ![Trig view example](https://raw.githubusercontent.com/EIT-team/Load_data/master/resources/example_figures/ex_trigview.png)
 
--   `ScouseTom_FindFilterSettings.m` - For a given recording, find the optimal filter for use before demodulation. This is based on the carrier frequency, and length of injection. Uses IIR filters where possible, but for short injections it will use FIR.  
+-   `ScouseTom_TrigReadChn.m` - Reads the information on the digital channels and identifies the starting trigger codes. Also rejects spurious too short pulses. Different EEG systems store this information differently, so the output is common format used in `ScouseTom_TrigProcess`
+
+-   `ScouseTom_TrigProcess.m` - Processes the information encoded in the digital triggers - Conventional/Contact check, single or Multi-Frequency, stimulations, length of injection protocol etc. This is then stored in the `TT` structure which is used for `ProcessBV`
+
+
+
+
+
+
 
 
 

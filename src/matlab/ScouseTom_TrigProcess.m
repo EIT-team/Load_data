@@ -2,14 +2,14 @@ function [ TT  ] = ScouseTom_TrigProcess( Trigger,HDR )
 %ScouseTom_TrigProcess Process trigger channels - Code to reject
 %artefactual triggers and remove incomplete injections
 %   Inputs:
-%  Trigger  - struct from ScouseTom_TrigReadChn
-% HDR - output from sopen
+%   Trigger  - struct from ScouseTom_TrigReadChn
+%   HDR - output from sopen
+%
+%   Output
+%   TT - structure 
 
 
-% This is separate from TrigReadChn as I will use the output of this but I
-% can be bothered to argue with Kirill about how he does the EPs
 
-% to do - clean fucked up injections switches
 
 
 %% find only correct type of events in injection trigger channel
@@ -162,13 +162,9 @@ for iInj=1:TotInj
     
     %% Put into more sensible form
     
-    Nfreq=size(FreqStarts{1},2);
-    
-    
+    Nfreq=size(FreqStarts{1},2); 
     InjectionSwitches=cell(TotInj,Nfreq);
-    
-    
-    
+   
     if isempty(FreqChanges{iInj})
         %if single frequency, then the windows come directly from
         %InjectionSwitches
@@ -207,9 +203,6 @@ Stimulations(ContactStartsIdx)=[];
 Contact.InjectionStarts=InjectionStarts(ContactStartsIdx);
 InjectionStarts(ContactStartsIdx)=[];
 Contact.InjectionStops=InjectionStops(ContactStartsIdx);
-
-
-
 
 %% output dat shit
 
@@ -254,8 +247,6 @@ function [FreqChangesOut,FreqOrder,FreqStarts]=findfreqorder(FreqChangesIn,maxID
 %sequences of pulses only happen on the *start* of injection, so we can
 %find the starts from these too
 
-
-
 FreqChangesOut=FreqChangesIn;
 BelowThres = (diff(FreqChangesIn) < maxIDperiod);
 %use bwlabel to find connections in array
@@ -286,9 +277,6 @@ function [FreqStarts, FreqStops,FreqOrderOut]=reshapefreqtriggers(FreqChanges,Fr
 
 %find the corresponding freqstop pulse for each freq start, if one is
 %missing due to the file being truncated then add a fake one at the end
-
-
-
 
 %% find start and stops
 
@@ -331,69 +319,12 @@ for iSw=1:N_Sw
     %I found that due to the speed of things on the Due, the Switch
     %Indication could actually occur *before* the frequency stop indicator (though the ISR),
     %despite coming ~50 lines of code afterwards - which means just finding
-    %the stop flags within the injection would sometimes not work. this
+    %the stop flags within the injection would sometimes not work. This
     %took *way* too long to figure out.
-       
+    
     FreqStarts(iSw,1:length(cur_idx))=FreqStartsIn(cur_idx);
     FreqStops(iSw,1:length(cur_idx))=FreqStopsIn(cur_idx);
     FreqOrderOut(iSw,1:length(cur_idx))=FreqOrderIn(cur_idx);
     
-    
-    
 end
-
-
-
-
 end
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
