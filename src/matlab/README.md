@@ -29,7 +29,9 @@ These functions are used during demodulation of the voltages recorded in the EEG
 
 -   `ScouseTom_TrigReadChn.m` - Reads the information on the digital channels and identifies the starting trigger codes. Also rejects spurious too short pulses. Different EEG systems store this information differently, so the output is common format used in `ScouseTom_TrigProcess`
 
--   `ScouseTom_TrigProcess.m` - Processes the information encoded in the digital triggers - Conventional/Contact check, single or Multi-Frequency, stimulations, length of injection protocol etc. This is then stored in the `TT` structure which is used for `ProcessBV`
+-   `ScouseTom_TrigProcess.m` - Processes the information encoded in the digital triggers - Conventional/Contact check, single or Multi-Frequency, stimulations, length of injection protocol etc. This is then stored in the `TT` structure which is used for `ProcessBV` etc.
+
+
 
 
 
