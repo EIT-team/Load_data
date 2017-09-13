@@ -32,6 +32,42 @@ function [BVstruc] = ScouseTom_ProcessBV( HDR,TT,ExpSetup,BW )
 %   BVstruc  - Strucutre containg all boundary voltages, phase angles,
 %       contact impedances, along with ExpSetup and filters used furing
 %       demodulation. This is also stored in FNAME-BV.mat
+%
+%      The output structure is as follows, given 
+%       TotInj - the number of independent datasets in this file i.e. the number
+%           of times ScouseTom_Start or ScouseTom_ContactCheck was run. This is
+%           normally 1!
+%       Prt - Number of injection pairs in protocol
+%       Freq - Number of differnet frequencies used
+%       Elec - Number of recording electrodes 
+%       Frames - Number of complete repeats of the protocol
+%       TotPrt - Total number of changes of injection pair - this is Frames
+%           x Prt unless the injection was stopped early
+%   
+%   BVStruc:
+%   BV{TotInj,Freq} - Magnitude of the boundary voltages i.e. the mean of
+%       the demodulated signal for all channels and all injection pairs. Each
+%       cell contains matrix (Prt,Frames)
+%   PhaseAngle{TotInj,Freq} - Phase angle of each boundary voltage. Each
+%       cell contains matrix (Prt,Frames)
+%   STD{TotInj,Freq} - Standard deviation of the magintiude of the voltage
+%       in each measurement combination. Each cell contains matrix (Prt,Frames)
+%   PhaseAngleSTD{TotInj,Freq} - Standard deviation for the phase angle for
+%       each measurement combination. Each cell contains matrix (Prt,Frames)
+%   Z{Freq} - Estimate of the contact impedance for each measurement.
+%       Result is average of all measurements on that electrode. Size(Elec,Frames)
+%   Zstd{Freq} - Standard deviation of this measurement
+%       matrix (Elec,Frames) 
+%   keep_idx - Index of measurement combinations wrt to the prt_full which 
+%       do *not* include
+%       injection electrodes, and are thus valid 4 electrode measurements.
+%   rem_idx - Index of measurement combinations wrt to prt_full, which
+%       include injection electrodes
+%   prt_full - The procotol in full [CS+ CS- V+ V-] form, for forward model
+%   info - Structure containing some info about the dataset: filename and
+%       date, as well as the filters used.  
+%   TT - Same as input, for reference
+%   ExpSetup - Same as input, for reference
 
 %% Do error checking of inputs HERE
 

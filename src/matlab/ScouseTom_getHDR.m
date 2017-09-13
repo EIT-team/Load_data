@@ -16,10 +16,10 @@ function [ HDR ] = ScouseTom_getHDR( varargin )
 %
 % Input:
 % fname (optional) - path to eeg data file
-
+%
 % Output:
 % HDR - HDR structure, from the biosig library, required in all future
-% steps
+%       steps
 
 %% Defaults
 MinFileSize=1e6; %Minimum file size in bytes
