@@ -6,7 +6,7 @@ Further, the functions are categorised by the corresponding EIT system: `ScouseT
 ## ScouseTom
 
 -   `ScouseTom_Load.m` - **The most important function!** This reads the infomation stored in the metadata of the EEG file and reads the trigger channels, and then calls the relevant function to demodulate the data. The result is the demodulated magnitude and phase of each measurement across all frames in the dataset.
-      - **Conventional EIT recordings** This function calls `ScouseTom_ProcessBV` which
+      - **Conventional EIT recordings** This function calls `ScouseTom_ProcessBV` which gives the mean boundary voltages on each channel for each injection pair i.e. what is normally output for other EIT systems.
       - **Contact Impedance Checks** This function calls `ScouseTom_ProcessZ` which, after demodulation, estimates the contact impedance of the electrodes based on the voltage on the injection channels. This produces graphs so the user can identify bad channels.
       Example graph to follow soon.
 
@@ -15,6 +15,11 @@ Further, the functions are categorised by the corresponding EIT system: `ScouseT
 
 ##### Demodulation
 These functions are used during demodulation of the voltages recorded in the EEG files.
+
+-   `ScouseTom_ProcessBV.m` - Demodulates the voltages for a "conventional" EIT recordings. i.e. the output is the mean of the demodulated amplitude per injection pair. Find the filter settings, and starting line of the injection protocol before demodulation. Output is stored in `FNAME-BV.mat`.
+
+-   `ScouseTom_ProcessZ.m` - Similar to ProcessBV except it uses the voltages on the injection electrodes to estimate the contact impedance of the electrodes. This is useful when applying electrodes, and checking abrasion. The output of this function for acceptable electrode contacts is shown below:  
+![ProcessZ example](https://raw.githubusercontent.com/EIT-team/Load_data/master/resources/example_figures/ex_processz.png)
 
 -   `ScouseTom_FindFilterSettings.m` - For a given recording, find the optimal filter for use before demodulation. This is based on the carrier frequency, and length of injection. Uses IIR filters where possible, but for short injections it will use FIR.
 

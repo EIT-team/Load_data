@@ -11,21 +11,21 @@ function [ Trigger ] = ScouseTom_TrigReadChn( HDR,IdentifyChannels,SkipIDCodes,T
 %
 % Inputs [default]:
 % HDR - HDR from ScouseTom_getHDR
-
+%
 % Identify channels [def 0] -  The ScouseTom system writes ID codes at the
 % start of an injection to ID which channels are which.
 % This is because at the time they were still connected manually,
 % and the pins would get swapped. This is not needed if you are using the
 % proper shield, so this is just skipped by default.
-
+%
 % SkipIDCodes [def 0] - Ignore checking for ID codes at all, and leave all
 % channels unlabelled. This is useful if you are not using the normal
 % triggers, like with the robot arm in the tank. 
-
+%
 % TimeToIgnore[def 0] - Time in seconds which will be removed from
 % processing. Useful if you have some unusual triggers, or the arduino
 % reset during recording. 
-
+%
 % Output:
 % Trigger - Structure used in subsequent processing steps
 % ScouseTom_TrigProcess. Containing Cells of each trigger type - Start Stop

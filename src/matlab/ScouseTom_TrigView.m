@@ -2,7 +2,7 @@ function [] = ScouseTom_TrigView( HDR,XaxisSampleFlag,Trigger)
 % [] = ScouseTom_TrigView( HDR,XaxisSampleFlag,Trigger )
 % SCOUSETOM_TRIGVIEW Plots the triggers across all digital channels in
 % dataset, in something resembling strips. Useful in debugging processing
-% [] = ScouseTom_TrigView( HDR,XaxisSampleFlag,Trigger )
+%
 % Inputs:
 % HDR - HDR from ScouseTom_getHDR
 % XaxisSampleFlag (optional) - Choose samples or seconds for X axis : 0 = sec [def], 1 = samples
