@@ -6,8 +6,8 @@ Further, the functions are categorised by the corresponding EIT system: `ScouseT
 ## ScouseTom
 
 -   `ScouseTom_Load.m` - **The most important function!** This reads the infomation stored in the metadata of the EEG file and reads the trigger channels, and then calls the relevant function to demodulate the data. The result is the demodulated magnitude and phase of each measurement across all frames in the dataset.
-      - **Conventional EIT recordings** This function calls `ScouseTom_ProcessBV` which gives the mean boundary voltages on each channel for each injection pair i.e. what is normally output for other EIT systems.
-      - **Contact Impedance Checks** This function calls `ScouseTom_ProcessZ` which, after demodulation, estimates the contact impedance of the electrodes based on the voltage on the injection channels. This produces graphs so the user can identify bad channels.
+-   **Conventional EIT recordings** This function calls `ScouseTom_ProcessBV` which gives the mean boundary voltages on each channel for each injection pair i.e. what is normally output for other EIT systems.
+-   **Contact Impedance Checks** This function calls `ScouseTom_ProcessZ` which, after demodulation, estimates the contact impedance of the electrodes based on the voltage on the injection channels. This produces graphs so the user can identify bad channels.
       Example graph to follow soon.
 
 -   `ScouseTom_ProcessBatch.m` - Processes all files within a directory in sequence.  
@@ -22,7 +22,7 @@ These functions are used during demodulation of the voltages recorded in the EEG
 
 -   `ScouseTom_FindFilterSettings.m` - For a given recording, find the optimal filter for use before demodulation. This is based on the carrier frequency, and length of injection. Uses IIR filters where possible, but for short injections it will use FIR.
 
--   `ScouseTom_ReadandDemodChn.m` - Handles the actual demodulation of the dataset. Calculates the maximum number of channels which can be processed at once and then filters and demodulates each frequency in turn. If a single channel is too big, then it is processed in segments. 
+-   `ScouseTom_ReadandDemodChn.m` - Handles the actual demodulation of the dataset. Calculates the maximum number of channels which can be processed at once and then filters and demodulates each frequency in turn. If a single channel is too big, then it is processed in segments.
 
 ##### Digital Trigger channels and meta data
 
@@ -35,18 +35,6 @@ These functions are used during demodulation of the voltages recorded in the EEG
 -   `ScouseTom_TrigReadChn.m` - Reads the information on the digital channels and identifies the starting trigger codes. Also rejects spurious too short pulses. Different EEG systems store this information differently, so the output is common format used in `ScouseTom_TrigProcess`
 
 -   `ScouseTom_TrigProcess.m` - Processes the information encoded in the digital triggers - Conventional/Contact check, single or Multi-Frequency, stimulations, length of injection protocol etc. This is then stored in the `TT` structure which is used for `ProcessBV` etc.
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 #### KHU EIT system

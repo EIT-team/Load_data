@@ -1,13 +1,16 @@
 function [ StartInj,EstimateBadness,RMSEst ] = ScouseTom_data_checkfirstinj(HDR,InjectionSwitchesCell,Protocol )
-%SCOSUETOM_DATA_CHECKFIRSTINJ Checks the first injection in the dataset to
-%see if it is the correct protocol line, adjusts the processing if not.
-%This is to account for
-%   Detailed explanation goes here
-
+%[StartInj,EstimateBadness,RMSEst] = ScouseTom_data_checkfirstinj(HDR,InjectionSwitchesCell,Protocol )
+%SCOUSETOM_DATA_CHECKFIRSTINJ Checks the first injection in the dataset and
+%matches it to a line in the current injection protocol.
+%
+%
+% Takes the RMS of the voltages given, finds the two largest channels, and
+% matches these to an injection pair in the protocol given. If one is not
+% found then shows the RMS and prompts user. If this is the case then
+% normally something is broken in the data
 %% check inputs are ok
 
-%if the data is fucked or has big artefact then this can mess up as the RMS
-%is borked
+
 
 
 
@@ -25,7 +28,7 @@ StartInj=nan(Nfreq,1);
 %% Find start injection for each frequency
 
 for iFreq=1:Nfreq
-   %find earliest switch
+    %find earliest switch
     FirstSample=min(InjectionSwitchesCell{iFreq}(1,:));
     StartSec=floor(FirstSample/Fs); %findnearest second
     StartSample=StartSec*Fs; %corresponding sample
