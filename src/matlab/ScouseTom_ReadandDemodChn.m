@@ -1,9 +1,15 @@
 function [ VmagOut,PhaseOut,VmagOutSTD,PhaseOutSTD,Vmag ] = ScouseTom_ReadandDemodChn( HDRin,Filt,Trim_demod,InjectionWindows,Protocol,StartInj )
+% [VmagOut,PhaseOut,VmagOutSTD,PhaseOutSTD,Vmag ] = ScouseTom_ReadandDemodChn( HDRin,Filt,Trim_demod,InjectionWindows,Protocol,StartInj )
+
 %UNTITLED5 Summary of this function goes here
 %   Detailed explanation goes here
 
-%% Fiddling with inputs
-HDR=HDRin;
+
+%% Max memory usage
+MaxMemoryUsage=8e9; %maximum memory usage for larger variables stored during demodulation
+
+%% Read HDR and get file size
+HDR=HDRin; %backup HDR
 switch HDR.TYPE
     case 'BDF' % biosemi file
         %biosemi is stored as 1sec long records. so number of seconds is
@@ -27,16 +33,20 @@ Fs=HDR.SampleRate;
 Nfreq=size(InjectionWindows,2);
 Nprt=size(Protocol,1);
 
+% Assume we start at the beginning if not specified
 if exist('StartInj','var') ==0
     StartInj=ones(Nfreq,1);
     fprintf(2,'WARNING. NO STARTINJ SPECIFIED. ASSUMING 1. \n');
 end
-
+% check if we have start injection pair for all freqs
 if length(StartInj) ~= Nfreq
     error('Wrong number of start injections');
 end
 
 %% Find start and finish times
+
+% Start and stop times are given in TT as samples, but the sread function needs
+% secons, and these need to be integers.
 
 firstinj=zeros(Nfreq,1);
 lastinj=zeros(Nfreq,1);
@@ -83,48 +93,50 @@ PhaseRawSTD=Vmag;
 Phase=Vmag;
 
 %% Based on file size, determine how to load data
-MaxMemoryUsage=8e9; %maximum memory usage for larger variables stored during demodulation
-% MaxMemoryUsage=.000001e9; %maximum memory usage for V variable in bytes
+% To limit the number of times we read the data, we want to demodulate as
+% many channels as possible, but we run out of memory. So this estimates
+% how much RAM is needed per channel, and calculates the maximum number we
+% can fit.
+% This is hacky, sorry!
 
-ChnSize=(Fsize*2.4)/Nchn; %file size in bytes is ~double when stored in matlab as double
+%file size in bytes is ~double when stored in matlab as double
+ChnSize=(Fsize*2.4)/Nchn;
+%this is because we have to store the demod V and Phase for each channel -
+%add more because the fft in hilbert takes LOADS of ram
+ChnSize=ChnSize*4;
 
-ChnSize=ChnSize*4; %this is because we have to store the demod V and Phase for each channel - add more because the fft in hilbert takes LOADS of ram
+%maximum number of channels this length which could be put into memory
+MaxChnNum=floor(MaxMemoryUsage/ChnSize);
 
-MaxChnNum=floor(MaxMemoryUsage/ChnSize); %maximum number of channels this length which could be put into memory
-
-
-LoadSegmentsFlag = 0; %flag to see whether we need to load channel by segment or not
+%flag to see whether we need to load channel by segment or not. If a
+%channel is so big - like Nirs 7 hour recordings - then even a single
+%channel cannot be processed at once. So we have to treat these cases
+%differently
+LoadSegmentsFlag = 0;
 
 %force us to use at least one channel at once, this could still mean you
-%run out of memory later!
+%run out of memory later as whole channel is still loaded!
 if MaxChnNum <= 1
     MaxChnNum =1; %need this to be 1 so we actually load a channel
-    LoadSegmentsFlag = 1; %
-    NumSeg = 4; % might need to calc this separately later...
+    LoadSegmentsFlag = 1; % flag up we need to load it differently
+    NumSeg = 4; % How many segments to split the channels into. might need to calc this separately later...
     fprintf('Loading Single Channel. Processing in %d segments to avoid memory issues.\n', NumSeg);
-    
 end
-BlocksNum=ceil(Nchn/MaxChnNum); %how many blocks do we have to split channels into
+% how many blocks do we have to split channels into
+BlocksNum=ceil(Nchn/MaxChnNum);
+%ending channel for each block
+Blocks=((1:BlocksNum)).*MaxChnNum;
 
-Blocks=((1:BlocksNum)).*MaxChnNum; %ending channel for each block
+%create the array of start and stop channel pairs.
 
 if MaxChnNum == 1
-    
-    
-    Blocks=[Blocks; Blocks]';
-    
-    
+    Blocks=[Blocks; Blocks]'; % [1 1; 2 2;...]
 else
-    
-    
-    
-    Blocks=[Blocks-(MaxChnNum-1); Blocks]'; %starting channel is ending minus maxchnnum then adjusted for 1 indexing
-    
-    Blocks(Blocks > Nchn)=Nchn; %to prevent loading channels that dont exist
+    %starting channel is ending minus maxchnnum then adjusted for 1 indexing
+    Blocks=[Blocks-(MaxChnNum-1); Blocks]';
+    %to prevent loading channels that dont exist
+    Blocks(Blocks > Nchn)=Nchn;
 end
-
-
-
 %% Read and Demod each channel
 
 fprintf('Processing %d Channels',Nchn);
@@ -135,6 +147,7 @@ fprintf('\n');
 
 tstart=tic;
 
+% read and demodulate the data, taking each block of channels at a time
 for iBlk=1:BlocksNum
     
     fprintf('Process Chn %d to %d. Freq: ',Blocks(iBlk,1),Blocks(iBlk,2));
@@ -148,7 +161,7 @@ for iBlk=1:BlocksNum
     
     V=sread(HDR,StopSec-StartSec,StartSec); %read whole channel
     
-    %%
+    %% Demodulate this data
     %demodulate for each frequency
     for iFreq=1:Nfreq
         %display which freq we are doing
@@ -158,6 +171,9 @@ for iBlk=1:BlocksNum
             fprintf('%d',iFreq);
         end
         
+        % If we have determined that a single channel is too big to
+        % process at once, then do the filtering and demodulation in
+        % segments
         if LoadSegmentsFlag
             %split single channel into segments
             Vdata_demod = nan(size(V));
@@ -186,9 +202,7 @@ for iBlk=1:BlocksNum
                 Vdata_demod(Seg_Samples(iSeg):Seg_Samples(iSeg+1)) = Vtmp(cur_idx_start:cur_idx_stop);
                 Pdata_demod(Seg_Samples(iSeg):Seg_Samples(iSeg+1))  = Ptmp(cur_idx_start:cur_idx_stop);
             end
-            
-            
-            
+                        
         else
             
             % filter and demodulate channels all at once

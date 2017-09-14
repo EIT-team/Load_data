@@ -10,7 +10,6 @@ Further, the functions are categorised by the corresponding EIT system: `ScouseT
       - **Contact Impedance Checks** This function calls `ScouseTom_ProcessZ` which, after demodulation, estimates the contact impedance of the electrodes based on the voltage on the injection channels. This produces graphs so the user can identify bad channels.
       Example graph to follow soon.
 
-
 -   `ScouseTom_ProcessBatch.m` - Processes all files within a directory in sequence.  
 
 ##### Demodulation
@@ -23,6 +22,7 @@ These functions are used during demodulation of the voltages recorded in the EEG
 
 -   `ScouseTom_FindFilterSettings.m` - For a given recording, find the optimal filter for use before demodulation. This is based on the carrier frequency, and length of injection. Uses IIR filters where possible, but for short injections it will use FIR.
 
+-   `ScouseTom_ReadandDemodChn.m` - Handles the actual demodulation of the dataset. Calculates the maximum number of channels which can be processed at once and then filters and demodulates each frequency in turn. If a single channel is too big, then it is processed in segments. 
 
 ##### Digital Trigger channels and meta data
 

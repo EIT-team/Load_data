@@ -56,11 +56,9 @@ function [BVstruc] = ScouseTom_ProcessBV( HDR,TT,ExpSetup,BW )
 %       each measurement combination. Each cell contains matrix (Prt,Frames)
 %   Z{Freq} - Estimate of the contact impedance for each measurement.
 %       Result is average of all measurements on that electrode. Size(Elec,Frames)
-%   Zstd{Freq} - Standard deviation of this measurement
-%       matrix (Elec,Frames) 
+%   Zstd{Freq} - Standard deviation of this measurement matrix (Elec,Frames) 
 %   keep_idx - Index of measurement combinations wrt to the prt_full which 
-%       do *not* include
-%       injection electrodes, and are thus valid 4 electrode measurements.
+%       do *not* include injection electrodes, and are thus valid 4 electrode measurements.
 %   rem_idx - Index of measurement combinations wrt to prt_full, which
 %       include injection electrodes
 %   prt_full - The procotol in full [CS+ CS- V+ V-] form, for forward model

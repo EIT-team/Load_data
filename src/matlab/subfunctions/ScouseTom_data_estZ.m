@@ -1,8 +1,10 @@
 function [ Z,Zstd ] = ScouseTom_data_estZ( BV,Elec_inj,ZScaleFactor)
-%SCOUSETOM_DATA_ESTZ Summary of this function goes here
-%   Detailed explanation goes here
-
-
+% [ Z,Zstd ] = ScouseTom_data_estZ( BV,Elec_inj,ZScaleFactor)
+%SCOUSETOM_DATA_ESTZ Estimates the contact impedance on all electrodes from
+%the voltages during injection. Result is average of all injections using
+%that electrode. Returns nans if electrodes are unused
+%
+% Normally called from ProcessBV
 %% preallocate
 
 N_freq=size(BV,2);
@@ -11,14 +13,12 @@ N_elec=size(Elec_inj,2);
 Z=cell(N_freq,1);
 
 for iFreq=1:N_freq
-N_rep=size(BV{iFreq},2);
-    
+    N_rep=size(BV{iFreq},2);
     Z{iFreq}=nan(N_elec,N_rep);
-    
 end
 Zstd=Z;
 
-%%
+%% Estimate contact impedance
 
 for iFreq=1:N_freq
     
