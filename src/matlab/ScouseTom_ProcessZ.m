@@ -112,7 +112,7 @@ for iZ = 1:Z_checks_num
     
     [Phase]=ScouseTom_data_PhaseEst(PhaseRaw,Contact_Protocol,1);
     
-    %% calc z
+    %% Calculate Z
     CurElecs=unique(Contact_Protocol);
     
     %for each electrode
@@ -133,8 +133,6 @@ for iZ = 1:Z_checks_num
             dZ(iElec)=nan;
             Z(iElec,:)=nan(1,2);
         end
-        
-        
         
     end
     
@@ -190,15 +188,11 @@ for iZ = 1:Z_checks_num
     if PlotFlag
         
         figure
-        
-        %         title([datestr(datestart), ': Contact Z @ ', num2str(Fc), ' Hz, and ', num2str(Amp), ' A'])
-        
-        title(sprintf('Z Check %d, in %s @ %s\n%d Hz and %d A',iZ,fname,datestr(datestart),Fc{1},Amp),'interpreter','none');
+               
+        title(sprintf('Z Check %d, in %s @ %s\n%d Hz and %d uA',iZ,fname,datestr(datestart),round(Fc{1}),Amp),'interpreter','none');
         
         
         hold all
-        
-        
         %plot each set
         bar(goodchn,'Facecolor',[0 0.5 0]);
         bar(okchn,'Facecolor','y');
@@ -217,6 +211,12 @@ for iZ = 1:Z_checks_num
         ylabel('~Impedance Ohm');
         
         drawnow
+        %make plot wider
+        pos=get(gcf,'Position');
+        w=pos(1)-pos(3);
+        set(gcf,'pos',[pos(1)-w pos(2) pos(3)+w pos(4)]);
+        
+        
     end
     
     %% Add to Structure
