@@ -1,7 +1,9 @@
 function [ Inj_pairs, badnessflag,RMS_CHN ] = ScouseTom_data_EstInjPair( Vin,Threshold )
+% [Inj_pairs, badnessflag,RMS_CHN] = ScouseTom_data_EstInjPair( Vin,Threshold )
 %ScouseTom_EstimateInjPair Simply estimates which channels are injecting by
-%finding the two biggest channels using RMS
-%   Detailed explanation goes here
+%finding the two biggest channels using RMS. Gives warning if 3rd largest
+%channel is below threshold (0.5) this indicates that its not clear what
+%the injection channels are
 
 %% parse inputs
 
