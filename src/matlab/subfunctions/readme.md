@@ -16,3 +16,9 @@ These are functions called by the main functions like `ScouseTom_ProcessBV` or `
 -   `ScouseTom_data_GetCarrier.m` - Estimates the carrier frequency by finding the largest spectral component in signal
 
 -   `ScouseTom_data_GetFilterTrim.m` - Finds the appropriate bandpass filter given the carrier frequency and injection time. Uses IIR filters if injections are long enough, before switching to FIR. Checks the gain at the carrier frequency is not adversely effected.  
+
+-   `ScouseTom_data_PhaseEst.m` - Estimate the phase of the complex voltage by comparing with the phase on the injection channels.
+
+-   `ScouseTom_getbdftrig.m` - Reads the HDR to obtain the digital trigger information for BioSemi data
+
+-   `ScouseTom_geteegtrig.m` - Reads the .vmrk file for the trigger information in ActiCHamp data

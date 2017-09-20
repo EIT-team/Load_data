@@ -1,9 +1,29 @@
 function [ trim_demod,FilterOut,Fc] = ScouseTom_data_GetFilterTrim( Vseg,Fs,BWtarget,MaxImpSamples,Fc,plotflag )
 % [trim_demod,FilterOut,Fc] = ScouseTom_data_GetFilterTrim( Vseg,Fs,BWtarget,MaxImpSamples,Fc,plotflag )
+%   ScouseTom_GetFilterTrim
+%   Find the optimal filter parameters and samples to trim for a given
+%   dataet based on SNR tests for different windows. Where possible, uses
+%   and IIR bandpass filter, but will switch to FIR if the injection time
+%   is to short. It will also switch to just a low pass filter if the
+%   carrier frequency is too low. Most of the settings have been chosen
+%   empirically, and tested using /test/test_accuracy. 
 %
-%ScouseTom_GetFilterTrim Gets optimal filter parameters and samples to trim
-%   based on SNR tests for different windows.
+%   Inputs:
+%   Vseg - Voltage of a single channel of an entire injection. This is used
+%       to determine the carrier frequency (unless specified manuall) and the
+%       legnth is used to find the maximum settling time of the filters.
+%   Fs  - Sampling frequency
+%   BWtarget[100] - total target bandwidth (optional)
+%   MaxImpSamples[0.5*length(Vseg)] - limit in samples of filter decay
+%       time. Can be specified to overide defaults(optional) 
+%   Fc - can manually specify carrier freq (optional)
+%   plotflag[0] - set to 1 if you want to see plots of filter response
 %
+%   Outputs:
+%   trim_demod - number of samples to trim from each side injection window
+%       before averaging. i.e. the time taken for the filter response to decay
+%   FilterOut - Filter object of optimal filter
+%   Fc  - Carrier frequency
 
 % from the dexterous exploratory hands of jimmy
 

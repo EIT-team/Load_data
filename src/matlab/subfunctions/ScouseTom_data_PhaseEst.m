@@ -1,8 +1,20 @@
 function [ PhaseAngle ] = ScouseTom_data_PhaseEst( PhaseIn,Protocol,StartInj)
-%ScouseTom_data_PhaseEst Estimate the phase angle through comparison to the
-%injection channels
-%   Detailed explanation goes here
+%[PhaseAngle] = ScouseTom_data_PhaseEst( PhaseIn,Protocol,StartInj)
+%ScouseTom_data_PhaseEst 
+%   Estimate the phase angle on measurement channels by comparing the phase
+%   difference to an injection channel. 
+%   explanation goes here
+%
+%   Inputs:
+%   PhaseIn - Phase on all channels, output from get_BV
+%   Protocol - Complete current injection protocol, used to find which are
+%       the injection pairs
+%   StartInj - Which line the data starts on
+%
+%   Outputs: 
+%   PhaseAngle - Adjusted phase on all channels (N_prt,N_elec)
 
+%% Read inputs
 %get info about data
 N_prt=size(Protocol,1);
 N_elec=size(PhaseIn,2);
@@ -14,10 +26,13 @@ if exist('StartInj','var') ==0
     fprintf(2,'StartInj missing from phase est. assuming 1\n');
 end
 
+
+
+%% Find Phase relative to source elec
+
 %get phase angle for each protocol injection line by subtracting the phase
 %from the injection electrode
 
-%% Find Phase relative to source elec
 %make vector of indicies of the protocol. Saves having to calc this each
 %time in loop.
 
