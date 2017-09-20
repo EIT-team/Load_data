@@ -105,7 +105,7 @@ disp('=================================================');
 
 %% Z check
 try
-    Z=ScouseTom_LoadZ([datadir 'firstinnir_zcheck_1.bdf']);
+    Z=ScouseTom_Load([datadir 'firstinnir_zcheck_1.bdf']);
 catch err
     fprintf(2,'error on Z load \n');
     somethingwentwrong=1;
