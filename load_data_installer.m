@@ -1,3 +1,4 @@
+% installer for Load_data repository. Loads this modified version of Biosig library then adds the src folder
 %% Install Biosig Module
 
 homedir=pwd;
