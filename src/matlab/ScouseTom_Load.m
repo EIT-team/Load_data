@@ -95,7 +95,7 @@ mfilename=fullfile(pathstr,[namestr '_log.mat']);
 % Starts of normal protocols should be saved in TT structure
 if ~isempty(TT.InjectionStarts)
     % Get ExpSetup - or find from file
-    if exist('ExpSetup','var') == 0
+    if exist('ExpSetup','var') == 0 || isempty(ExpSetup)
         %check if _log file is with eeg file
         if exist(mfilename,'file')
             load(mfilename);
@@ -113,7 +113,7 @@ if ~isempty(TT.Contact.InjectionStarts)
     
     fprintf(2,'File contains Z check. Calling ScouseTom_ProcessZ\n');
     
-    if exist('ExpSetup','var') == 0
+    if exist('ExpSetup','var') == 0 || isempty(ExpSetup)
         %check if _log file is with eeg file
         if exist(mfilename,'file')
             load(mfilename);
