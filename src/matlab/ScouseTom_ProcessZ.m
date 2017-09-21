@@ -1,28 +1,78 @@
 function [ Zall ] = ScouseTom_ProcessZ( HDR,TT,ExpSetup,PlotFlag )
-%SCOUSETOM_LOADZ Calculates the contact impedance from a two electrode "contact check"
-%   This is from the contact check command for the scousetom - the
-%   amplitude and freq are FIXED at the moment
+%[ Zall ] = ScouseTom_ProcessZ( HDR,TT ) 
+%   SCOUSETOM_LOADZ
+%   Calculates the contact impedance from a two electrode "contact check"
+%   measurement. The impedance is estimated from the voltage on the
+%   injection channels. This type of injection is started by the
+%   ScouseTom_ContactCheck command for the ScouseTom repository.
+%
+%   The flow is much the same as ScouseTom_ProcessBV, execpt it it simpler
+%   in that the data is small enough to load all at once given the short
+%   injection times during contact checks.
+%
+%   Currently the amplitude and frequency are FIXED, and as such a
+%   _log.mat is not stored alongside the EEG datafiles with contact checks.
+%
+%   As with ProcessBV, the filter settings are found based on the injection
+%   frequency and the time between switching electrode pairs. The mean
+%   voltage on all channels is then found by demodulating using the Hilbert
+%   transform. Given the amplitde of injected current, the contact
+%   impedance is estimated from the mean voltage on each electrode when it
+%   is used to inject current.
+%
+%   Bar graph indicating bad channels is produced. Useful during electrode
+%   application.
+%
+%   The output is stored in a matfile Fname-ZCheck.mat
+%
+%   Inputs:
+%   HDR - from ScouseTom_getHDR contains metadata about EEG file
+%   TT  - from ScouseTom_TrigProcess, infomation from digital trigger
+%       channels
+%   ExpSetup -  Structure containing the setup for the ScouseTom system. 
+%       Most important variables can be assumed to be default, so only
+%       necessary if you ahve altered these in the firmware (optional)
+%   PlotFlag[1] - Specify if you wna the bar plot (optional)
+%
+%   Outputs:
+%   Zall - Structure containing the Z structure for every zcheck in the
+%   file. 
+%
+%   Z structure:
+%   Z(Chn) - Estimated contact impedance - averaged across both injections on
+%       that electrode
+%   Zi(Chn,2) - Estimated contact impedance, per injection
+%   dZ(Chn) - Difference in voltage, in form of previous UCH system
+%   ExpSetup - Input structure for ref
+%   TimeNum - timestamp unix format
+%   TimeVec - timestamp in matlab timevector format
 
 %% check inputs are ok here
 
-if exist('PlotFlag','var') ==0
+%normally we want to plot
+if exist('PlotFlag','var') ==0 || isempty(PlotFlag)
     PlotFlag =1;
 end
 
-%% See what type of system we are using
+%set defaults 
+if exist('ExpSetup','var') ==0 || isempty(ExpSetup)
+    ExpSetup.Elec_num=HDR.NS-1; %number of electrodes
+    ExpSetup.Bad_Elec=[]; %bad electrodes assume none
+    ExpSetup.Desc='THIS IS A DUMMY EXPSETUP MADE DURING ZCHECK';
+    ExpSetup.Amp=141; % fixed in ScouseTom firmware
+    ExpSetup.Freq=1000; % fixed in ScouseTom firmware
+end
 
+%% See what type of system we are using
 
 %the maximum voltage is different for each system, this *should* be in the
 %HDR structure somewhere, but I dont know where it is
 
 switch HDR.TYPE
     case 'BDF' % biosemi file
-        
         MaxV=0.5e6; %500mV range on BioSemi
-        
     case 'BrainVision' %actichamp
         MaxV=0.25e6; %250mV range on ActiChamp
-        
     otherwise
         error('Unknown HDR Type');
 end
@@ -42,23 +92,18 @@ Contact_Protocol=Contact_Protocol(~(any(ismember(Contact_Protocol,ExpSetup.Bad_E
 %% Amplitude and freq
 
 %these are fixed in the arduino code in Injection.h in ScouseTom repo
-Amp=141; % 141 uA
-Frq=1000; %1 kHz
-
+Amp=ExpSetup.Amp; % 141 uA
+Freq=ExpSetup.Freq; %1 kHz
 
 %scale factor - impedance conversion
 ZSF=1/(Amp); %VOLTAGE GIVEN IN uV SO AMP in uA too
-
-MaxZ=MaxV*ZSF;
-
-
+Z_Max=MaxV*ZSF; %maximum impedance based on maximum voltage measureable on system
 
 %% Defaults for filtering and contact impedance values
 
 %bandwidth of filter
 BW=50;
-RecZ=1000; %recommended contact impedance
-
+Z_Rec=1000; %recommended contact impedance
 
 %% run each impedance check separately
 
@@ -69,8 +114,6 @@ if isempty(Z_checks_num)
     warning('No Contact Checks Found');
     return
 end
-
-
 
 for iZ = 1:Z_checks_num
     
@@ -105,11 +148,13 @@ for iZ = 1:Z_checks_num
     %find the corresponding filter settings
     [Filt,FilterTrim,Fc]=ScouseTom_FindFilterSettings(HDR,TT.Contact.InjectionSwitches(iZ,:),Contact_Protocol(swidx,1));
     
-    %demodulate each segment in turn using hilber transfrom
+    %demodulate each segment in turn using hilbert transfrom
     [ Vdata_demod,Pdata_demod ] = ScouseTom_data_DemodHilbert( V,Filt{1}); % filter and demodulate channel
     
+    %get just the mean of the voltages during each injection
     [Vmag,PhaseRaw]=ScouseTom_data_getBV(Vdata_demod,Pdata_demod,FilterTrim{1},TT.Contact.InjectionSwitches{iZ}-Data_start_s); %process each injection window, adjusting for new start time
     
+    %Get Phase
     [Phase]=ScouseTom_data_PhaseEst(PhaseRaw,Contact_Protocol,1);
     
     %% Calculate Z
@@ -136,6 +181,7 @@ for iZ = 1:Z_checks_num
         
     end
     
+    %take the mean of all times this channel is used
     Zave=mean(Z,2);
     
     %date stamp for this z check
@@ -143,11 +189,11 @@ for iZ = 1:Z_checks_num
     datestart(6)=datestart(6)+Data_start;
     datestart=datenum(datestart);
     
-    %%
-    %Classify each impedance as good bad or ok
-    bad_idx = find(Zave > MaxZ);
-    ok_idx=find(Zave > RecZ & Zave < MaxZ);
-    good_idx =find(Zave < RecZ);
+    %% Classify channels
+    %Each impedance is either good bad or ok
+    bad_idx = find(Zave > Z_Max);
+    ok_idx=find(Zave > Z_Rec & Zave < Z_Max);
+    good_idx =find(Zave < Z_Rec);
     
     badchn=nan(size(Zave));
     goodchn=badchn;
@@ -160,6 +206,7 @@ for iZ = 1:Z_checks_num
     numbad=length(bad_idx);
     numok=length(ok_idx);
     
+    %output to user
     disp('------------------------------------');
     fprintf('Found ');
     if numbad
@@ -188,9 +235,7 @@ for iZ = 1:Z_checks_num
     if PlotFlag
         
         figure
-               
         title(sprintf('Z Check %d, in %s @ %s\n%d Hz and %d uA',iZ,fname,datestr(datestart),round(Fc{1}),Amp),'interpreter','none');
-        
         
         hold all
         %plot each set
@@ -199,10 +244,10 @@ for iZ = 1:Z_checks_num
         bar(badchn,'Facecolor',[1 0 0]);
         
         %make indication lines for recomended and max impedances
-        line([0 Nelec+1],[MaxZ MaxZ],'color','r','linewidth',5)
-        line([0 Nelec+1],[RecZ RecZ],'color','y','linewidth',5)
-        text(1,RecZ,'FUZZY LOGIC OK','BackgroundColor',[1 1 1],'color',[0 0 0])
-        text(1,MaxZ,'MAX Z','color','r','BackgroundColor',[1 1 1])
+        line([0 Nelec+1],[Z_Max Z_Max],'color','r','linewidth',5)
+        line([0 Nelec+1],[Z_Rec Z_Rec],'color','y','linewidth',5)
+        text(1,Z_Rec,'FUZZY LOGIC OK','BackgroundColor',[1 1 1],'color',[0 0 0])
+        text(1,Z_Max,'MAX Z','color','r','BackgroundColor',[1 1 1])
         hold off
         set(gca,'Xtick',[1:Nelec])
         xlim([0,Nelec+1])
@@ -210,13 +255,12 @@ for iZ = 1:Z_checks_num
         xlabel('Electrode');
         ylabel('~Impedance Ohm');
         
-        drawnow
+        
         %make plot wider
         pos=get(gcf,'Position');
         w=pos(1)-pos(3);
         set(gcf,'pos',[pos(1)-w pos(2) pos(3)+w pos(4)]);
-        
-        
+        drawnow
     end
     
     %% Add to Structure
@@ -235,9 +279,6 @@ for iZ = 1:Z_checks_num
     
     %structure holding all
     Zall(iZ)=Zout;
-    
-    
-    
 end
 %% save data
 %find if the Zcheck directory exists by going up one directory and seeing
@@ -254,12 +295,8 @@ else
     
 end
 
-
 %save
 save(fullfile(Zcheckpathstr,Zfilename),'Zall');
 disp('----------------------');
-
-
-
 end
 

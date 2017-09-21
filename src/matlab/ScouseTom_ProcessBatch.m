@@ -71,7 +71,8 @@ if (nbdffiles > 0)
     for iFile =1:nbdffiles
         disp(['Processing bdf file ' num2str(iFile) ' of ' num2str(nbdffiles) ': ' bdffiles(iFile).name]);
         try
-            ScouseTom_Load(fullfile(dirname,bdffiles(iFile).name));
+            %process this dataset, not plotting Z check results (if any)
+            ScouseTom_Load(fullfile(dirname,bdffiles(iFile).name),[],[],0);
         catch
             fprintf(2,'OH NO! Problem loading file %s \n',bdffiles(iFile).name);
             brokenfiles=brokenfiles+1;
@@ -88,7 +89,8 @@ if (neegfiles > 0)
     for iFile =1:neegfiles
         disp(['Processing eeg file ' num2str(iFile) ' of ' num2str(neegfiles) ': ' eegfiles(iFile).name]);
         try
-            ScouseTom_Load(fullfile(dirname,eegfiles(iFile).name));
+            %process this dataset, not plotting Z check results (if any)
+            ScouseTom_Load(fullfile(dirname,eegfiles(iFile).name),[],[],0);
         catch
             fprintf(2,'OH NO! Problem loading file %s \n',eegfiles(iFile).name);
             brokenfiles=brokenfiles+1;

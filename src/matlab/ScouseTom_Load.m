@@ -58,10 +58,16 @@ end
 if nargin >= 3
     ExpSetup=varargin{3};
 end
+
+if nargin >= 4
+    PlotFlag=varargin{4};
+end
+
+
 %% Load HDR
 
 %if HDR not given then load it
-if exist('HDR','var') == 0
+if exist('HDR','var') == 0 || isempty(HDR)
     HDR=ScouseTom_getHDR(fname);
 end
 
@@ -73,7 +79,7 @@ end
 %% Get Triggers
 
 %if TT struct not given then obtain it from HDR
-if exist('TT','var') == 0
+if exist('TT','var') == 0 || isempty(TT)
     Trigger= ScouseTom_TrigReadChn(HDR);
     TT= ScouseTom_TrigProcess(Trigger, HDR);
 end
@@ -113,15 +119,20 @@ if ~isempty(TT.Contact.InjectionStarts)
             load(mfilename);
         else % use defaults if not-this only pertains to skipped channels during contact check and number of electrodes
             fprintf(2,'Cannot find ExpSetup, so assuming defaults\n');
-            ExpSetup.Elec_num=HDR.NS-1; %number of electrodes
-            ExpSetup.Bad_Elec=[]; %bad electrodes assume none
-            ExpSetup.Desc='THIS IS A DUMMY EXPSETUP MADE DURING ZCHECK';
+            %             ExpSetup.Elec_num=HDR.NS-1; %number of electrodes
+            %             ExpSetup.Bad_Elec=[]; %bad electrodes assume none
+            %             ExpSetup.Desc='THIS IS A DUMMY EXPSETUP MADE DURING ZCHECK';
         end
     end
     
+    if exist('PlotFlag','var') ==0 || isempty(PlotFlag)
+        PlotFlag =1;
+    end
+    
+    
     % Process Z check, outputing figures
-    OutStruc=ScouseTom_ProcessZ(HDR,TT,ExpSetup,1);
-      
+    OutStruc=ScouseTom_ProcessZ(HDR,TT,[],PlotFlag);
+    
 end
 end
 
