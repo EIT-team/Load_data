@@ -1,9 +1,24 @@
 function [ VmagOut,PhaseOut,VmagOutSTD,PhaseOutSTD,Vmag ] = ScouseTom_ReadandDemodChn( HDRin,Filt,Trim_demod,InjectionWindows,Protocol,StartInj )
-% [VmagOut,PhaseOut,VmagOutSTD,PhaseOutSTD,Vmag ] = ScouseTom_ReadandDemodChn( HDRin,Filt,Trim_demod,InjectionWindows,Protocol,StartInj )
-
-%UNTITLED5 Summary of this function goes here
-%   Detailed explanation goes here
-
+% [VmagOut,PhaseOut,VmagOutSTD,PhaseOutSTD ] = ScouseTom_ReadandDemodChn( HDRin,Filt,Trim_demod,InjectionWindows,Protocol,StartInj )
+%   Demodulates dataset. Estimates how many channels which can be processed
+%   at once. Then demodulates and averages at each frequency in turn. %
+%
+%   Inputs:
+%   HDR - Structure for ScouseTom_getHDR
+%   Filt - filter output from FindFilterSettings
+%   Trim_demod - amount of samples to trim FindFilterSettings 
+%   InjectionWindows - TT.InjectionSwitches(1,:)
+%   Protocol - ExpSetup.Protocl
+%   StartInj - Starting injection ScouseTom_data_checkfirstinj, or specify
+%       manually
+%   
+%   Outputs:
+%   VmagOut - Average demodulated magnitude within each switch (PrtTot,Rep)
+%   PhaseOut - Average demodulated phase (PrtTot,Rep)
+%   VmagOutSTD - Standard deviation of magnitude calculation
+%   PhaseOutSTD - Stardard deviation of phase calculation
+%   Vmag - The demodulated magnitude, in the order in data, not in full prt length - (Prt,Rep)
+%
 
 %% Max memory usage
 MaxMemoryUsage=8e9; %maximum memory usage for larger variables stored during demodulation
