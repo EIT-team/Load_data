@@ -17,3 +17,4 @@ addpath(genpath([pwd filesep 'src' filesep 'matlab']));
 %savepath
 disp('###################################');
 disp('Load data path set ok. Run SAVEPATH to save these changes');
+disp('Please run the examples in the ./examples folder to check everything is working')
