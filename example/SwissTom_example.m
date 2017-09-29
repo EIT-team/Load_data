@@ -7,4 +7,4 @@
 
 %load boundary voltages of resistor phantom recording. Removing injected
 %channels, saturated channels, and plotting data
-[STout]=SwissTom_LoadData('..\resources\data\Swisstom\r-phantom.eit',1,1,1);
+[STout]=SwissTom_Load('..\resources\data\Swisstom\r-phantom.eit',1,1,1);

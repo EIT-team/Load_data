@@ -1,13 +1,28 @@
-function [ StartInj,EstimateBadness,RMSEst ] = ScouseTom_data_checkfirstinj(HDR,InjectionSwitchesCell,Protocol )
-%SCOSUETOM_DATA_CHECKFIRSTINJ Checks the first injection in the dataset to
-%see if it is the correct protocol line, adjusts the processing if not.
-%This is to account for
-%   Detailed explanation goes here
-
+function [ StartInj,EstimateWarning,RMSEst ] = ScouseTom_data_checkfirstinj(HDR,InjectionSwitchesCell,Protocol )
+%[StartInj,EstimateWarning,RMSEst] = ScouseTom_data_checkfirstinj(HDR,InjectionSwitchesCell,Protocol )
+%SCOUSETOM_DATA_CHECKFIRSTINJ Checks the first injection in the dataset and
+%matches it to a line in the current injection protocol.
+%
+%
+% Takes the RMS of the voltages given, finds the two largest channels, and
+% matches these to an injection pair in the protocol given. If one is not
+% found then shows the RMS and prompts user. If this is the case then
+% normally something is broken in the data
+%
+%   Inputs:
+%   HDR - from ScouseTom_getHDR
+%   InjectionSwitchesCell - From the TT strucutre from
+%       ScouseTom_TrigProcess. Normally given by TT.InjectionSwitches(TT.InjectionSwitches(1,:)
+%   Protocol - Array of injection pairs usually ExpSetup.Protocol
+%
+%   Outputs:
+%   StartInj(nFreq) - Line in protocol which each frequency begins at
+%   EstimateWarning - Whether there was a clear injection pair. Threshold
+%       is 3rd largest channel is 0.6 of 2nd.
+%   RMSEst - the rms on all channels used in estimating inj pairs
 %% check inputs are ok
 
-%if the data is fucked or has big artefact then this can mess up as the RMS
-%is borked
+
 
 
 
@@ -25,7 +40,7 @@ StartInj=nan(Nfreq,1);
 %% Find start injection for each frequency
 
 for iFreq=1:Nfreq
-   %find earliest switch
+    %find earliest switch
     FirstSample=min(InjectionSwitchesCell{iFreq}(1,:));
     StartSec=floor(FirstSample/Fs); %findnearest second
     StartSample=StartSec*Fs; %corresponding sample
@@ -54,7 +69,7 @@ for iFreq=1:Nfreq
     Threshold=0.6; %coefficient for deciding good injection pair estimate
     
     %estimate the injection pairs from the two largest RMS values
-    [StartInjEst, EstimateBadness,RMSEst]=ScouseTom_data_EstInjPair(V(tmpidx,:),Threshold);
+    [StartInjEst, EstimateWarning,RMSEst]=ScouseTom_data_EstInjPair(V(tmpidx,:),Threshold);
     
     %find desired first startinj - sort as we cant tell sources from sinks
     Protocol=sort(Protocol,2);
@@ -66,7 +81,7 @@ for iFreq=1:Nfreq
     start_poss=find(all([StartInjEst(1)==Protocol(:,1) StartInjEst(2)==Protocol(:,2)],2));
     
     %warn if estimate was not matching threshold
-    if EstimateBadness ==1
+    if EstimateWarning ==1
         fprintf(2,'WARNING! The Injection start estimate did not meet threshold\n');
     end
     
@@ -87,7 +102,7 @@ for iFreq=1:Nfreq
         title(['RMS in first inj. Freq ' num2str(iFreq) ', expected ' num2str(StartInjProt(1)) ' & ' num2str(StartInjProt(2)) ])
         
         StartInj(iFreq)=-1;
-        EstimateBadness=1;
+        EstimateWarning=1;
         
     end
     

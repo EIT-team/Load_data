@@ -1,7 +1,35 @@
-function [ Trigger ] = ScouseTom_TrigReadChn( HDR,SkipIDCodes,TimeToIgnore)
-%SCOUSETOM_READTRIGCHN Identifies events on trigger channels, and identify
-%which is which according to the ID codes at the start of the file
-%   Detailed explanation goes here
+function [ Trigger ] = ScouseTom_TrigReadChn( HDR,IdentifyChannels,SkipIDCodes,TimeToIgnore)
+% [ Trigger ] = ScouseTom_TrigReadChn( HDR,IdentifyChannels,SkipIDCodes,TimeToIgnore)
+% SCOUSETOM_READTRIGCHN Identifies events on trigger channels, and identify
+% which is which according to the ID codes at the start of the file
+%
+% This code has 3 jobs: ID trigger channels, remove too short pulses, sort
+% the pulses into the different channels for later processing. This is
+% necessary as the BioSemi and ActiChamp give different types of infomation
+% about the digital channel.
+%
+%
+% Inputs [default]:
+% HDR - HDR from ScouseTom_getHDR
+%
+% Identify channels [def 0] -  The ScouseTom system writes ID codes at the
+% start of an injection to ID which channels are which.
+% This is because at the time they were still connected manually,
+% and the pins would get swapped. This is not needed if you are using the
+% proper shield, so this is just skipped by default.
+%
+% SkipIDCodes [def 0] - Ignore checking for ID codes at all, and leave all
+% channels unlabelled. This is useful if you are not using the normal
+% triggers, like with the robot arm in the tank. 
+%
+% TimeToIgnore[def 0] - Time in seconds which will be removed from
+% processing. Useful if you have some unusual triggers, or the arduino
+% reset during recording. 
+%
+% Output:
+% Trigger - Structure used in subsequent processing steps
+% ScouseTom_TrigProcess. Containing Cells of each trigger type - Start Stop
+% Switch Stim etc.
 
 %% Get trigger channel input according to which file type it is
 switch HDR.TYPE
@@ -20,7 +48,14 @@ end
 Fs=HDR.SampleRate;
 
 %% Define Variables
-
+% by default we do not identify the channels, and assume the numbering was
+% correct
+if exist('IdentifyChannels','var') ==0  || isempty(IdentifyChannels)
+    IdentifyChannels=0;
+end
+% by deafult we do not skip finding the ID code blocks, as they are
+% normally there in the recording. But we do want to remove them for later
+% stages, as they do not represent "useful" infomation
 if exist('SkipIDCodes','var') ==0
     SkipIDCodes=0;
 end
@@ -62,7 +97,6 @@ ID_Codes.Num(7)=8;
 ID_Codes.Name(8)={'Unknown'};
 ID_Codes.Num(8)=-1;
 
-
 ID_Codes.DefaultOrder=[4,1,2,3,5,6,8,7];
 ID_Codes.DefaultID=ID_Codes.Num([ID_Codes.DefaultOrder]);
 ID_Codes.DefaultName=ID_Codes.Name([ID_Codes.DefaultOrder]);
@@ -71,15 +105,11 @@ ID_Codes.DefaultOrder(end+1:trignum)=nan;
 ID_Codes.DefaultID(end+1:trignum)=nan;
 ID_Codes.DefaultName(end+1:trignum)={''};
 
-%there may be others here - system has 3 spare channles EX_1 2 and 3 on
-%arduino. and Kirills physchotool box stuff will also go here
-
 %% CHECK HDR IS OK here
 
 
 
 %% DELETE ONES WE DONT WANT
-
 
 if exist('TimeToIgnore','var')
     
@@ -88,12 +118,7 @@ if exist('TimeToIgnore','var')
     TrigPos(rem_idx) =[];
     StatusChns(rem_idx,:) =[];
     
-    
-    
-    
 end
-
-
 
 
 %% FIND EDGES IN EACH CHANNEL
@@ -102,7 +127,6 @@ end
 %process them slightly differently. For the diff to find Thresedges, we can
 %pad with the edge values for biosemi. But for the ActiChamp we need to pad
 %with zeros to ensure we have a rising edge at start
-
 
 
 %find peaks by creating logical threshold array. then finding the rising
@@ -181,18 +205,15 @@ for iChn=1:trignum
 end
 
 
-
-
-
-
-
-
-
 %% NEXT IDENTIFY CHANNELS BY READING THE LITTLE COMMAND ONES TO START WITH
 
 %counter for unknown trigger channels
 ChnUnknown=0;
-if ~SkipIDCodes
+
+% check the ID codes at start of file to find which channels are which -
+% but we can assume its wired in standard way in nearly all cases
+if  IdentifyChannels
+    
     
     for iChn=1:trignum
         
@@ -221,16 +242,6 @@ if ~SkipIDCodes
             Trigger.Type(iChn)=ID_Codes.Name(chnID);
             Trigger.ID_Code(iChn)=codesize;
             
-            %delete the references to the rising and falling edges for the ID codes
-            rem_idx=[true; S];
-            rem_idx=find(rem_idx ==1);
-            
-            Trigger.ID_Rising(iChn)={Trigger.RisingEdges{iChn}(rem_idx)};
-            Trigger.ID_Falling(iChn)={Trigger.FallingEdges{iChn}(rem_idx)};
-            
-            Trigger.FallingEdges{iChn}(rem_idx)=[];
-            Trigger.RisingEdges{iChn}(rem_idx)=[];
-            
         else
             
             if ~isempty(PulseStart)
@@ -246,11 +257,77 @@ if ~SkipIDCodes
     end
     
 else
-    fprintf(2,'SKIPPING ID CODE CHECK - ASSUMING EVERYTHING WIRED CORRECTLY!\n');
+    fprintf('SKIPPING CHANNEL IDENTIFICATION - ASSUMING EVERYTHING WIRED CORRECTLY!\n');
     Trigger.ID_Code=ID_Codes.DefaultID;
     Trigger.Type=ID_Codes.DefaultName;
     
 end
+
+
+%% Identify blocks of ID Codes
+% The start of each injection creates an ID Code block. Search each of them
+% in turn in case there is multiple EIT injections in a single recording.
+
+if ~SkipIDCodes
+    
+    
+    %% Using the Start channel find groups
+    StartChn=find((cellfun(@(x) ~isempty(x),strfind(Trigger.Type,ID_Codes.Name{2}))));
+    
+    % This time take *all* pulses
+    PulseStart=Trigger.RisingEdges{StartChn};
+    
+    %find the pulses which are close together
+    BelowThres = (diff(PulseStart) < maxIDperiod);
+    %use bwlabel to find connections in array
+    [S, NN]=bwlabel(BelowThres);
+    
+    %check groups are the correct size
+    for iGroup = 1:NN
+        if size(find (S == iGroup),1) ~= Trigger.ID_Code(StartChn)
+
+            % clear groups that arent the correct size - these are either
+            % contact checks, or something is broken :)
+            S(S==iGroup) =nan;
+            NN=NN-1;
+            S(S>iGroup) = S(S>iGroup)-1;
+            S(isnan(S))=[];
+            
+        end
+    end
+    
+    fprintf('Found %d Injection starts\n',NN);
+    
+    
+    % find all ID codes around this window
+    
+    for iGroup = 1:NN
+        % find where the ID codes start
+        IDCodeStart = PulseStart(find(S ==iGroup,1));
+        
+        for iChn=1:trignum
+            % find all rising edges in a window around this starting pulse
+            rem_idx = find( Trigger.RisingEdges{iChn} > IDCodeStart - maxIDperiod*10 & Trigger.RisingEdges{iChn} < IDCodeStart + maxIDperiod*10);
+            % store them as reference
+            Trigger.ID_Rising(iChn)={Trigger.RisingEdges{iChn}(rem_idx)};
+            Trigger.ID_Falling(iChn)={Trigger.FallingEdges{iChn}(rem_idx)};
+            
+            %remove them from the main array
+            Trigger.FallingEdges{iChn}(rem_idx)=[];
+            Trigger.RisingEdges{iChn}(rem_idx)=[];
+            
+            
+        end
+        
+    end
+    
+else
+    % the Trigger structure is not altered
+end
+
+
+
+
 %% Clear the dummy channel
 
 %we have extra channel to force rising edges so the actichamp triggers make
@@ -259,7 +336,7 @@ end
 
 %find the one with the correct ID code - This works for BDF files or if we
 %have forced defaults above
-if any(cellfun(@(x) ~isempty(x),strfind(Trigger.Type,ID_Codes.Name{7})));
+if any(cellfun(@(x) ~isempty(x),strfind(Trigger.Type,ID_Codes.Name{7})))
     
     DummyChn=find((cellfun(@(x) ~isempty(x),strfind(Trigger.Type,ID_Codes.Name{7}))));
     
@@ -280,7 +357,7 @@ end
 
 if ~isempty(DummyChn)
     
-    
+    % clear everything in the dummy channel 
     Trigger.Type(DummyChn)={''};
     Trigger.ID_Code(DummyChn)=nan;
     Trigger.RisingEdges(DummyChn)={[]};
@@ -317,7 +394,7 @@ if (any(Trigger.ID_Code == ID_Codes.Num(2)) ...
 else
     
     if ~SkipIDCodes
-        fprintf(2,'STARTING CODES WERE FUCKED! Trying again but assuming start of file missing, and forcing default channels\n');
+        fprintf(2,'STARTING CODES WERE BROKEN! Trying again but assuming start of file missing, and forcing default channels\n');
         
         Trigger=ScouseTom_TrigReadChn(HDR,1);
     else
