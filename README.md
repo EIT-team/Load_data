@@ -1,6 +1,4 @@
 # UCL EIT Load Data
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.999377.svg)](https://doi.org/10.5281/zenodo.999377)
-
 Software to load EIT data from the three systems into Matlab
 
 -   [ScouseTom](https://github.com/EIT-team/ScouseTom) - Developed in UCL lab, and the focus of this repository. Based around a Keithley 6221 current source and EEG recording system. This system is open source and further details are given in [this repository](https://github.com/EIT-team/ScouseTom)

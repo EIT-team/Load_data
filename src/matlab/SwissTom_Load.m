@@ -24,12 +24,6 @@ function [ STout,SwissTom_raw] = SwissTom_Load( fname,rem_flag,sat_flag,plot_fla
 %   fname-protocol.prt - protocol file generated from settings in eit file
 %   fname-SWISSTOMDATA - Structure with all the data in it
 %
-% June 2014 version - with separate input flags and updated conversion to
-% volts
-%
-% From the velvet begloved hands of the bohemian James who should be doing
-% something else
-
 
 %% load file
 
@@ -313,8 +307,7 @@ function [ SwissTomProtocolFull, rem_idx,keep_idx ] = SwissTom_MakeProtocol( off
 %   This means the number of electrodes between the source and sink
 %   - so an offset of 0 will inject between 1 and 2 and also measure
 %   between 1 and 2. an offset of 3 would injetion between 1 and 5 and also
-%   measure between 1 and 5. we will change the measurement offset
-%   separately at some point.
+%   measure between 1 and 5. 
 %
 %   inputs:
 %   offsetvalue - setting in the swisstom software. determines which
@@ -322,8 +315,6 @@ function [ SwissTomProtocolFull, rem_idx,keep_idx ] = SwissTom_MakeProtocol( off
 %   [filename]= filename to save .prt file
 %   outputs:
 %   SwissTomProtocol - matrix of protocol
-%
-%   made by the libidinous James
 
 %% check inputs
 

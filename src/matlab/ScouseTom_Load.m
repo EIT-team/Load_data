@@ -28,7 +28,6 @@ function [ OutStruc ] = ScouseTom_Load( varargin )
 % HDR = ScouseTom_getHDR('../../resources/data/ScouseTom/forreal_2_clean.bdf');
 % ScouseTom_LoadBV(HDR);
 %
-% Written by the avuncular yet bohemian Jimmy 2016
 
 %% Check inputs
 

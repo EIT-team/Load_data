@@ -33,9 +33,7 @@ end
 % the same time code. so these need to be combined too
 
 % The output in HDR.TYP gives weird results, so I have ignored it and done
-% it myself BECAUSE IT FUCKING DELETES HALF OF THE CODES FOR NO REASON FOR
-% FUCKS SAKE THATS LIEK HOURS OF MY LIFE WASTED WHAT THE
-% FUCK!!!!!!
+% it myself
 %% Find Marker Codes
 
 %get marker codes using code from BVA import
