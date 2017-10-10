@@ -4,7 +4,7 @@ function [Vmag,Vphase,Vmag_std,Vphase_std]=ScouseTom_data_getBV(Vdata_demod,Pdat
 %ScouseTom_data_getBV Takes the average of the demodulates voltages within
 %each injection. This gives the conventional "boundary voltage" used for
 %EIT reconstructions. 
-
+%%
 Nsample=size(Vdata_demod,1);
 Nelec=size(Vdata_demod,2);
 

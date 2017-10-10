@@ -27,11 +27,6 @@ function [BV,KHU]=KHU_Load(dirname,clean_flag,plot_flag)
 % Foldername-KHU.mat - has ALL the info stored in it read from the text
 % files or inputted by the user along with all the data
 %
-% Hopefully the last version (at least until someone does something non pairwise inject)
-%
-% Copes with Mixed injections properly now
-%
-% by the pulchritudinous Jimmy 2013/14/15
 
 %% user chooses directory
 

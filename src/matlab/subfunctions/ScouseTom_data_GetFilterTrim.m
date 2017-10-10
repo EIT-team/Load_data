@@ -25,9 +25,6 @@ function [ trim_demod,FilterOut,Fc] = ScouseTom_data_GetFilterTrim( Vseg,Fs,BWta
 %   FilterOut - Filter object of optimal filter
 %   Fc  - Carrier frequency
 
-% from the dexterous exploratory hands of jimmy
-
-
 %% Check inputs
 
 if  exist('Fc','var') == 0 || isempty(Fc)
