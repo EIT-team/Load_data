@@ -5,7 +5,7 @@ function [ Fc ] = ScouseTom_data_GetCarrier( data,Fs )
 %   finds the largest frequency bin in a data set. Zero pads the result to
 %   give smaller frequency bins for short signals for a more accurate
 %   result.
-
+%%
 max_length = 2^24; %mamximum length of data to use, must be power of 2
 
 if length(data) > max_length
