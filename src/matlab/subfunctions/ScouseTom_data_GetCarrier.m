@@ -16,7 +16,7 @@ end
 V=detrend(data); % remove DC offset
 N = length(V);
 
-NFFT = max([2^24 2^nextpow2(length(V))]); % Next power of 2 from length of y
+NFFT = max([max_length 2^nextpow2(length(V))]); % Next power of 2 from length of y
 Y = fft(V,NFFT)/N; % corrected power
 F = Fs/2*linspace(0,1,NFFT/2+1); %one side of frequency
 
