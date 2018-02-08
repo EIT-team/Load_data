@@ -130,7 +130,7 @@ try
     assert( Test2_PhaseError < Phase_tolerance, 'Test2 Phase error failed')
 catch err
     Failed = 1;
-     fprintf(2, '%s\n', getReport(err, 'extended'));
+    fprintf(2, '%s\n', getReport(err, 'extended'));
 end
 
 %% test 3
@@ -171,7 +171,7 @@ if plotflag
     subplot(2,1,2)
     plot(Fc,Phase_error_totT3)
     ylabel('Error');
-     xlabel('Frequency');
+    xlabel('Frequency');
     title('T3: Phase error 10s injection');
     
 end
@@ -190,7 +190,7 @@ try
     assert( Test3_PhaseError < Phase_tolerance, 'Test3 Phase error failed')
 catch err
     Failed = 1;
-     fprintf(2, '%s\n', getReport(err, 'extended'));
+    fprintf(2, '%s\n', getReport(err, 'extended'));
 end
 
 
@@ -226,13 +226,13 @@ if plotflag
     subplot(2,1,1)
     plot(Fc,Amp_error_totT4)
     ylabel('Error');
-     xlabel('Frequency');
+    xlabel('Frequency');
     title('T4: Amp error 0.5s injection');
     
     subplot(2,1,2)
     plot(Fc,Phase_error_totT4)
     ylabel('Error');
-     xlabel('Frequency');
+    xlabel('Frequency');
     title('T4: Phase error 0.5s injection');
     
 end
@@ -251,7 +251,7 @@ try
     assert( Test4_PhaseError < Phase_tolerance, 'Test4 Phase error failed')
 catch err
     Failed = 1;
-     fprintf(2, '%s\n', getReport(err, 'extended'));
+    fprintf(2, '%s\n', getReport(err, 'extended'));
 end
 
 %% test 5
@@ -314,7 +314,7 @@ try
     assert( Test5_PhaseError < Phase_tolerance, 'Test5 Phase error failed')
 catch err
     Failed = 1;
-     fprintf(2, '%s\n', getReport(err, 'extended'));
+    fprintf(2, '%s\n', getReport(err, 'extended'));
 end
 
 %% test 6
@@ -377,7 +377,7 @@ try
     assert( Test6_PhaseError < Phase_tolerance, 'Test6 Phase error failed')
 catch err
     Failed = 1;
-     fprintf(2, '%s\n', getReport(err, 'extended'));
+    fprintf(2, '%s\n', getReport(err, 'extended'));
 end
 
 
@@ -441,7 +441,7 @@ try
     assert( Test7_PhaseError < Phase_tolerance, 'Test7 Phase error failed')
 catch err
     Failed = 1;
-     fprintf(2, '%s\n', getReport(err, 'extended'));
+    fprintf(2, '%s\n', getReport(err, 'extended'));
 end
 
 %% test 8
@@ -504,7 +504,7 @@ try
     assert( Test8_PhaseError < Phase_tolerance, 'Test8 Phase error failed')
 catch err
     Failed = 1;
-     fprintf(2, '%s\n', getReport(err, 'extended'));
+    fprintf(2, '%s\n', getReport(err, 'extended'));
 end
 
 
@@ -570,7 +570,7 @@ try
     assert( Test9_PhaseError < Phase_tolerance, 'Test9 Phase error failed')
 catch err
     Failed = 1;
-     fprintf(2, '%s\n', getReport(err, 'extended'));
+    fprintf(2, '%s\n', getReport(err, 'extended'));
 end
 %% test 10
 
@@ -634,7 +634,7 @@ try
     assert( Test10_PhaseError < Phase_tolerance, 'Test10 Phase error failed')
 catch err
     Failed = 1;
-     fprintf(2, '%s\n', getReport(err, 'extended'));
+    fprintf(2, '%s\n', getReport(err, 'extended'));
 end
 
 %% test 11
@@ -699,7 +699,7 @@ try
     assert( Test11_PhaseError < Phase_tolerance, 'Test11 Phase error failed')
 catch err
     Failed = 1;
-     fprintf(2, '%s\n', getReport(err, 'extended'));
+    fprintf(2, '%s\n', getReport(err, 'extended'));
 end
 
 % SNR TEST
@@ -713,23 +713,82 @@ plot(Fc,Amp_error_totT5);
 plot(Fc,Amp_error_totT7);
 plot(Fc,Amp_error_totT8);
 hold off
+ylabel('Error');
+xlabel('Frequency');
+legend('32','64','128')
+
+
+
+
+%% Check a given ExpSetup
+
+load('S3b_MF1_log.mat','ExpSetup');
+
+
+
+clear Amp_error_tot Phase_error_tot
+
+%changing freq - fixed cycles of 3
+disp('Test 12 - ExpSetup');
+
+Fc = ExpSetup.Freq';
+FreqNum = size(Fc,2);
+
+
+InjTime=ExpSetup.MeasurementTime/1000';
+
+
+Amp_Inj = 9500;
+Amp_Meas = 1200 ;
+InjPhase=0;
+MeasPhaseDiff=-30;
+DCoffset = 100;
+DCoffsetinj = 400;
+
+for iFreq = 1:FreqNum
+    
+    %     evalc('[Amp_error, Phase_error] = check_acc( Fc(iFreq),InjTime(iFreq),Amp_Inj,Amp_Meas,InjPhase,MeasPhaseDiff,DCoffset,DCoffsetinj );');
+    [Amp_error, Phase_error] = check_acc( Fc(iFreq),InjTime(iFreq),Amp_Inj,Amp_Meas,InjPhase,MeasPhaseDiff,DCoffset,DCoffsetinj );
+    
+    
+    Amp_error_totT12(iFreq) = mean(Amp_error);
+    Phase_error_totT12(iFreq) = mean(Phase_error);
+    
+end
+
+%%
+
+if plotflag
+    figure
+    
+    subplot(2,1,1)
+    plot(Fc,100*(Amp_error_totT12/Amp_Inj))
+    ylabel('Error %');
+    xlabel('Frequency');
+    title('T12: Amp error 3 cycles');
+    
+    subplot(2,1,2)
+    
     ylabel('Error');
     xlabel('Frequency');
-    legend('32','64','128')
+    title('T12: Phase error 3 cycles');
     
+end
+%%
+
+figure
+hold on
+plot(Fc/1000,100*(Amp_error_totT12/Amp_Inj))
+plot(Fc/1000,100*(Phase_error_totT12/MeasPhaseDiff))
+
+ylabel('Error %');
+xlabel('Frequency (kHz)');
+
+legend('Amplitude','Phase');
 
 
 
-
-
-
-
-
-
-
-
-
-
+%%
 
 
 
