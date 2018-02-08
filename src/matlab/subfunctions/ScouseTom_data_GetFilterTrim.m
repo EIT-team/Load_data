@@ -90,9 +90,9 @@ FcominFIR =8;
 
 % Frequency below which FIR filters are best separeated into high and low
 % pass rather than a single bandpass
-FIRLowPassCutoff = 20;
+FIRLowPassCutoff = 21;
 % equivalent for IIR
-IIRLowPassCutoff = 16;
+IIRLowPassCutoff = 21;
 
 %flags for using low pass only
 UseLowPassIIR=0;
@@ -419,8 +419,8 @@ end
 function [d]=HighPassIIR(Fc,Fs)
 % makes high pass IIR. This is always the same, so no iterations for this
 
-Fpass = max([(Fc -10) 1.5]);
-Fstop = max([(Fpass -1.5) 1]);
+Fpass = max([(Fc -10) 1]);
+Fstop = max([(Fpass -1.5) 0.5]);
 Apass = 0.5;
 Astop =5;
 
