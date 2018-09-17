@@ -1,8 +1,71 @@
 function [BVstruc] = ScouseTom_ProcessBV( HDR,TT,ExpSetup,BW )
-%SCOUSETOM_ Summary of this function goes here
-%   Detailed explanation goes here
-
-% ONLY DOES ONE INJECTION AT THE MOMENT
+%[BVstruc] = ScouseTom_ProcessBV( HDR,TT,ExpSetup)
+%SCOUSETOM_PROCESSBV
+%   Demodulates the voltages for "convential" EIT recordings, i.e.
+%   sequential pairwise injection, without stimulation. Normally called
+%   through ScouseTom_Load
+%
+%   First the starting line of the injection protocol is estimated, based
+%   on the rms of the voltages in the first injection pair. Then the filter
+%   settings for all carrier frequencies are determined. 
+%
+%   The demodulation is then performed on each frequency in turn. The
+%   channels are processed in blocks based on an estimate of the total
+%   memory usage. The output is then the mean demodulated boundary voltage,
+%   as a magnitude BV and Phase PA.
+% 
+%   The contact impedance is estimated using the voltage on the injection
+%   channels and the current amplitude as per the Expsetup.
+%
+%   The output is stored in a matfile Fname-BV.mat
+%
+%   Inputs:
+%   HDR - from ScouseTom_getHDR contains metadata about EEG file
+%   TT  - from ScouseTom_TrigProcess, infomation from digital trigger
+%       channels
+%   ExpSetup -  Structure containing the setup for the ScouseTom system,
+%       this is stored in the FNAME_log.mat with every dataset.
+%   BW[100] - Total bandwidth of filter to use i.e. Bandwidth/2 either side
+%       of carrier (optional)
+%
+%   Outputs:
+%   BVstruc  - Strucutre containg all boundary voltages, phase angles,
+%       contact impedances, along with ExpSetup and filters used furing
+%       demodulation. This is also stored in FNAME-BV.mat
+%
+%      The output structure is as follows, given 
+%       TotInj - the number of independent datasets in this file i.e. the number
+%           of times ScouseTom_Start or ScouseTom_ContactCheck was run. This is
+%           normally 1!
+%       Prt - Number of injection pairs in protocol
+%       Freq - Number of differnet frequencies used
+%       Elec - Number of recording electrodes 
+%       Frames - Number of complete repeats of the protocol
+%       TotPrt - Total number of changes of injection pair - this is Frames
+%           x Prt unless the injection was stopped early
+%   
+%   BVStruc:
+%   BV{TotInj,Freq} - Magnitude of the boundary voltages i.e. the mean of
+%       the demodulated signal for all channels and all injection pairs. Each
+%       cell contains matrix (Prt,Frames)
+%   PhaseAngle{TotInj,Freq} - Phase angle of each boundary voltage. Each
+%       cell contains matrix (Prt,Frames)
+%   STD{TotInj,Freq} - Standard deviation of the magintiude of the voltage
+%       in each measurement combination. Each cell contains matrix (Prt,Frames)
+%   PhaseAngleSTD{TotInj,Freq} - Standard deviation for the phase angle for
+%       each measurement combination. Each cell contains matrix (Prt,Frames)
+%   Z{Freq} - Estimate of the contact impedance for each measurement.
+%       Result is average of all measurements on that electrode. Size(Elec,Frames)
+%   Zstd{Freq} - Standard deviation of this measurement matrix (Elec,Frames) 
+%   keep_idx - Index of measurement combinations wrt to the prt_full which 
+%       do *not* include injection electrodes, and are thus valid 4 electrode measurements.
+%   rem_idx - Index of measurement combinations wrt to prt_full, which
+%       include injection electrodes
+%   prt_full - The procotol in full [CS+ CS- V+ V-] form, for forward model
+%   info - Structure containing some info about the dataset: filename and
+%       date, as well as the filters used.  
+%   TT - Same as input, for reference
+%   ExpSetup - Same as input, for reference
 
 %% Do error checking of inputs HERE
 
@@ -41,7 +104,7 @@ ZSF=1./(ExpSetup.Amp); %keep this in uA as voltages are in uV
 %matfile object can handle big files, and stops everything being stored in
 %memory
 
-% some basic info about the data set - HDR is too big to save each time
+% some basic info about the data set - HDR is often too big to save each time
 info.eegfname=eegfname;
 info.TimeNum=datenum(HDR.T0);
 info.TimeVec=HDR.T0;
@@ -49,8 +112,8 @@ info.TimeVec=HDR.T0;
 mfilename=fullfile(eegfpath,[eegfname '-BV.mat']);
 
 %create matfile object in same place as data
-bigmat=matfile(mfilename,'Writable',true);
-%% Loop through each injection start in file
+Out_matfile=matfile(mfilename,'Writable',true);
+%% Actually demodulate the data
 
 %find which line in the protocol the data starts with
 [StartInj] = ScouseTom_data_checkfirstinj(HDR,TT.InjectionSwitches(1,:),ExpSetup.Protocol );
@@ -66,14 +129,13 @@ bigmat=matfile(mfilename,'Writable',true);
 
 %% Save the info to the matfile
 
-% save trigger info
-bigmat.TT=TT;
-%save the system settings
-bigmat.ExpSetup=ExpSetup;
+Out_matfile.TT=TT;% save trigger info
+Out_matfile.ExpSetup=ExpSetup; %save the system settings
+
 %save info and the protocol indexes
-bigmat.keep_idx=keep_idx;
-bigmat.rem_idx=rem_idx;
-bigmat.prt_full=prt_full;
+Out_matfile.keep_idx=keep_idx; % this is the idx of the *measurement* channels which are are interested in
+Out_matfile.rem_idx=rem_idx; % this is the idx of *injection* channels, which we are often neglected
+Out_matfile.prt_full=prt_full; % the procotol in full [CS+ CS- V+ V-] form, for forward model
 
 %save filter stuff
 info.Filt=Filt;
@@ -82,19 +144,19 @@ info.Fc=Fc;
 info.ZSF=ZSF;
 
 %save all info
-bigmat.info=info;
+Out_matfile.info=info;
 
 %% save data to matfile
 
-bigmat.BV=BV;
-bigmat.STD=BVSTD;
-bigmat.Z=Z;
-bigmat.Zstd=Zstd;
-bigmat.PhaseAngle=PA;
-bigmat.PhaseAngleSTD=PASTD;
+Out_matfile.BV=BV;
+Out_matfile.STD=BVSTD;
+Out_matfile.Z=Z;
+Out_matfile.Zstd=Zstd;
+Out_matfile.PhaseAngle=PA;
+Out_matfile.PhaseAngleSTD=PASTD;
 %% All processing done!
 
-disp('All processing finished! At fucking last!');
+disp('All processing finished! At last!');
 teatime=toc(tstart);
 fprintf('That took : %.1f seconds \r',teatime);
 

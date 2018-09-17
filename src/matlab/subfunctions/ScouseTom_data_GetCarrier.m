@@ -1,27 +1,31 @@
 function [ Fc ] = ScouseTom_data_GetCarrier( data,Fs )
-%get carrier frequency of data
-% Assumes only one carrier frequency
+% [Fc] = ScouseTom_data_GetCarrier( data,Fs )
+% get carrier frequency of data
+%   Assumes only one carrier frequency
 %   finds the largest frequency bin in a data set. Zero pads the result to
 %   give smaller frequency bins for short signals for a more accurate
 %   result.
-% Adapted from G Dragons Code by the sonorous and majestic Jimmy
+%%
+max_length = 2^24; %mamximum length of data to use, must be power of 2
 
-% this is not a very robust bit of code at the moment, if data is fucked
-% then this doesnt know, and at the moment there are no checks to see if it
-% matches the *expected* freq
-
-V=detrend(data);
+if length(data) > max_length
+    data=data(1:max_length);
+end
+    
+    
+V=detrend(data); % remove DC offset
 N = length(V);
 
-NFFT = max([2^24 2^nextpow2(length(V))]); % Next power of 2 from length of y
-Y = fft(V,NFFT)/N;
-F = Fs/2*linspace(0,1,NFFT/2+1);
+NFFT = max([max_length 2^nextpow2(length(V))]); % Next power of 2 from length of y
+Y = fft(V,NFFT)/N; % corrected power
+F = Fs/2*linspace(0,1,NFFT/2+1); %one side of frequency
 
-Ymag=2*abs(Y(1:NFFT/2+1));
+Ymag=2*abs(Y(1:NFFT/2+1)); % magnitude
 
 [~,maxw] = max(Ymag);
 %find carrier one
 Fc = F(maxw);
+Fc = round(Fc,2);
 
 % %parabolic fit from
 % %https://ccrma.stanford.edu/~jos/sasp/Matlab_Parabolic_Peak_Interpolation.html,

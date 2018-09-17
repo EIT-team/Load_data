@@ -1,6 +1,19 @@
 function [ StatusChn,TrigPos ] = ScouseTom_geteegtrig( HDR,varargin )
-%SCOUSETOM_TRIG Summary of this function goes here
-%   Detailed explanation goes here
+%[StatusChn,TrigPos] = ScouseTom_geteegtrig(HDR)
+%SCOUSETOM_GETEEGTRIG Converts eeg triggers into separate channels
+%   ActiCHamp stores status of all 8 trigger channels in .vmrk file, so
+%   turn this into a vector of 8 bits. HDR already stores only when things
+%   have changed, but it deletes a bunch of codes and messing with things,
+%   so load the triggers from the file manually. 
+%
+%   Inputs:
+%   HDR - Structure from ScouseTom_getHDR
+%   Trignum(8) - User specified number of channels to load (optional)
+%
+%   Outputs:
+%   StatusChn  - The state of each channel as boolean at each time point
+%   TrigPos     - The time in samples when these changes in digital
+%       triggers occured
 
 %% Check inputs
 if ~isempty(varargin)
@@ -20,9 +33,7 @@ end
 % the same time code. so these need to be combined too
 
 % The output in HDR.TYP gives weird results, so I have ignored it and done
-% it myself BECAUSE IT FUCKING DELETES HALF OF THE CODES FOR NO REASON FOR
-% FUCKS SAKE THATS LIEK HOURS OF MY LIFE WASTED WHAT THE
-% FUCK!!!!!!
+% it myself
 %% Find Marker Codes
 
 %get marker codes using code from BVA import
@@ -36,11 +47,6 @@ type = {EVENT.type}.';
 
  TrigPosOrig=latency; %get the samples at which each of these occur
  [Codes, CodeIndex, Coderef] = unique(type);
-
-
-% TrigPosOrig=HDR.EVENT.POS; %get the samples at which each of these occur
-% [Codes, CodeIndex, Coderef] = unique(HDR.EVENT.Desc);
-
 
 %% Convert Codes to Decimal
 
@@ -88,6 +94,7 @@ StatusChn=fliplr(StatusChn); %sort into LSB
 
 end
 
+function CONF = readbvconf(pathname, filename)
 % readbvconf() - read Brain Vision Data Exchange format configuration 
 %                file
 %
@@ -122,9 +129,6 @@ end
 % Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 % $Id: readbvconf.m 44 2009-11-12 02:00:56Z arnodelorme $
-function CONF = readbvconf(pathname, filename)
-%this is a function from 
-
 
 if nargin < 2
     error('Not enough input arguments');
@@ -174,6 +178,8 @@ for iSection = 1:length(sectionArray) - 1
 end
 end
 
+
+function EVENT = parsebvmrk(MRK)
 % parsebvmrk() - convert Brain Vision Data Exchange format marker
 %                configuration structure to EEGLAB event structure
 %
@@ -207,8 +213,6 @@ end
 % Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 % $Id: parsebvmrk.m 37 2007-06-26 12:56:17Z andreaswidmann $
-
-function EVENT = parsebvmrk(MRK)
 
 for idx = 1:length(MRK.markerinfos)
     [mrkType mrkDesc EVENT(idx).latency EVENT(idx).duration  EVENT(idx).channel EVENT(idx).bvtime] = ...

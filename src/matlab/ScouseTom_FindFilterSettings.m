@@ -1,19 +1,53 @@
 function [ Filt,TrimDemod,Fc ] = ScouseTom_FindFilterSettings( HDRin,curInjectionSwitches,InjElec,BandWidth )
-%SCOUSETOM_FINDFILTERSETTINGS Summary of this function goes here
-%   Detailed explanation goes here
+% ScouseTom_FindFilterSettings( HDRin,curInjectionSwitches,InjElec,BandWidth )
+%SCOUSETOM_FINDFILTERSETTINGS Finds the optimal filters for all injected
+%frequencies in a given file. This is based on the carrier frequency and
+%the length of injection. If possible, an IIR filter with smaller number of
+%coefficients will be chosen. However if the injections are too short, and
+%the filter has not sufficiently decayed, an FIR filter will be used
+%instead.
+%
+% Most common usage is like this:
+% [Filt,FilterTrim,Fc]=ScouseTom_FindFilterSettings(HDR,TT.InjectionSwitches(1,:),ExpSetup.Protocol(StartInj,1),BW);
+%
+% This function is basically a wrapper for ScouseTom_data_GetFilterTrim
+% which handles all of the filter settings.
+%
+%
+% Inputs:
+% HDRin - HDR structure from ScouseTom_getHDR
+%
+% curInjectionSwitches - the timepoints (in samples) which correspond the
+%   swtiching of injection pairs in the data. This is found in
+%   TT.InjectionSwitches, the output of ScouseTom_TrigProcess
+%
+% InjElec - vector with the electrode numbers corresponding to the first
+%   injection pair i.e. [1 16]. We need this as these are the largest
+%   channels and thus best suited for finding the carrier freq
+%
+% BandWidth - Total bandwidth of filter to use i.e. Bandwidth/2 either side
+% of carrier
+%
+% Outputs:
+% Filt - filter object (used like filtfilt(Filt,V)). This is a
+%   cell if multiple frequencies in file.
+% TrimDemod - The number of samples to remove before and after a switch of injection pair before averaging.
+%   To remove the errors from filtering artefacts. A cell if mutiple
+%   frequencies used
+% Fc - Carrier frequencies, cell if multiple freqs used
 
 
-%% check if there are actually any injections etc.
+%% set default
 
-
+% This is TOTAL bandwidth, i.e. BandWidth/2 either side of the carrier
 if exist('BandWidth','var') ==0
     BandWidth =100;
 end
 
 
-%% Find relevant start inj
+%% Find relevant start injection
 
-
+%number of frequencies
 Nfreq=size(curInjectionSwitches,2);
 Fs=HDRin.SampleRate;
 
@@ -25,9 +59,11 @@ for iFreq=1:Nfreq
     lastinj(iFreq)=max(curInjectionSwitches{iFreq}(1,:));
 end
 
+% find the chunk of data we want to load
 [FirstSample, FirstFreq]=min(firstinj);
 [LastSample, LastFreq]=max(lastinj);
 
+%round to nearest whole second (this is what sread needs)
 StartSec=floor(FirstSample/Fs);
 StopSec=ceil(LastSample/Fs);
 
@@ -47,19 +83,16 @@ for iFreq=1:Nfreq
     HDR.InChanSelect=InjElec(iFreq);
     HDR.Calib=HDRin.Calib(1:2,1);
     
-    %only load data for first injection
+    %only load data for first injection rounded to nearest seconds
     V=sread(HDR,StopSec-StartSec,StartSec);
     
-    %take either the first injection or the first second
-    
+    %take the first injection switch indicies
     tmp=curInjectionSwitches{iFreq}(1,2)-curInjectionSwitches{iFreq}(1,1);
-    %     if tmp > Fs
-    %         tmp=Fs; %if the first switch is longer than a second, only take a second
-    %     end
     
+    % injection switches are with respect to whole file, so adjust for the
+    % start of the data we have collected
     tmpstart=curInjectionSwitches{iFreq}(1,1)-StartSample;
     tmpidx=tmpstart:tmpstart+tmp;
-    
     
     %find carrier frequency and get filter coefficients as well as
     %the amount of data to remove each segment
