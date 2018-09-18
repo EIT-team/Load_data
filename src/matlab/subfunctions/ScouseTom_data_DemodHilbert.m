@@ -16,6 +16,11 @@ if any(isnan(data))
 end
 
 %% Filter data
+
+% remove DC offset
+datamean = mean(data);
+data = bsxfun(@minus,data,datamean);
+
 % multiple filters can be specified in cell array
 if ~iscell(Filt)
     %filter data using coefs
@@ -28,6 +33,12 @@ else
     
 end
 %% Demodulate
+
+
+% remove DC offset
+datamean = mean(data);
+data = bsxfun(@minus,data,datamean);
+
 
 %get envelope of signal using hilbert transform
 data = (hilbert(data));
