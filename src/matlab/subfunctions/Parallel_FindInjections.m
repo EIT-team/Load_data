@@ -19,7 +19,7 @@ max_length = 2^20; %mamximum length of data to use, must be power of 2
 Data=detrend(Data); % remove DC offset
 
 if length(Data) > max_length
-    Data=Data(1:max_length);
+    Data=Data(1:max_length,:);
 end
 
 N = length(Data);
