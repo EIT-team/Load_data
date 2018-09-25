@@ -1,17 +1,45 @@
-function [EIT,EEG] = Parallel_Process( fname,BWeit)
-%PROCESSPARALLEL Summary of this function goes here
-%   Detailed explanation goes here
-
+function [varargout] = Parallel_Process( fname,BWeit,decimation_factor)
+%PROCESSPARALLEL [EIT] = Parallel_Process( fname,BWeit)
+%   Processes parallel FDM-EIT data - ASSUMES WHOLE FILE CAN FIT IN RAM
+% [EIT] = Parallel_Process(...) % extracts EIT data only
+% [EIT,EEG] = Parallel_Process(...) % extracts both EIT and EEG data
 %%
-% InjsSim=sort(InjsSim,2);
-% Ninj=size(InjsSim,1);
 
-HDR=ScouseTom_getHDR(fname);
-Fs=HDR.SampleRate;
+% do eeg only if it is asked
+if nargout ==2
+    DoEEG =1;
+else
+    DoEEG=0;
+end
 
 if exist('BWeit','var') == 0  || isempty(BWeit)
     BWeit=100; %bandwidth of bandpass filter in demod
 end
+
+if exist('decimation_factor','var') == 0  || isempty(decimation_factor)
+    decimation_factor=1; % default to not doing it, despite the HUGE files this could result in
+end
+
+if decimation_factor ==1
+    DoDecimation =0;
+else
+    DoDecimation =1;
+end
+
+
+%% Get Header and triggers
+
+HDR=ScouseTom_getHDR(fname);
+
+if strcmp(HDR.TYPE,'NULL')
+  error('File not found');
+end
+
+Fs=HDR.SampleRate;
+
+%find triggers
+[ StatusChn,TrigPos ] = ScouseTom_geteegtrig(HDR);
+% TrigPos = TrigPos/Fs ;
 
 
 %% Check number of channels
@@ -44,6 +72,7 @@ Secondstoload=inf;
 
 disp('Loading data');
 V=sread(HDR,Secondstoload,StartSec);
+t=(0:length(V)-1)/Fs;
 
 Vmax= max(V);
 Nsamples=size(V,1);
@@ -55,9 +84,46 @@ Nsamples=size(V,1);
 MaxEstLength=3;
 SecondsEst=min([MaxEstLength floor(HDR.SPR/HDR.SampleRate)]);
 
-
 [Injs, Freqs] = Parallel_FindInjections(V(1:Fs*SecondsEst,:),Fs,Chn_labels);
 N_freqs=length(Freqs);
+
+%% Find Decimation factors
+
+if DoDecimation
+    %decimation of 13 or more should be done by separate passes.
+    if decimation_factor > 13
+        
+        facs= factor(decimation_factor);
+        
+        % if factor is bigger than 13 then this doesnt work, so better not to
+        % do anything
+        if any(facs > 13)
+            error('Too large prime factor! Adjust so all are smaller than 13');
+        end
+        
+        % split the decimation factor into steps less than 12
+        next_div=inf;
+        
+        decimation_factor_vec=[1];
+        vec_cnt=1;
+        while next_div > 1
+            
+            %find the next biggest divisor thats less than 12
+            cur_divisors=divisors(decimation_factor/(prod([decimation_factor_vec])));
+            next_div=cur_divisors(find(cur_divisors < 12,1,'last'));
+            
+            if next_div > 1
+                decimation_factor_vec(vec_cnt)=next_div;
+                vec_cnt=vec_cnt+1;
+            end
+        end
+        
+        
+    else
+        decimation_factor_vec = decimation_factor;
+    end
+end
+
 
 
 %% Process EIT data
@@ -72,7 +138,6 @@ for iFreq = 1:N_freqs
     Fc_cur=Freqs(iFreq)+BWeit*[-1 +1];
     
     [cur_Filt,cur_TrimDemod] =ScouseTom_getbpf(20,Fc_cur,Fs);
-    
     
     %make it consistent with multifreq bits, which are all cells
     Filt{iFreq}=cur_Filt;
@@ -91,6 +156,54 @@ for iFreq = 1:N_freqs
     
 end
 
+%% Process EEG data
+
+if DoEEG
+    disp('Processing EEG')
+    
+    [EEGlpFilt, TrimDemodEEGlpf] = ScouseTom_getlpf(6,400,Fs);
+    [EEGhpFilt, TrimDemodEEGhpf] = ScouseTom_gethpf(1,2,Fs);
+    
+    Data_eeg_filt=filtfilt(EEGlpFilt,V);
+    Data_eeg_filt=filtfilt(EEGhpFilt,Data_eeg_filt);
+    
+end
+
+%% Decimate
+
+if DoDecimation
+    
+    
+    
+    
+    if DoEEG
+        % fprintf('Decimating...');
+        % for iChn = 1:Nchn
+        %     Vtmp=Data_eeg_filt(:,iChn);
+        %     for iDec = 1:length(decimation_factor_vec)
+        %         Vtmp=decimate(Vtmp,decimation_factor_vec(iDec));
+        %     end
+        %     EEG_data(:,iChn)=Vtmp;
+        % end
+
+        
+    end
+    
+    
+    % Do triggers as well
+    
+    
+    
+    
+    
+            fprintf('done\n');
+    
+end
+
+
+
+
+%% Trim data
 max_trimsamples = max(cellfun(@(x) max(x),TrimDemod));
 
 Vfull([1:max_trimsamples end-max_trimsamples:end],:)=nan;
@@ -118,9 +231,11 @@ end
 
 
 disp('Processing Done');
+%% Find protocol info
+[prt_full,keep_idx,rem_idx]=ScouseTom_data_findprt(Injs,Chn_total); %from ScouseTom Repo
 
 
-t=(0:length(V)-1)/Fs;
+
 
 %%
 
@@ -133,8 +248,25 @@ EIT.info.Fc=Fc;
 EIT.info.TrimDemod=TrimDemod;
 EIT.info.Filt=Filt;
 EIT.info.ACgain=ACgain;
+EIT.info.TrimMax=max_trimsamples;
+EIT.protocol.prt=prt_full;
+EIT.protocol.keep_idx=keep_idx;
+EIT.protocol.rem_idx=rem_idx;
+EIT.Trig.TrigPos=TrigPos;
 
 
+EEG.t=t;
+EEG.Data=Data_eeg_filt;
+EEG.info.EEGlpf=EEGlpFilt;
+EEG.info.EEGhpf=EEGhpFilt;
+EEG.info.TrimDemodEEGlpf = TrimDemodEEGlpf;
+EEG.info.TrimDemodEEGhpf = TrimDemodEEGhpf;
+EEG.Trig.TrigPos=TrigPos;
+
+varargout{1}=EIT;
+if DoEEG
+    varargout{2}=EEG;
+end
 
 end
 
