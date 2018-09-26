@@ -179,8 +179,8 @@ if DoDecimation
         Vtmp=Vfull(:,iChn);
         Ptmp=Pfull(:,iChn);
         for iDec = 1:length(decimation_factor_vec)
-            Vtmp=decimate(Vtmp,decimation_factor_vec(iDec));
-            Ptmp=decimate(Ptmp,decimation_factor_vec(iDec));
+            Vtmp=decimate(Vtmp,decimation_factor_vec(iDec),100,'fir');
+            Ptmp=decimate(Ptmp,decimation_factor_vec(iDec),100,'fir');
         end
         V_dec(:,iChn)=Vtmp;
         P_dec(:,iChn)=Ptmp;
@@ -192,19 +192,12 @@ if DoDecimation
         for iChn = 1:Chn_max
             Vtmp=EEG_data(:,iChn);
             for iDec = 1:length(decimation_factor_vec)
-                Vtmp=decimate(Vtmp,decimation_factor_vec(iDec));
+                Vtmp=decimate(Vtmp,decimation_factor_vec(iDec),100,'fir');
             end
             EEG_data_dec(:,iChn)=Vtmp;
         end
     end
-    
-    
     % Do triggers as well
-    
-    
-    
-    
-    
     fprintf('done\n');
 end
 %% Trim data
