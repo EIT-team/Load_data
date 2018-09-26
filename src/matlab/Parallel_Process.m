@@ -32,7 +32,7 @@ end
 HDR=ScouseTom_getHDR(fname);
 
 if strcmp(HDR.TYPE,'NULL')
-  error('File not found');
+    error('File not found');
 end
 
 Fs=HDR.SampleRate;
@@ -76,8 +76,6 @@ t=(0:length(V)-1)/Fs;
 
 Vmax= max(V);
 Nsamples=size(V,1);
-
-
 %% Find injection channels
 
 % dont use huge amounts of data for estimation
@@ -86,7 +84,6 @@ SecondsEst=min([MaxEstLength floor(HDR.SPR/HDR.SampleRate)]);
 
 [Injs, Freqs] = Parallel_FindInjections(V(1:Fs*SecondsEst,:),Fs,Chn_labels);
 N_freqs=length(Freqs);
-
 %% Find Decimation factors
 
 if DoDecimation
@@ -123,9 +120,6 @@ if DoDecimation
         decimation_factor_vec = decimation_factor;
     end
 end
-
-
-
 %% Process EIT data
 Vfull=nan(size(V,1),N_freqs*Chn_total);
 Pfull=Vfull;
@@ -143,7 +137,6 @@ for iFreq = 1:N_freqs
     Filt{iFreq}=cur_Filt;
     TrimDemod{iFreq}=cur_TrimDemod;
     Fc{iFreq}=Freqs(iFreq);
-    
     
     [Vdemod,Pdemod]=ScouseTom_data_DemodHilbert(V,cur_Filt);
     vidx=(iFreq-1)*Chn_total + 1:(iFreq)*Chn_total;
@@ -164,29 +157,45 @@ if DoEEG
     [EEGlpFilt, TrimDemodEEGlpf] = ScouseTom_getlpf(6,400,Fs);
     [EEGhpFilt, TrimDemodEEGhpf] = ScouseTom_gethpf(1,2,Fs);
     
-    Data_eeg_filt=filtfilt(EEGlpFilt,V);
-    Data_eeg_filt=filtfilt(EEGhpFilt,Data_eeg_filt);
+    EEG_data=filtfilt(EEGlpFilt,V);
+    EEG_data=filtfilt(EEGhpFilt,EEG_data);
     
 end
 
 %% Decimate
 
 if DoDecimation
+    fprintf('Decimating...');
     
+    Fs_dec=Fs/decimation_factor;
+    Nsamples_dec=Nsamples/decimation_factor;
     
+    fprintf('EIT...');
     
+    V_dec=nan(Nsamples_dec,size(Vfull,2));
+    P_dec=nan(Nsamples_dec,size(Vfull,2));
+    
+    for iChn = 1:size(Vfull,2)
+        Vtmp=Vfull(:,iChn);
+        Ptmp=Pfull(:,iChn);
+        for iDec = 1:length(decimation_factor_vec)
+            Vtmp=decimate(Vtmp,decimation_factor_vec(iDec));
+            Ptmp=decimate(Ptmp,decimation_factor_vec(iDec));
+        end
+        V_dec(:,iChn)=Vtmp;
+        P_dec(:,iChn)=Ptmp;
+    end
     
     if DoEEG
-        % fprintf('Decimating...');
-        % for iChn = 1:Nchn
-        %     Vtmp=Data_eeg_filt(:,iChn);
-        %     for iDec = 1:length(decimation_factor_vec)
-        %         Vtmp=decimate(Vtmp,decimation_factor_vec(iDec));
-        %     end
-        %     EEG_data(:,iChn)=Vtmp;
-        % end
-
-        
+        fprintf('EEG...');
+        EEG_data_dec=nan(Nsamples_dec,Chn_max);
+        for iChn = 1:Chn_max
+            Vtmp=EEG_data(:,iChn);
+            for iDec = 1:length(decimation_factor_vec)
+                Vtmp=decimate(Vtmp,decimation_factor_vec(iDec));
+            end
+            EEG_data_dec(:,iChn)=Vtmp;
+        end
     end
     
     
@@ -196,13 +205,8 @@ if DoDecimation
     
     
     
-            fprintf('done\n');
-    
+    fprintf('done\n');
 end
-
-
-
-
 %% Trim data
 max_trimsamples = max(cellfun(@(x) max(x),TrimDemod));
 
@@ -226,9 +230,7 @@ for iFreq = 1:N_freqs
     Vfull(:,vidx)=Vfull(:,vidx)*G1;
     
     ACgain(iFreq)=G1;
-    
 end
-
 
 disp('Processing Done');
 %% Find protocol info
@@ -256,7 +258,7 @@ EIT.Trig.TrigPos=TrigPos;
 
 
 EEG.t=t;
-EEG.Data=Data_eeg_filt;
+EEG.Data=EEG_data;
 EEG.info.EEGlpf=EEGlpFilt;
 EEG.info.EEGhpf=EEGhpFilt;
 EEG.info.TrimDemodEEGlpf = TrimDemodEEGlpf;
