@@ -42,6 +42,15 @@ Fs=HDR.SampleRate;
 % TrigPos = TrigPos/Fs ;
 
 
+% check for non integer decimation factor here so it breaks early
+Fs_dec=Fs/decimation_factor;
+
+if Fs_dec ~= int32(Fs_dec)
+    error(sprintf('Non integer decimated sample rate, Fs:%d Fs_dec:%f',Fs,Fs_dec));
+end
+
+
+
 %% Check number of channels
 % get the chan labels from actichamp software
 Chn_labels= str2double(HDR.Label);
@@ -72,7 +81,7 @@ Secondstoload=inf;
 
 disp('Loading data');
 V=sread(HDR,Secondstoload,StartSec);
-t=(0:length(V)-1)/Fs;
+
 
 Vmax= max(V);
 Nsamples=size(V,1);
@@ -88,6 +97,9 @@ N_freqs=length(Freqs);
 
 if DoDecimation
     %decimation of 13 or more should be done by separate passes.
+    
+    
+    
     if decimation_factor > 13
         
         facs= factor(decimation_factor);
@@ -121,8 +133,8 @@ if DoDecimation
     end
 end
 %% Process EIT data
-Vfull=nan(size(V,1),N_freqs*Chn_total);
-Pfull=Vfull;
+EIT_data_V=nan(size(V,1),N_freqs*Chn_total);
+EIT_data_P=EIT_data_V;
 
 BV_inj=nan(Chn_total,N_freqs);
 STD_inj=BV_inj;
@@ -141,8 +153,8 @@ for iFreq = 1:N_freqs
     [Vdemod,Pdemod]=ScouseTom_data_DemodHilbert(V,cur_Filt);
     vidx=(iFreq-1)*Chn_total + 1:(iFreq)*Chn_total;
     
-    Vfull(:,vidx)=Vdemod;
-    Pfull(:,vidx)=Pdemod;
+    EIT_data_V(:,vidx)=Vdemod;
+    EIT_data_P(:,vidx)=Pdemod;
     
     BV_inj(:,iFreq)=mean(Vdemod(TrimDemod{iFreq}:end-TrimDemod{iFreq},:),1);
     STD_inj(:,iFreq)=std(Vdemod(TrimDemod{iFreq}:end-TrimDemod{iFreq},:),1);
@@ -167,17 +179,17 @@ end
 if DoDecimation
     fprintf('Decimating...');
     
-    Fs_dec=Fs/decimation_factor;
+    
     Nsamples_dec=Nsamples/decimation_factor;
     
     fprintf('EIT...');
     
-    V_dec=nan(Nsamples_dec,size(Vfull,2));
-    P_dec=nan(Nsamples_dec,size(Vfull,2));
+    V_dec=nan(Nsamples_dec,size(EIT_data_V,2));
+    P_dec=nan(Nsamples_dec,size(EIT_data_V,2));
     
-    for iChn = 1:size(Vfull,2)
-        Vtmp=Vfull(:,iChn);
-        Ptmp=Pfull(:,iChn);
+    for iChn = 1:size(EIT_data_V,2)
+        Vtmp=EIT_data_V(:,iChn);
+        Ptmp=EIT_data_P(:,iChn);
         for iDec = 1:length(decimation_factor_vec)
             Vtmp=decimate(Vtmp,decimation_factor_vec(iDec),100,'fir');
             Ptmp=decimate(Ptmp,decimation_factor_vec(iDec),100,'fir');
@@ -198,13 +210,24 @@ if DoDecimation
         end
     end
     % Do triggers as well
+    TrigPos=round(TrigPos/decimation_factor);
+    
+    %replace variables with decimated ones
+    EIT_data_V=V_dec;
+    EIT_data_P=P_dec;
+    EEG_data=EEG_data_dec;
+    Fs=Fs_dec;
+    
+    clear V_dec P_dec EEG_data_dec
+    
     fprintf('done\n');
 end
 %% Trim data
-max_trimsamples = max(cellfun(@(x) max(x),TrimDemod));
+max_trimsamples = max(cellfun(@(x) max(x),TrimDemod)); %find the max in the cell array
+max_trimsamples = ceil(max_trimsamples/decimation_factor); % correct for decimation factor
 
-Vfull([1:max_trimsamples end-max_trimsamples:end],:)=nan;
-Pfull([1:max_trimsamples end-max_trimsamples:end],:)=nan;
+EIT_data_V([1:max_trimsamples end-max_trimsamples:end],:)=nan;
+EIT_data_P([1:max_trimsamples end-max_trimsamples:end],:)=nan;
 %% Correct for ActiChamp Gain
 
 % AC gain
@@ -220,7 +243,7 @@ for iFreq = 1:N_freqs
     
     vidx=(iFreq-1)*Chn_total + 1:(iFreq)*Chn_total;
     
-    Vfull(:,vidx)=Vfull(:,vidx)*G1;
+    EIT_data_V(:,vidx)=EIT_data_V(:,vidx)*G1;
     
     ACgain(iFreq)=G1;
 end
@@ -228,15 +251,14 @@ end
 disp('Processing Done');
 %% Find protocol info
 [prt_full,keep_idx,rem_idx]=ScouseTom_data_findprt(Injs,Chn_total); %from ScouseTom Repo
+%% Save everything to Strucutre
 
-
-
-
-%%
+t=(0:length(EIT_data_V)-1)/Fs;
 
 EIT.t=t;
-EIT.Vfull=Vfull;
-EIT.Pfull=Pfull;
+EIT.Fs=Fs;
+EIT.Data_V=EIT_data_V;
+EIT.Data_P=EIT_data_P;
 EIT.Injs=Injs;
 EIT.Freqs=Freqs;
 EIT.info.Fc=Fc;
@@ -249,17 +271,20 @@ EIT.protocol.keep_idx=keep_idx;
 EIT.protocol.rem_idx=rem_idx;
 EIT.Trig.TrigPos=TrigPos;
 
-
-EEG.t=t;
-EEG.Data=EEG_data;
-EEG.info.EEGlpf=EEGlpFilt;
-EEG.info.EEGhpf=EEGhpFilt;
-EEG.info.TrimDemodEEGlpf = TrimDemodEEGlpf;
-EEG.info.TrimDemodEEGhpf = TrimDemodEEGhpf;
-EEG.Trig.TrigPos=TrigPos;
-
 varargout{1}=EIT;
+
+
 if DoEEG
+    
+    EEG.t=t;
+    EEG.Fs=Fs;
+    EEG.Data=EEG_data;
+    EEG.info.EEGlpf=EEGlpFilt;
+    EEG.info.EEGhpf=EEGhpFilt;
+    EEG.info.TrimDemodEEGlpf = TrimDemodEEGlpf;
+    EEG.info.TrimDemodEEGhpf = TrimDemodEEGhpf;
+    EEG.Trig.TrigPos=TrigPos;
+
     varargout{2}=EEG;
 end
 
