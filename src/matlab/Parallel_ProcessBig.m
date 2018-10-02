@@ -85,6 +85,8 @@ end
 
 Fs=HDR.SampleRate;
 Nsamples=HDR.SPR;
+Nsamples_dec=Nsamples/decimation_factor;
+
 
 %find triggers
 [ StatusChn,TrigPos ] = ScouseTom_geteegtrig(HDR);
@@ -138,7 +140,7 @@ if DoEIT
     N_freqs=length(Freqs);
     %% process each frequency in turn
     %preallocate
-    EIT_data_V=nan(Nsamples,N_freqs*Chn_total);
+    EIT_data_V=nan(Nsamples_dec,N_freqs*Chn_total);
     EIT_data_P=EIT_data_V;
     Filt=cell(1,N_freqs);
     TrimDemod=zeros(1,N_freqs);
@@ -170,12 +172,25 @@ if DoEIT
         V=sread(HDRin,inf,0);
         
         for iFreq = 1:N_freqs
-            %Only filter one at a time to reduce ram usage
+            %Only filter one at a time to reduce ram usage, also only save
+            %decimated version if asked
             
             [Vdemod,Pdemod]=ScouseTom_data_DemodHilbert(V,Filt{iFreq});
-            
             vidx=(iFreq-1)*Chn_total + iChn;
             
+            if DoDecimation
+                
+                Vtmp=Vdemod;
+                Ptmp=Pdemod;
+                for iDec = 1:length(decimation_factor_vec)
+                    Vtmp=decimate(Vtmp,decimation_factor_vec(iDec),100,'fir');
+                    Ptmp=decimate(Ptmp,decimation_factor_vec(iDec),100,'fir');
+                end
+                Vdemod=Vtmp;
+                Pdemod=Ptmp;
+                
+            end
+
             EIT_data_V(:,vidx)=Vdemod;
             EIT_data_P(:,vidx)=Pdemod;
         end
@@ -236,34 +251,34 @@ if DoEEG
         V=filtfilt(EEGlpFilt,V);
         EEG_data(:,iChn)=filtfilt(EEGhpFilt,V);
     end
-     fprintf(' done \n');
+    fprintf(' done \n');
 end
 %% Decimate
 
 if DoDecimation
     fprintf('Decimating...');
     Nsamples_dec=Nsamples/decimation_factor;
-    if DoEIT
-        
-        fprintf('EIT...');
-        
-        V_dec=nan(Nsamples_dec,size(EIT_data_V,2));
-        P_dec=nan(Nsamples_dec,size(EIT_data_V,2));
-        
-        for iChn = 1:size(EIT_data_V,2)
-            Vtmp=EIT_data_V(:,iChn);
-            Ptmp=EIT_data_P(:,iChn);
-            for iDec = 1:length(decimation_factor_vec)
-                Vtmp=decimate(Vtmp,decimation_factor_vec(iDec),100,'fir');
-                Ptmp=decimate(Ptmp,decimation_factor_vec(iDec),100,'fir');
-            end
-            V_dec(:,iChn)=Vtmp;
-            P_dec(:,iChn)=Ptmp;
-        end
-        %replace variables with decimated ones
-        EIT_data_V=V_dec;
-        EIT_data_P=P_dec;
-    end
+%     if DoEIT
+%         
+%         fprintf('EIT...');
+%         
+%         V_dec=nan(Nsamples_dec,size(EIT_data_V,2));
+%         P_dec=nan(Nsamples_dec,size(EIT_data_V,2));
+%         
+%         for iChn = 1:size(EIT_data_V,2)
+%             Vtmp=EIT_data_V(:,iChn);
+%             Ptmp=EIT_data_P(:,iChn);
+%             for iDec = 1:length(decimation_factor_vec)
+%                 Vtmp=decimate(Vtmp,decimation_factor_vec(iDec),100,'fir');
+%                 Ptmp=decimate(Ptmp,decimation_factor_vec(iDec),100,'fir');
+%             end
+%             V_dec(:,iChn)=Vtmp;
+%             P_dec(:,iChn)=Ptmp;
+%         end
+%         %replace variables with decimated ones
+%         EIT_data_V=V_dec;
+%         EIT_data_P=P_dec;
+%     end
     
     if DoEEG
         fprintf('EEG...');
