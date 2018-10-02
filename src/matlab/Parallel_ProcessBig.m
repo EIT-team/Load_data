@@ -1,6 +1,7 @@
-function [varargout] = Parallel_Process( fname,BWeit,decimation_factor)
-%PROCESSPARALLEL [EIT] = Parallel_Process( fname,BWeit)
-%   Processes parallel FDM-EIT data - ASSUMES WHOLE FILE CAN FIT IN RAM
+function [varargout] = Parallel_ProcessBig( fname,BWeit,decimation_factor)
+%PROCESSPARALLEL [EIT] = Parallel_ProcessBig( fname,BWeit)
+%   Processes parallel FDM-EIT data - aimed at big files, only filters and
+%   demodulates each channel at once
 % [EIT] = Parallel_Process(...) % extracts EIT data only
 % [EIT,EEG] = Parallel_Process(...) % extracts both EIT and EEG data
 %% Process Inputs
@@ -83,6 +84,7 @@ if strcmp(HDR.TYPE,'NULL')
 end
 
 Fs=HDR.SampleRate;
+Nsamples=HDR.SPR;
 
 %find triggers
 [ StatusChn,TrigPos ] = ScouseTom_geteegtrig(HDR);
@@ -118,37 +120,33 @@ end
 
 disp('------------------------------------');
 fprintf('Recorded %d channels %d-%d, with reference %d\n',Chn_total,min(Chn_labels),Chn_max,ref_chn);
-%% Load the data
-StartSec=0;
-Secondstoload=inf;
-
-disp('Loading data');
-V=sread(HDR,Secondstoload,StartSec);
-
-Vmax= max(V);
-Nsamples=size(V,1);
 
 %% Process EIT data
 
 if DoEIT
-    
     %%  Find injection channels
     % dont use huge amounts of data for estimation
     MaxEstLength=3;
     SecondsEst=min([MaxEstLength floor(HDR.SPR/HDR.SampleRate)]);
+    StartSec=0;
+    Secondstoload=SecondsEst; %load 3 seconds for the
     
-    [Injs, Freqs] = Parallel_FindInjections(V(1:Fs*SecondsEst,:),Fs,Chn_labels);
+    Vest=sread(HDR,Secondstoload,StartSec);
+    [Injs, Freqs] = Parallel_FindInjections(Vest(1:Fs*SecondsEst,:),Fs,Chn_labels);
+    clear Vest
+    
     N_freqs=length(Freqs);
     %% process each frequency in turn
     %preallocate
-    EIT_data_V=nan(size(V,1),N_freqs*Chn_total);
+    EIT_data_V=nan(Nsamples,N_freqs*Chn_total);
     EIT_data_P=EIT_data_V;
     Filt=cell(1,N_freqs);
     TrimDemod=zeros(1,N_freqs);
     Fc=TrimDemod;
     
+    %find filters
     for iFreq = 1:N_freqs
-        fprintf('Processing freq %d\n',iFreq);
+        
         Fc_cur=Freqs(iFreq)+BWeit*[-1 +1];
         
         [cur_Filt,cur_TrimDemod] =ScouseTom_getbpf(20,Fc_cur,Fs);
@@ -157,13 +155,33 @@ if DoEIT
         Filt{iFreq}=cur_Filt;
         TrimDemod(iFreq)=cur_TrimDemod;
         Fc(iFreq)=Freqs(iFreq);
-        
-        [Vdemod,Pdemod]=ScouseTom_data_DemodHilbert(V,cur_Filt);
-        vidx=(iFreq-1)*Chn_total + 1:(iFreq)*Chn_total;
-        
-        EIT_data_V(:,vidx)=Vdemod;
-        EIT_data_P(:,vidx)=Pdemod;
     end
+    
+    
+    fprintf('EIT Processing chn ');
+    for iChn=1:Chn_total
+        fprintf('%d,',iChn);
+        curChn=iChn;
+        curChnNum=1;
+        
+        HDRin=HDR;
+        HDRin.InChanSelect=curChn;
+        HDRin.Calib=HDRin.Calib(1:curChnNum+1,1:curChnNum);
+        V=sread(HDRin,inf,0);
+        
+        for iFreq = 1:N_freqs
+            %Only filter one at a time to reduce ram usage
+            
+            [Vdemod,Pdemod]=ScouseTom_data_DemodHilbert(V,Filt{iFreq});
+            
+            vidx=(iFreq-1)*Chn_total + iChn;
+            
+            EIT_data_V(:,vidx)=Vdemod;
+            EIT_data_P(:,vidx)=Pdemod;
+        end
+        
+    end
+    fprintf(' done \n');
     %% Correct for ActiChamp Gain
     
     % AC gain
@@ -196,6 +214,7 @@ end
 
 if DoEEG
     disp('Processing EEG')
+    EEG_data=nan(Nsamples,Chn_total);
     
     [EEGlpFilt, TrimDemodEEGlpf] = ScouseTom_getlpf(6,400,Fs);
     [EEGhpFilt, TrimDemodEEGhpf] = ScouseTom_gethpf(1,2,Fs);
@@ -203,9 +222,21 @@ if DoEEG
     
     TrimDemod=[TrimDemod TrimDemodEEGlpf TrimDemodEEGhpf ];
     
-    EEG_data=filtfilt(EEGlpFilt,V);
-    EEG_data=filtfilt(EEGhpFilt,EEG_data);
     
+    fprintf('EEG Processing chn ');
+    for iChn=1:Chn_total
+        fprintf('%d,',iChn);
+        curChn=iChn;
+        curChnNum=1;
+        
+        HDRin=HDR;
+        HDRin.InChanSelect=curChn;
+        HDRin.Calib=HDRin.Calib(1:curChnNum+1,1:curChnNum);
+        V=sread(HDRin,inf,0);
+        V=filtfilt(EEGlpFilt,V);
+        EEG_data(:,iChn)=filtfilt(EEGhpFilt,V);
+    end
+     fprintf(' done \n');
 end
 %% Decimate
 
@@ -262,7 +293,7 @@ end
 
 max_trimsamples = max(TrimDemod);
 max_trimsamples = ceil(max_trimsamples/decimation_factor); % correct for decimation factor
-% 
+%
 % if DoEIT
 %     EIT_data_V([1:max_trimsamples end-max_trimsamples:end],:)=nan;
 %     EIT_data_P([1:max_trimsamples end-max_trimsamples:end],:)=nan;
