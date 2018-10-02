@@ -12,14 +12,16 @@ else
     DoEEG=0;
 end
 
+
+%set bandwidth
+if exist('BWeit','var') == 0  || isempty(BWeit)
+    BWeit=100; %bandwidth of bandpass filter in demod
+end
+
 if BWeit ==0 % dont do EIT - when EIT not present, things get confused when you end up with 50Hz injections
     DoEIT =0;
 else
     DoEIT =1;
-end
-%set bandwidth
-if exist('BWeit','var') == 0  || isempty(BWeit)
-    BWeit=100; %bandwidth of bandpass filter in demod
 end
 
 % dont do decimation by default
