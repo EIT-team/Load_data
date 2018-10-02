@@ -68,7 +68,13 @@ else
 end
 %% Get Header and triggers
 
-HDR=ScouseTom_getHDR(fname);
+if ischar(fname)
+    
+    HDR=ScouseTom_getHDR(fname);
+else if isstruct(fname)
+        HDR=fname;
+    end
+end
 
 if strcmp(HDR.TYPE,'NULL')
     error('File not found');
