@@ -1,4 +1,4 @@
-% BIOSIG runs on Matlab and Octave. 
+% % BIOSIG runs on Matlab and Octave. 
 % This is a script installing all components in an automatically.
 %  
 % 1) extract the files and
@@ -33,7 +33,7 @@ elseif exist('biosig','dir') || exist('biosig4matlab','dir')
 else 
         fprintf(2,'Error: biosig subdirectories not found\n');
         return;
-end; 
+end
 
 if exist([BIOSIG_HOME,'/biosig'],'dir')
 	BIOSIG_DIR = [BIOSIG_HOME,'/biosig'];
@@ -45,20 +45,20 @@ path([BIOSIG_DIR,'/demo'],path);		% demos
 path([BIOSIG_DIR,'/doc'],path);		% docus, Eventtable etc. 
 path([BIOSIG_DIR,'/t200_FileAccess'],path);		% dataformat
 path([BIOSIG_DIR,'/t210_Events'],path);			% event table
-path([BIOSIG_DIR,'/t250_ArtifactPreProcessingQualityControl'],path);		% trigger and quality control
-path([BIOSIG_DIR,'/t300_FeatureExtraction'],path);		% signal processing and feature extraction
-path([BIOSIG_DIR,'/t400_Classification'],path);		% classification
-path([BIOSIG_DIR,'/t450_MultipleTestStatistic'],path);		% statistics, false discovery rates
-path([BIOSIG_DIR,'/t490_EvaluationCriteria'],path);		% evaluation criteria
-path([BIOSIG_DIR,'/t500_Visualization'],path);		% display and presentation
-path([BIOSIG_DIR,'/t501_VisualizeCoupling'],path);		% visualization ofcoupling analysis
+% path([BIOSIG_DIR,'/t250_ArtifactPreProcessingQualityControl'],path);		% trigger and quality control
+% path([BIOSIG_DIR,'/t300_FeatureExtraction'],path);		% signal processing and feature extraction
+% path([BIOSIG_DIR,'/t400_Classification'],path);		% classification
+% path([BIOSIG_DIR,'/t450_MultipleTestStatistic'],path);		% statistics, false discovery rates
+% path([BIOSIG_DIR,'/t490_EvaluationCriteria'],path);		% evaluation criteria
+% path([BIOSIG_DIR,'/t500_Visualization'],path);		% display and presentation
+% path([BIOSIG_DIR,'/t501_VisualizeCoupling'],path);		% visualization ofcoupling analysis
 
-if ~exist('OCTAVE_VERSION','builtin'),	
+if ~exist('OCTAVE_VERSION','builtin')	
 	%% Matlab
 	path([BIOSIG_DIR,'/viewer'],path);		% viewer
 	path([BIOSIG_DIR,'/viewer/utils'],path);	% viewer
 	path([BIOSIG_DIR,'/viewer/help'],path);	% viewer
-end;
+end
 
 if exist([BIOSIG_HOME,'/freetb4matlab'],'dir')
 	path(path,[BIOSIG_HOME,'/freetb4matlab/signal']);	% Octave-Forge signal processing toolbox converted with freetb4matlab
