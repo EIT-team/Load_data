@@ -111,6 +111,12 @@ info.TimeVec=HDR.T0;
 
 mfilename=fullfile(eegfpath,[eegfname '-BV.mat']);
 
+if exist(mfilename,'file')
+    delete(mfilename);
+end
+
+
+
 %create matfile object in same place as data
 Out_matfile=matfile(mfilename,'Writable',true);
 %% Actually demodulate the data
