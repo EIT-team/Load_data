@@ -152,9 +152,17 @@ ContactStartsIdx=find(S > 0); % first pulse of contact ID
 rem_idx=ContactStartsIdx+1; %its the SECOND pulse we want to remove
 InjectionStarts(rem_idx)=[]; %get rid of them!
 
+%Remove Spurious Injection starts and stops when all pins go high at once -
+%this may be when arduino is switch on during recording
+FalseStarts=(ismember(InjectionStarts,InjectionStops));
+InjectionStarts=InjectionStarts(~FalseStarts);
+InjectionStops=InjectionStops(~FalseStarts);
+
+
 %these IDXs are then used after the injections have been segmented
 ContactStartsIdx=find(ismember(InjectionStarts,ContactStarts));
 InjectionStartsIdx=find(~ismember(InjectionStarts,ContactStarts));
+
 
 NumInj=length(InjectionStartsIdx); %number of injections after removing contact starts
 
