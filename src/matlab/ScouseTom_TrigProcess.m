@@ -2,8 +2,8 @@ function [ TT  ] = ScouseTom_TrigProcess( Trigger,HDR )
 %ScouseTom_TrigProcess Process trigger channels to read infomation encoded
 %in the pulses: Normal injection/Contact Check, Single or MultiFreq,
 %Stimulations and length of protocol. Output structure is required for
-%ProcessBV or ProcessZ. 
-% 
+%ProcessBV or ProcessZ.
+%
 %   First the file is sectioned based on the injection start channel - One
 %   file could contain multiple Starts, contact checks, or a combo thereof.
 %   Trucated files - either missing the start or end of a complete sequence
@@ -13,12 +13,12 @@ function [ TT  ] = ScouseTom_TrigProcess( Trigger,HDR )
 %   found. If there are injection switches or changes is frequency, these
 %   are also read and stored in a corresponding array. The output is then
 %   in the order of injection x Freq, despite the random order of the
-%   frequency of injected current. 
+%   frequency of injected current.
 %
 %   Given the number of complete injections could be different for each
 %   frequency - if the file was stopped early, or the connection to the EEG
 %   system was interruptted. Most of the ouputs are cells, as they contain
-%   different size vectors. 
+%   different size vectors.
 %
 %   Inputs:
 %   Trigger  - struct from ScouseTom_TrigReadChn
@@ -27,7 +27,7 @@ function [ TT  ] = ScouseTom_TrigProcess( Trigger,HDR )
 %   Output
 %   TT - output stucture containing all processed trigger infomation
 %
-%   The output structure is as follows, given 
+%   The output structure is as follows, given
 %       TotInj - the number of independent datasets in this file i.e. the number
 %           of times ScouseTom_Start or ScouseTom_ContactCheck was run. This is
 %           normally 1!
@@ -35,7 +35,7 @@ function [ TT  ] = ScouseTom_TrigProcess( Trigger,HDR )
 %       Freq - Number of differnet frequencies used
 %       TotPrt - Total number of changes of injection pair - this is Frames
 %           x Prt unless the injection was stopped early
-%  
+%
 %   OutputStructure:
 %   TT.InjectionSwitches{TotInj,Freq} - Each cell contains a matrix
 %       (TotPrt,2) with the time points for the start and stop of the injection
@@ -44,7 +44,7 @@ function [ TT  ] = ScouseTom_TrigProcess( Trigger,HDR )
 %       points at which stimulation occured for that injection pair at that
 %       frequency.
 %   TT.InjectionStops(TotInj) - When datasets were finished - either by
-%       completing number of frames, or by user cancelling. 
+%       completing number of frames, or by user cancelling.
 %   TT.InjectionStarts(TotInj) - Start of datasets - the length of this is
 %       used to determine the number of independent datasets in the files
 %       in future stages
@@ -52,7 +52,7 @@ function [ TT  ] = ScouseTom_TrigProcess( Trigger,HDR )
 %   Contact - All the info regarding the contact checks in this file
 %       are stored in separate strucutre
 %   ProtocolCompleteFlags{TotInj} - Array indicating which injections
-%       switches correspond to the final one in a frame. 
+%       switches correspond to the final one in a frame.
 %   FreqOrder{TotInj} - Matrix (TotPrt,Freq) indicating the order of the
 %       frequencies in each injection switch
 %   FreqStarts{TotInj} - Time points for the changing of frequency per
@@ -155,9 +155,15 @@ InjectionStarts(rem_idx)=[]; %get rid of them!
 %Remove Spurious Injection starts and stops when all pins go high at once -
 %this may be when arduino is switch on during recording
 FalseStarts=(ismember(InjectionStarts,InjectionStops));
-InjectionStarts=InjectionStarts(~FalseStarts);
-InjectionStops=InjectionStops(~FalseStarts);
 
+if ~isempty(FalseStarts) %there might be no triggers
+    if ~isempty(InjectionStarts)
+        InjectionStarts=InjectionStarts(~FalseStarts);
+    end
+    if ~isempty(InjectionStops)
+        InjectionStops=InjectionStops(~FalseStarts);
+    end
+end
 
 %these IDXs are then used after the injections have been segmented
 ContactStartsIdx=find(ismember(InjectionStarts,ContactStarts));
@@ -218,9 +224,9 @@ for iInj=1:TotInj
     
     %% Combine switch and freq triggers
     
-    Nfreq=size(FreqStarts{1},2); 
-    InjectionSwitches=cell(TotInj,Nfreq);
-   
+    Nfreq=size(FreqStarts{1},2);
+%     InjectionSwitches=cell(TotInj,Nfreq);
+    
     
     % To make demodulation easier, make the injectionswitches Vector a
     % Matrix, with rows as inejctions and columns as the window for this
