@@ -7,11 +7,11 @@
 
 %load boundary voltages of baseline recording, cleaning the data and
 %plotting
-[BV_baseline, KHUs_baseline]=KHU_Load('..\resources\data\KHU\B1',1,1);
+[BV_baseline, KHUs_baseline]=KHU_Load('../resources/data/KHU/B1',1,1);
 
 %% load Perturbation
 
 %load boundary voltages of baseline recording, cleaning the data but not
 %plotting
-[BV_perturbation, KHUs_perturbation]=KHU_Load('..\resources\data\KHU\P1',1,0);
+[BV_perturbation, KHUs_perturbation]=KHU_Load('../resources/data/KHU/P1',1,0);
 

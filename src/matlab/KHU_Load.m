@@ -359,7 +359,7 @@ info.dateimported=date;
 KHU.info=info;
 
 %get the name for the new files
-k=strfind(dirname,filesep);
+k=strfind(dirname,'/');
 newnamestr=dirname(k(end)+1:end);
 
 
